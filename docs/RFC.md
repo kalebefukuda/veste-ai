@@ -341,3 +341,43 @@ que têm gosto por moda mas não têm onde monetizar essa curadoria.
 - Integração com Google Gemini funcional com geração de imagem em menos
   de 30 segundos
 - Aplicação acessível publicamente via URL estável em ambiente de produção
+
+
+# 2. Engenharia de Requisitos
+## 2.1 Personas
+
+### Persona 1 — Creator
+
+**Nome:** Isabela Rocha, 24 anos
+**Contexto:** Estudante de moda em São Paulo, produz conteúdo no Instagram e TikTok há 2 anos. Tem cerca de 8 mil seguidores e recebe frequentemente perguntas como *"onde você comprou essa blusa?"*. Hoje responde nos comentários ou stories, mas os links se perdem rapidamente.
+
+**Objetivos:**
+- Centralizar os links das peças que usa em um único lugar
+- Monetizar seu conteúdo através de comissões de afiliados
+- Criar looks completos combinando peças de diferentes lojas (Shein, Renner, Shopee)
+- Ganhar visibilidade além dos seus seguidores atuais
+
+**Principais dificuldades:**
+- Perde tempo respondendo manualmente onde cada peça foi comprada
+- Não tem uma forma organizada de apresentar um look completo com múltiplos links
+- Não consegue rastrear quantas pessoas clicaram nos seus links
+- Ferramentas como Linktree são genéricas demais — não foram feitas para looks
+
+---
+## 2.1 Personas
+### Persona 2 — Consumer
+
+**Nome:** Mariana Costa, 27 anos
+**Contexto:** Analista de marketing em Florianópolis, acompanha perfis de moda no Instagram e TikTok diariamente. Se inspira em looks que vê nas redes, mas frequentemente desiste da compra porque não consegue identificar onde cada peça foi comprada ou encontra apenas lojas internacionais sem entrega viável no Brasil.
+
+**Objetivos:**
+- Descobrir looks completos já montados, prontos para comprar
+- Encontrar peças em lojas brasileiras com frete acessível
+- Salvar looks que gostou para consultar depois
+- Comprar o visual inteiro sem precisar gastar horas pesquisando cada peça
+
+**Principais dificuldades:**
+- Looks inspiracionais nas redes sociais raramente têm todos os links das peças
+- Quando os links existem, muitas vezes apontam para lojas fora do Brasil
+- Não há um lugar centralizado só para moda brasileira com curadoria humana
+- Processo de "montar o look" é fragmentado e trabalhoso
