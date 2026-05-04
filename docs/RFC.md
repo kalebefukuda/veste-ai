@@ -479,11 +479,12 @@ RN04 — Um look só pode ser publicado se tiver ao menos uma peça com link de 
 RN05 — Cada peça de um look deve conter obrigatoriamente nome e link de compra.
 RN06 — O creator é o único responsável pela validade dos links de compra — o VesteAí não valida nem garante os links externos.
 RN07 — Um creator só pode editar ou remover looks criados por ele mesmo.
+RN08 — Todo look deve conter ao menos uma imagem para ser publicado, seja por upload direto ou gerada por IA.
 
 ### Métricas
 
-RN08 — O registro de clique é contabilizado apenas quando o usuário é redirecionado para a loja externa.
-RN09 — As métricas de cliques são visíveis apenas para o creator do look.
+RN09 — O registro de clique é contabilizado apenas quando o usuário é redirecionado para a loja externa.
+RN10 — As métricas de cliques são visíveis apenas para o creator do look.
 
 ## 2.6 Fora do Escopo
 
@@ -492,3 +493,141 @@ RN09 — As métricas de cliques são visíveis apenas para o creator do look.
 - O sistema não oferecerá funcionalidade de chat ou mensagens entre usuários
 - O sistema não permitirá a venda de produtos diretamente na plataforma
 - O sistema não realizará curadoria ou moderação automática de looks publicados
+
+# 3. Fluxos e Comportamento do Sistema
+
+Esta seção demonstra como o sistema funciona na prática, descrevendo os
+caminhos percorridos pelos dois perfis de usuário da plataforma — consumer
+e creator — e os desvios mais relevantes que o sistema deve tratar.
+
+---
+
+## 3.1 Fluxo Principal do Usuário
+
+O VesteAí possui dois fluxos principais distintos, um para cada perfil de
+usuário. Ambos são independentes e refletem jornadas fundamentalmente
+diferentes: o consumer descobre e compra, o creator monta e publica.
+
+---
+
+### Fluxo do Consumer
+
+O consumer acessa a plataforma sem necessidade de autenticação. A jornada
+começa pela exploração do feed de looks publicados, onde pode abrir qualquer
+look completo e visualizar todas as peças com seus respectivos links de
+compra. O clique em um link redireciona o consumer diretamente para a loja
+externa, que é o ponto de conversão central da plataforma.
+
+Caso o consumer queira salvar um look nos favoritos, o sistema verifica se
+está autenticado. Se não estiver, é direcionado para login ou cadastro antes
+de concluir a ação. Se já estiver autenticado, o look é salvo imediatamente.
+Essa é a única ação do consumer que exige autenticação — explorar o feed e
+clicar em links de compra são acessíveis a qualquer visitante.
+
+![Fluxo do Consumer](../docs/assets/fluxo-consumer.png)
+
+---
+
+### Fluxo do Creator
+
+O creator precisa estar autenticado para publicar looks. Ao acessar a
+plataforma, o sistema verifica se possui conta — caso contrário, passa pelo
+cadastro e login antes de acessar o painel. A partir do painel, inicia a
+criação do look adicionando título, descrição e as peças com seus respectivos
+links de compra.
+
+A etapa seguinte exige que o creator forneça uma imagem para o look, que é
+obrigatória para publicação. Se já tiver uma foto do look, faz o upload
+diretamente. Caso contrário, utiliza o assistente Gemini para gerar uma
+imagem de referência. Sem imagem — seja por upload ou gerada pelo Gemini —
+o look não pode ser publicado.
+
+Antes de publicar, o sistema verifica se o creator está dentro do limite de
+publicações do seu plano. Se tiver atingido o limite, é apresentada a opção
+de upgrade para o plano Pro. Caso opte por não fazer o upgrade, o fluxo é
+encerrado sem publicação. Caso faça o upgrade ou já esteja dentro do limite,
+o look é revisado e publicado, tornando-se visível no feed da plataforma.
+Após a publicação, o creator pode acompanhar as métricas de cliques no seu
+painel.
+
+![Fluxo do Creator](../docs/assets/fluxo-creator.png)
+
+---
+
+## 3.2 Fluxos Alternativos
+
+Esta seção descreve os principais desvios do caminho feliz — situações de
+erro, cancelamento ou exceção que o sistema deve tratar de forma explícita.
+
+---
+
+### FA01 — Visitante tenta salvar look sem autenticação
+
+**Contexto:** O visitante clica em "salvar look" sem estar autenticado.
+
+**Comportamento esperado:** O sistema interrompe a ação e exibe um prompt
+de login ou cadastro. Após autenticação bem-sucedida, o sistema retoma a
+ação e salva o look nos favoritos automaticamente, sem exigir que o usuário
+repita o gesto.
+
+---
+
+### FA02 — Creator tenta publicar look sem imagem
+
+**Contexto:** O creator conclui o preenchimento das peças e tenta publicar
+sem ter fornecido uma imagem — nem por upload nem via Gemini.
+
+**Comportamento esperado:** O sistema bloqueia a publicação e exibe uma
+mensagem informando que a imagem é obrigatória. O creator permanece na tela
+de criação e pode escolher entre fazer upload ou gerar via Gemini antes de
+tentar publicar novamente.
+
+---
+
+### FA03 — Creator tenta publicar look sem nenhuma peça com link
+
+**Contexto:** O creator tenta publicar um look sem ter adicionado nenhuma
+peça com link de compra cadastrado.
+
+**Comportamento esperado:** O sistema bloqueia a publicação e exibe uma
+mensagem informando que ao menos uma peça com link de compra é obrigatória
+(RN04). O creator permanece na tela de criação para completar o look antes
+de tentar novamente.
+
+---
+
+### FA04 — Link de compra inválido ou malicioso
+
+**Contexto:** O creator cadastra um link de compra que está inacessível ou
+aponta para um domínio sinalizado como malicioso.
+
+**Comportamento esperado:** O sistema executa a validação do link (RF15) e,
+ao detectar o problema, exibe uma mensagem de erro indicando qual link falhou
+na validação. O creator pode corrigir ou substituir o link antes de prosseguir.
+Links que passam na validação técnica mas são inválidos comercialmente
+permanecem sob responsabilidade do creator (RN06).
+
+---
+
+### FA05 — Erro na geração de imagem pelo Gemini
+
+**Contexto:** O creator opta por gerar a imagem via Gemini, mas a requisição
+falha por erro da API ou timeout.
+
+**Comportamento esperado:** O sistema exibe uma mensagem de erro informando
+que a geração não foi concluída e oferece duas opções: tentar novamente ou
+fazer upload manual de uma imagem. O look em criação não é perdido — as
+peças e links já cadastrados são preservados.
+
+---
+
+### FA06 — Creator atinge limite de publicações e não faz upgrade
+
+**Contexto:** O creator tenta publicar um look mas já atingiu o limite de
+publicações do plano gratuito e, ao ser apresentado ao upgrade Pro, decide
+não prosseguir.
+
+**Comportamento esperado:** O sistema encerra o fluxo de publicação sem
+descartar o look. O rascunho é preservado no painel do creator, permitindo
+que retome e publique quando decidir fazer o upgrade ou quando um slot
+de publicação estiver disponível.
