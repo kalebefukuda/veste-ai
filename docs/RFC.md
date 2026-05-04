@@ -341,3 +341,154 @@ que têm gosto por moda mas não têm onde monetizar essa curadoria.
 - Integração com Google Gemini funcional com geração de imagem em menos
   de 30 segundos
 - Aplicação acessível publicamente via URL estável em ambiente de produção
+
+
+# 2. Engenharia de Requisitos
+## 2.1 Personas
+
+### Persona 1 — Creator
+
+**Nome:** Isabela Rocha, 24 anos
+**Contexto:** Estudante de moda em São Paulo, produz conteúdo no Instagram e TikTok há 2 anos. Tem cerca de 8 mil seguidores e recebe frequentemente perguntas como *"onde você comprou essa blusa?"*. Hoje responde nos comentários ou stories, mas os links se perdem rapidamente.
+
+**Objetivos:**
+- Centralizar os links das peças que usa em um único lugar
+- Monetizar seu conteúdo através de comissões de afiliados
+- Criar looks completos combinando peças de diferentes lojas (Shein, Renner, Shopee)
+- Ganhar visibilidade além dos seus seguidores atuais
+
+**Principais dificuldades:**
+- Perde tempo respondendo manualmente onde cada peça foi comprada
+- Não tem uma forma organizada de apresentar um look completo com múltiplos links
+- Não consegue rastrear quantas pessoas clicaram nos seus links
+- Ferramentas como Linktree são genéricas demais — não foram feitas para looks
+
+---
+### Persona 2 — Consumer
+
+**Nome:** Mariana Costa, 27 anos
+**Contexto:** Analista de marketing em Florianópolis, acompanha perfis de moda no Instagram e TikTok diariamente. Se inspira em looks que vê nas redes, mas frequentemente desiste da compra porque não consegue identificar onde cada peça foi comprada ou encontra apenas lojas internacionais sem entrega viável no Brasil.
+
+**Objetivos:**
+- Descobrir looks completos já montados, prontos para comprar
+- Encontrar peças em lojas brasileiras com frete acessível
+- Salvar looks que gostou para consultar depois
+- Comprar o visual inteiro sem precisar gastar horas pesquisando cada peça
+
+**Principais dificuldades:**
+- Looks inspiracionais nas redes sociais raramente têm todos os links das peças
+- Quando os links existem, muitas vezes apontam para lojas fora do Brasil
+- Não há um lugar centralizado só para moda brasileira com curadoria humana
+- Processo de "montar o look" é fragmentado e trabalhoso
+
+## 2.2 Casos de Uso Principais
+
+Os principais fluxos do sistema estão organizados em dois perfis de acesso: **Visitante** (não autenticado) e **Usuário Autenticado**. Qualquer usuário autenticado pode tanto consumir looks quanto publicar como creator — não há separação de contas.
+
+**Visitante:**
+- Explorar feed de looks
+- Visualizar look completo
+- Clicar em link de compra
+
+**Usuário Autenticado:**
+- Criar conta e configurar perfil
+- Salvar looks favoritos
+- Criar e publicar looks com peças e links de afiliado
+- Editar e remover looks próprios
+- Visualizar métricas de cliques nos seus looks
+
+![Diagrama de Casos de Uso](../docs/assets/casos-de-uso-vesteai.png)
+
+## 2.3 Requisitos Funcionais (RF)
+
+### Acesso e Autenticação
+
+RF01 — O sistema deve permitir que o visitante crie uma conta.
+RF02 — O sistema deve permitir que o usuário faça login com e-mail e senha.
+RF03 — O sistema deve permitir que o usuário recupere sua senha via e-mail.
+RF04 — O sistema deve permitir que o usuário configure seu perfil (nome, foto e bio).
+
+### Descoberta de Looks
+
+RF05 — O sistema deve permitir que o visitante explore o feed de looks publicados.
+RF06 — O sistema deve permitir que o visitante visualize um look completo com todas as peças e links.
+RF07 — O sistema deve permitir que o visitante clique em um link de compra e seja redirecionado para a loja externa.
+
+### Interação do Usuário Autenticado
+
+RF08 — O sistema deve permitir que o usuário salve looks favoritos.
+RF09 — O sistema deve permitir que o usuário acesse sua lista de looks salvos.
+
+### Gestão de Looks (Creator)
+
+RF10 — O sistema deve permitir que o usuário crie um look com título, descrição e foto de referência.
+RF11 — O sistema deve permitir que o usuário adicione peças ao look com nome, link de afiliado e imagem.
+RF12 — O sistema deve permitir que o usuário publique o look tornando-o visível no feed.
+RF13 — O sistema deve permitir que o usuário edite um look já publicado.
+RF14 — O sistema deve permitir que o usuário remova um look publicado.
+RF15 — O sistema deve validar se o link de compra cadastrado está acessível e não redireciona para domínios sinalizados como maliciosos.
+
+### Métricas
+
+RF16 — O sistema deve registrar cada clique em links de compra e exibir o total por look ao usuário criador.
+
+### Auxiliar de Criação
+
+RF17 — O sistema deve permitir que o usuário faça upload de uma foto de referência ao criar um look.
+
+## 2.4 Requisitos Não Funcionais (RNF)
+
+### Desempenho
+
+RNF01 — O feed de looks deve carregar em menos de 2 segundos em condições normais de rede.
+RNF02 — O redirecionamento para links de compra deve ocorrer em menos de 500ms.
+RNF03 — A API deve responder às requisições em menos de 300ms para operações de leitura.
+
+### Segurança
+
+RNF04 — O sistema deve utilizar autenticação segura com tokens JWT.
+RNF05 — As senhas dos usuários devem ser armazenadas com hash utilizando bcrypt.
+RNF06 — A comunicação entre cliente e servidor deve ser realizada exclusivamente via HTTPS.
+RNF07 — O sistema deve proteger endpoints sensíveis contra acesso não autenticado.
+
+### Disponibilidade
+
+RNF08 — O sistema deve ter disponibilidade mínima de 99% ao mês.
+
+### Escalabilidade
+
+RNF09 — A arquitetura deve suportar o crescimento do volume de looks e usuários sem necessidade de refatoração estrutural.
+RNF10 — O banco de dados deve ser estruturado para suportar paginação eficiente no feed de looks.
+
+### Usabilidade
+
+RNF11 — A interface deve ser responsiva e funcionar adequadamente em dispositivos móveis e desktop.
+RNF12 — O fluxo de criação de um look deve ser concluído em no máximo 5 etapas.
+
+## 2.5 Regras de Negócio
+
+### Acesso e Autenticação
+
+RN01 — Apenas usuários autenticados podem criar, editar e remover looks.
+RN02 — Apenas usuários autenticados podem salvar looks favoritos.
+RN03 — O feed de looks e os links de compra são acessíveis sem autenticação.
+
+### Looks e Peças
+
+RN04 — Um look só pode ser publicado se tiver ao menos uma peça com link de compra cadastrado.
+RN05 — Cada peça de um look deve conter obrigatoriamente nome e link de compra.
+RN06 — O creator é o único responsável pela validade dos links de compra — o VesteAí não valida nem garante os links externos.
+RN07 — Um creator só pode editar ou remover looks criados por ele mesmo.
+
+### Métricas
+
+RN08 — O registro de clique é contabilizado apenas quando o usuário é redirecionado para a loja externa.
+RN09 — As métricas de cliques são visíveis apenas para o creator do look.
+
+## 2.6 Fora do Escopo
+
+- O sistema não processará pagamentos diretamente — as transações ocorrem nas lojas externas
+- O sistema não realizará integração direta com programas de afiliados — a gestão dos links é responsabilidade do creator
+- O sistema não oferecerá funcionalidade de chat ou mensagens entre usuários
+- O sistema não permitirá a venda de produtos diretamente na plataforma
+- O sistema não realizará curadoria ou moderação automática de looks publicados
