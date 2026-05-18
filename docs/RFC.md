@@ -631,3 +631,217 @@ não prosseguir.
 descartar o look. O rascunho é preservado no painel do creator, permitindo
 que retome e publique quando decidir fazer o upgrade ou quando um slot
 de publicação estiver disponível.
+
+---
+
+# 4. Mockups e Experiência do Usuário (UX)
+
+> **Observação:** Os mockups apresentados nesta seção são a base para construção da aplicação. Eles
+> representam a estrutura, os fluxos e a intenção de design da plataforma,
+> mas não constituem o design final da interface. Elementos visuais como
+> tipografia, espaçamento, paleta de cores e componentes estão sujeitos
+> a revisão durante o desenvolvimento.
+
+Esta seção apresenta a visualização inicial do produto antes da
+implementação. Os mockups foram utilizados para validar o fluxo de
+navegação, a organização da interface, as interações dos dois perfis de
+usuário e a clareza da experiência como um todo.
+
+---
+
+## 4.1 Fluxo de Navegação
+
+O VesteAí possui dois fluxos de navegação distintos, refletindo as
+jornadas documentadas na Seção 3. Ambos partem do feed de looks como
+tela central e divergem conforme o perfil e a intenção do usuário.
+
+**Jornada do Consumer:**
+
+![Fluxo do Consumidor](assets/jornada-consumidor.png)
+
+**Jornada do Creator:**
+
+![Fluxo do Criador](assets/jornada-criador.png)
+
+Os diagramas completos, incluindo desvios e fluxos alternativos, estão
+na [Seção 3](#3-fluxos-e-comportamento-do-sistema).
+
+---
+
+## 4.2 Wireframes e Mockups das Telas
+
+### Tela 1 — Login e Cadastro
+
+A tela de autenticação adota um layout dividido em dois painéis. O painel
+esquerdo é visual e exibe o card de look característico da
+plataforma com os floating badges de engajamento, reforçando a proposta
+de valor do produto no momento de entrada do usuário. O painel direito
+contém o formulário de autenticação com campos de e-mail e senha, opção
+de login via Google e link para cadastro.
+
+A mesma tela serve tanto para login quanto para o redirecionamento
+descrito no FA01 — quando um visitante tenta salvar um look sem
+autenticação, é encaminhado para esta tela e, após autenticar, retorna
+automaticamente à ação interrompida.
+
+**Requisitos cobertos:** RF01, RF02, RF03, RF04
+
+![Login e Cadastro](assets/fluxo-user/login.png)
+
+---
+
+### Tela 2 — Feed de Looks
+
+O feed é a tela central da plataforma e o ponto de entrada para o
+consumidor. A navegação superior apresenta os filtros de categoria em
+pills horizontais, permitindo que o usuário refine o conteúdo
+sem sair da tela.
+
+O conteúdo é organizado em um grid uniforme de quatro colunas, com
+cards de proporção padronizada seguindo a convenção de marketplaces de
+moda. Cada card exibe a foto do look, o handle do creator, o título,
+as tags de estilo, a contagem de curtidas e um link direto para o look
+completo. O visitante não precisa estar autenticado para navegar no feed
+— a exploração é aberta a qualquer usuário (RN03).
+
+**Requisitos cobertos:** RF05, RF06
+
+![Feed de Looks](assets/fluxo-user/feed-look.png)
+
+---
+
+### Tela 3 — Detalhes do Look
+
+A tela de detalhes é o ponto de conversão da jornada do consumer. O
+layout é dividido em duas colunas: à esquerda, a imagem do look em
+proporção destacada com badges de "IA Gerado" e contagem de curtidas;
+à direita, o painel com título, tags, descrição e a lista de peças.
+
+Cada peça exibe nome, loja, preço indicativo e um botão de acesso ao
+link de compra externo. O botão principal "Ver todos os links de compra"
+ao final da lista direciona o usuário para o carrinho, onde os links
+ficam agregados antes do redirecionamento. Um aviso explícito informa
+que o VesteAí não realiza cobranças — as transações ocorrem nas lojas
+externas (RN06, seção 2.6).
+
+**Requisitos cobertos:** RF06, RF07, RF08
+
+![Detalhes do Look](assets/fluxo-user/detalhes-look.png)
+
+---
+
+### Tela 4 — Carrinho
+
+O carrinho do VesteAí não é um checkout — não processa pagamentos nem
+armazena dados financeiros. Sua função é agregar os itens salvos de
+múltiplos looks e centralizar os links de compra externos em um único
+lugar, eliminando a necessidade de o usuário abrir cada look
+separadamente para acessar cada link.
+
+Os itens são agrupados pelo look de origem, com o handle do creator
+identificado em cada grupo. Cada item exibe nome, loja, preço indicativo
+e um botão individual "Ir para compra →" que abre o link externo em
+nova aba. O botão "Ir para todas as compras" no painel de resumo dispara
+todos os links simultaneamente. Um aviso abaixo do botão reforça que o
+VesteAí não realiza cobranças e que o usuário será redirecionado para
+os sites das lojas.
+
+**Requisitos cobertos:** RF07, RF08, RF09
+
+![Carrinho](assets/fluxo-user/carrinho.png)
+
+---
+
+### Tela 5 — Editor de Looks
+
+O editor é a tela central do fluxo do creator. O layout de duas colunas
+separa responsabilidades visuais das informacionais: à esquerda, a área
+de upload da imagem do look com o toggle de geração via IA; à direita,
+os campos de nome, tags de estilo e a lista de peças com links.
+
+Uma barra de progresso no topo da tela indica o avanço no processo de
+criação. A lista de peças permite adicionar, visualizar e remover itens
+individualmente, com o link de compra visível para cada peça cadastrada.
+O botão "Publicar" na barra de navegação permanece desabilitado até que
+os requisitos mínimos de publicação sejam atendidos — ao menos uma peça
+com link e uma imagem (RN04, RN08).
+
+**Requisitos cobertos:** RF10, RF11, RF12, RF13, RF14, RF15, RF17
+
+![Editor de Looks](assets/fluxo-user/editor-look.png)
+
+---
+
+### Tela 6 — Painel do Creator
+
+O painel centraliza as métricas de desempenho dos looks publicados pelo
+creator. A tela é dividida em sidebar à esquerda — com seletor de
+período e atalhos de navegação — e área principal à direita com os
+indicadores e a tabela de performance.
+
+Os dois cards de métrica exibem cliques totais e visualizações de looks,
+ambas as métricas coletadas pela própria plataforma. A tabela "Performance
+by Look" lista cada look publicado com data, volume de cliques representado
+por uma barra proporcional e status de publicação. Não há dados financeiros
+ou de comissão no painel — a monetização ocorre fora da plataforma, nos
+programas de afiliados de cada loja, e é de responsabilidade do creator
+(seção 2.6).
+
+**Requisitos cobertos:** RF16
+
+![Painel do Creator](assets/fluxo-user/painel-creator.png)
+
+---
+
+## 4.3 Fluxo de Interação do Usuário
+
+### Fluxo do Consumer — Descoberta e Compra
+
+1. Usuário acessa a plataforma e visualiza o **Feed de Looks** sem
+   necessidade de autenticação
+2. Aplica filtro de categoria (ex: "Minimalista") para refinar o conteúdo
+3. Clica em um card de look para abrir os **Detalhes do Look**
+4. Visualiza as peças, loja e preço indicativo de cada item
+5. Clica em "Ver todos os links de compra" e é direcionado ao **Carrinho**
+6. No carrinho, revisa os itens agrupados por look de origem
+7. Clica em "Ir para todas as compras" e é redirecionado para as lojas
+   externas em novas abas — a transação ocorre fora da plataforma
+
+> **Desvio (FA01):** se o usuário tentar salvar um look sem estar
+> autenticado, o sistema redireciona para a tela de **Login** e,
+> após autenticação, retorna automaticamente ao look.
+
+---
+
+### Fluxo do Creator — Criação e Publicação
+
+1. Creator acessa a tela de **Login** e autentica com e-mail/senha
+   ou via Google
+2. É direcionado ao **Feed de Looks** como tela inicial da sessão
+3. Clica em "Create Look" na barra de navegação para abrir o **Editor**
+4. Faz upload da foto do look ou aciona o toggle "Gerar modelo com IA"
+5. Preenche o nome do look e seleciona as tags de estilo
+6. Adiciona peças com nome, loja e link de compra externo
+7. Clica em "Publicar" — o look passa a ser visível no feed publicamente
+8. Acessa o **Painel do Creator** para acompanhar cliques e visualizações
+
+> **Desvio (FA02/FA03):** se tentar publicar sem imagem ou sem peças
+> com link, o sistema bloqueia e exibe mensagem orientando a completar
+> os campos obrigatórios antes de prosseguir.
+
+---
+
+## 4.4 Feedback Inicial de Usuários
+
+Os mockups foram apresentados informalmente aos mesmos 5 participantes
+das conversas descritas na seção 1.2. As reações foram coletadas sem
+formulário estruturado, com foco em identificar pontos de confusão ou
+expectativas não atendidas na interface.
+
+| Tela | Observação coletada |
+|------|---------------------|
+| Feed de Looks | Filtros de categoria foram considerados intuitivos; expectativa de busca por texto também foi mencionada |
+| Detalhes do Look | A separação entre "ver o look" e "comprar as peças" ficou clara para todos os participantes |
+| Carrinho | O aviso "VesteAí não realiza cobranças" foi considerado necessário e aumentou a confiança no fluxo |
+| Editor de Looks | O toggle de geração por IA gerou curiosidade positiva; participantes demonstraram interesse em visualizar o resultado antes de publicar |
+| Painel do Creator | A ausência de dados financeiros foi compreendida após explicação do modelo de negócio |
