@@ -337,10 +337,13 @@ que têm gosto por moda mas não têm onde monetizar essa curadoria.
 - Pelo menos 5 looks publicados no feed por criadores reais até o Demo Day
 - Pelo menos 1 clique em link de compra registrado por look publicado
 - Suporte a 200 usuários simultâneos sem degradação de performance
-- Cobertura mínima de 70% de testes unitários no back-end
+- Cobertura mínima de 75% de testes unitários no backend (TDD)
+- Cobertura mínima de 25% de testes unitários no frontend
 - Integração com Google Gemini funcional com geração de imagem em menos
   de 30 segundos
 - Aplicação acessível publicamente via URL estável em ambiente de produção
+- Pipeline CI/CD configurado com execução automática de testes e deploy
+- Análise estática de código aprovada no SonarCloud sem issues críticos
 
 
 # 2. Engenharia de Requisitos
@@ -1284,17 +1287,79 @@ que justificariam repositórios separados não existem nesse projeto.
 
 ---
 
+### GitHub Actions (CI/CD)
+
+O pipeline de integração e entrega contínua é implementado com GitHub
+Actions. A cada push na branch `main`, o pipeline executa
+automaticamente: instalação de dependências, lint, testes unitários
+(backend e frontend), análise estática via SonarCloud e, em caso de
+sucesso, build das imagens Docker e deploy no ambiente de produção.
+Pull requests bloqueiam merge se qualquer etapa falhar.
+
+---
+
+### SonarCloud (Qualidade de Código)
+
+O SonarCloud é integrado ao pipeline CI/CD para análise estática
+automática do código a cada pull request. Monitora cobertura de testes,
+code smells, bugs potenciais e vulnerabilidades de segurança. O projeto
+mantém o Quality Gate configurado para rejeitar código com cobertura
+abaixo dos limites definidos nos KPIs (75% backend, 25% frontend) ou
+com issues de severidade crítica.
+
+---
+
+### PostHog (Product Analytics)
+
+O PostHog é utilizado para rastreamento de eventos de produto e
+alimentação das métricas do painel do creator. Substitui a necessidade
+de construir um ClickTracker customizado na API — cada clique em link
+de compra é capturado via `posthog.capture('link_clicked', { piece_id, look_id })`
+diretamente no frontend, sem depender de uma rota de redirecionamento
+própria. Os dashboards do PostHog exibem contagens de cliques por look
+e por período, atendendo ao RF16 com menos código de infraestrutura.
+
+---
+
+### Google Cloud Monitoring (Observabilidade)
+
+O monitoramento de infraestrutura é realizado pelo Google Cloud
+Monitoring, já incluso no GCP sem configuração adicional. São
+monitorados: latência das rotas da API, taxa de erros HTTP, uso de
+CPU e memória dos serviços e disponibilidade da aplicação. Alertas
+são configurados para disponibilidade abaixo de 99% (RNF08) e
+latência acima dos limites definidos em RNF01–RNF03.
+
+---
+
+### Google Cloud Platform (Infraestrutura e Deploy)
+
+A aplicação é hospedada no Google Cloud Platform. O backend FastAPI é
+implantado no App Engine (Python runtime nativo, sem necessidade de
+containerização) e o frontend Next.js no Cloud Run ou via build estático.
+O banco de dados PostgreSQL é provisionado no Cloud SQL. A escolha pelo
+GCP é motivada pela integração direta com a Google Gemini API — ambos
+no mesmo ecossistema — e pelo modelo de cobrança por uso, adequado ao
+volume esperado de um MVP.
+
+---
+
 ### Resumo da Stack
 
 | Camada | Tecnologia | Alternativa Considerada | Razão da Escolha |
 |--------|-----------|------------------------|-----------------|
 | Frontend | Next.js (React) | React + Vite (SPA) | SSR para feed público e indexabilidade |
 | Backend | FastAPI (Python) | Flask (Python) | Tipagem nativa, async, validação integrada |
-| Banco de dados | PostgreSQL | MongoDB | Esquema relacional estável, integridade referencial |
+| Banco de dados | PostgreSQL (Cloud SQL) | MongoDB | Esquema relacional estável, integridade referencial |
 | IA | Google Gemini API | DALL-E (OpenAI) | Ecossistema Python, custo operacional do MVP |
 | Pagamentos | Stripe | PagSeguro / Mercado Pago | Suporte maduro a assinaturas recorrentes |
 | Autenticação | JWT + bcrypt | Sessões em banco | Stateless, sem necessidade de serviço de sessão |
 | Repositório | GitHub (monorepo) | Polyrepo | Time único, sincronização simplificada |
+| CI/CD | GitHub Actions | Jenkins | Integrado ao repositório, sem infraestrutura adicional |
+| Qualidade | SonarCloud | SonarQube (self-hosted) | Análise automática integrada ao PR sem setup de servidor |
+| Product Analytics | PostHog | ClickTracker customizado | Rastreamento de eventos sem construir infraestrutura própria |
+| Monitoramento | Google Cloud Monitoring | Prometheus + Grafana | Já incluso no GCP, sem setup adicional |
+| Infraestrutura | GCP App Engine + Cloud SQL | AWS EC2 | Mesmo ecossistema da Gemini API, cobrança por uso |
 
 ---
 
@@ -1432,14 +1497,14 @@ segundo semestre de 2026, com entrega e apresentação no Demo Day.
 
 | Marco | Descrição | Período |
 |-------|-----------|---------|
-| M7 | Setup do monorepo, ambiente de desenvolvimento e CI/CD | Agosto 2026 |
-| M8 | Backend: autenticação, modelo de dados e CRUD de looks | Agosto 2026 |
-| M9 | Backend: rastreamento de cliques, validação de links e integração Gemini | Setembro 2026 |
+| M7 | Setup do monorepo, pipeline CI/CD (GitHub Actions), SonarCloud e ambientes GCP | Agosto 2026 |
+| M8 | Backend: autenticação, modelo de dados e CRUD de looks (TDD) | Agosto 2026 |
+| M9 | Backend: rastreamento de cliques, validação de links e integração Gemini (TDD) | Setembro 2026 |
 | M10 | Frontend: feed de looks, tela de detalhes e carrinho | Setembro 2026 |
 | M11 | Frontend: editor de looks, painel do creator e autenticação | Outubro 2026 |
 | M12 | Integração Stripe (assinatura Pro) e testes de integração | Outubro 2026 |
-| M13 | Testes unitários (cobertura mínima 70% no backend) e correções | Novembro 2026 |
-| M14 | Deploy em produção, validação com usuários reais e ajustes finais | Novembro 2026 |
+| M13 | Testes unitários (75% backend, 25% frontend), PostHog e Google Cloud Monitoring | Novembro 2026 |
+| M14 | Deploy no Google Cloud Run, validação com usuários reais e ajustes finais | Novembro 2026 |
 | M15 | Demo Day — apresentação do produto funcional | Dezembro 2026 |
 
 ---
@@ -1451,10 +1516,46 @@ forem atendidos simultaneamente:
 
 - RFC aprovada pelos professores orientadores até o fim do 1º semestre
 - Todos os requisitos funcionais RF01–RF17 implementados e verificados
-- Cobertura mínima de 70% de testes unitários no backend
-- Aplicação acessível publicamente via URL estável em produção
+- Cobertura mínima de 75% de testes unitários no backend (TDD)
+- Cobertura mínima de 25% de testes unitários no frontend
+- Pipeline CI/CD ativo com execução automática de testes a cada push
+- SonarCloud sem issues críticos de segurança ou qualidade
+- Monitoramento configurado (Prometheus + Grafana) em produção
+- Aplicação acessível publicamente no Google Cloud Run via URL estável
 - Pelo menos 5 looks publicados por criadores reais antes do Demo Day
 - Pelo menos 1 clique em link de compra registrado por look publicado
+
+## 7.4 Instruções de Deploy
+
+O deploy do VesteAí é realizado automaticamente pelo pipeline CI/CD a
+cada merge na branch `main`. O processo segue os passos abaixo:
+
+**Pré-requisitos:**
+- Conta no Google Cloud Platform com projeto configurado
+- Cloud SQL (PostgreSQL) provisionado
+- Variáveis de ambiente configuradas no Secret Manager do GCP:
+  `DATABASE_URL`, `JWT_SECRET`, `GEMINI_API_KEY`, `STRIPE_SECRET_KEY`,
+  `STRIPE_WEBHOOK_SECRET`
+
+**Pipeline automatizado (GitHub Actions):**
+1. Executa testes unitários (backend e frontend)
+2. Executa análise estática via SonarCloud
+3. Realiza deploy do backend no GCP App Engine (`gcloud app deploy`)
+4. Realiza deploy do frontend no GCP Cloud Run
+5. Executa smoke test na URL pública
+
+**Deploy manual (emergencial):**
+```bash
+# Backend (App Engine)
+cd backend
+gcloud app deploy
+
+# Frontend (Cloud Run)
+cd frontend
+gcloud run deploy vesteai-frontend --source . --region us-central1
+```
+
+> O deploy manual via SSH ou FTP não é utilizado em nenhuma circunstância.
 
 ---
 
