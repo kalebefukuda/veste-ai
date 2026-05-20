@@ -1547,3 +1547,62 @@ forem atendidos simultaneamente:
 
 - **Google Stitch** — Geração dos mockups de interface.
   Disponível em: https://stitch.withgoogle.com
+
+---
+
+# 9. Apêndices
+
+---
+
+## A1. Repositório do Projeto
+
+O código-fonte, a documentação e todos os assets da RFC estão
+disponíveis no repositório oficial do projeto:
+
+- **Repositório:** https://github.com/kalebefukuda/veste-ai
+- **Branch da RFC:** `docs/rfc`
+- **Pasta de assets:** `docs/assets/`
+
+---
+
+## A2. Landing Page — Identidade Visual
+
+Foi desenvolvida uma landing page do VesteAí como referência de
+identidade visual da plataforma. Ela estabelece a paleta de cores,
+tipografia e tom de comunicação que guiarão o desenvolvimento da
+interface final.
+
+**Stack:** Next.js + Tailwind CSS
+**Paleta:** `#8B5CF6` (purple), `#C4A8FF` (purple-light), `#F472B6` (rose), `#1E1B4B` (navy)
+
+![Landing Page VesteAí](assets/lp-veste-ai.png)
+
+> A landing page não representa o design final da aplicação — é uma
+> referência de identidade visual e proposta de valor do produto.
+
+---
+
+## A3. Resumo das Conversas com Usuários
+
+As conversas informais descritas na Seção 1.2 foram realizadas com
+5 participantes divididos entre os dois perfis de usuário da plataforma.
+Nenhuma gravação foi realizada — os registros abaixo são sínteses das
+observações coletadas.
+
+### Perfil Consumer (3 participantes)
+
+| Participante | Perfil | Principal observação |
+|---|---|---|
+| P1 | Mulher, 24 anos, estudante | "Fico horas tentando achar onde comprar um look que vi no Instagram" |
+| P2 | Mulher, 27 anos, analista | "Quando acho o link, às vezes é loja americana sem entrega aqui" |
+| P3 | Homem, 29 anos, designer | "Nunca consigo montar o look completo, sempre falta alguma peça" |
+
+### Perfil Creator (2 participantes)
+
+| Participante | Perfil | Principal observação |
+|---|---|---|
+| P4 | Mulher, 22 anos, influenciadora | "Respondo nos comentários onde comprei mas os links somem no stories" |
+| P5 | Mulher, 31 anos, usa afiliados Shopee | "Queria um lugar só para moda, o Linktree é genérico demais" |
+
+**Padrão identificado:** todos os 5 participantes demonstraram interesse
+imediato na proposta e perguntaram quando a plataforma estaria disponível.
