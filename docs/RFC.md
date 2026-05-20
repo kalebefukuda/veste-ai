@@ -1295,3 +1295,110 @@ que justificariam repositórios separados não existem nesse projeto.
 | Pagamentos | Stripe | PagSeguro / Mercado Pago | Suporte maduro a assinaturas recorrentes |
 | Autenticação | JWT + bcrypt | Sessões em banco | Stateless, sem necessidade de serviço de sessão |
 | Repositório | GitHub (monorepo) | Polyrepo | Time único, sincronização simplificada |
+
+---
+
+# 6. Segurança e Privacidade
+
+Esta seção descreve as medidas de segurança adotadas no VesteAí e o
+tratamento dos dados pessoais dos usuários em conformidade com a Lei
+Geral de Proteção de Dados (LGPD).
+
+---
+
+## 6.1 Autenticação e Autorização
+
+O VesteAí utiliza autenticação baseada em tokens JWT. Após o login com
+e-mail e senha, o servidor emite um token assinado com prazo de expiração
+configurável. Esse token é enviado pelo frontend no header `Authorization`
+em todas as requisições que exigem autenticação.
+
+As senhas dos usuários são armazenadas exclusivamente como hash bcrypt —
+nenhuma senha em texto claro é persistida ou trafegada pelo sistema. O
+bcrypt é resistente a ataques de força bruta por ser computacionalmente
+custoso por design.
+
+O controle de autorização é aplicado por middleware na API: endpoints
+protegidos verificam a validade do token antes de acionar qualquer serviço.
+Um usuário autenticado só pode editar ou remover looks criados por ele
+mesmo (RN07) — requisições que tentam acessar recursos de outro usuário
+são rejeitadas com erro 403.
+
+---
+
+## 6.2 Segurança da Aplicação (OWASP Top 10)
+
+As principais ameaças do OWASP Top 10 relevantes para o VesteAí e as
+medidas adotadas para mitigá-las:
+
+| Ameaça | Medida adotada |
+|--------|---------------|
+| Broken Access Control | Middleware de autenticação JWT em todos os endpoints protegidos; verificação de propriedade antes de editar ou remover recursos |
+| Cryptographic Failures | Senhas armazenadas com bcrypt; comunicação exclusivamente via HTTPS; IPs armazenados apenas como hash |
+| Injection | Queries executadas via SQLAlchemy com parâmetros — sem concatenação de SQL; validação de entrada via Pydantic no FastAPI |
+| Insecure Design | Separação entre frontend e backend; credenciais de API externas (Gemini, Stripe) acessadas exclusivamente pelo backend |
+| Security Misconfiguration | Variáveis sensíveis (chaves de API, secret JWT, credenciais do banco) gerenciadas via variáveis de ambiente, nunca em código |
+| Vulnerable Components | Dependências gerenciadas via `requirements.txt` e `package.json` com versões fixas |
+| Server-Side Request Forgery (SSRF) | LinkValidator valida e restringe domínios de destino antes de aceitar links de compra |
+
+---
+
+## 6.3 Proteção de Dados em Trânsito e em Repouso
+
+Toda a comunicação entre cliente e servidor ocorre exclusivamente via
+HTTPS — requisito não funcional RNF06. Isso garante que tokens JWT,
+credenciais de login e dados do usuário não trafeguem em texto claro
+na rede.
+
+O banco de dados PostgreSQL é acessado exclusivamente pelo backend via
+conexão autenticada. Nenhum dado do banco é exposto diretamente ao
+frontend ou a sistemas externos.
+
+---
+
+## 6.4 Privacidade e LGPD
+
+### Dados coletados
+
+O VesteAí coleta apenas os dados necessários para o funcionamento da
+plataforma:
+
+| Dado | Finalidade | Base legal (LGPD) |
+|------|-----------|-------------------|
+| Nome e e-mail | Identificação e autenticação do usuário | Execução de contrato (Art. 7°, V) |
+| Senha (hash bcrypt) | Autenticação segura | Execução de contrato (Art. 7°, V) |
+| Avatar e bio | Personalização do perfil público | Consentimento (Art. 7°, I) |
+| Looks e peças publicados | Conteúdo da plataforma | Execução de contrato (Art. 7°, V) |
+| Cliques em links (com IP hash) | Métricas de desempenho para o creator | Legítimo interesse (Art. 7°, IX) |
+
+O VesteAí **não coleta** dados de cartão de crédito, dados bancários nem
+informações de compra — todas as transações financeiras ocorrem nas lojas
+externas ou no ambiente seguro do Stripe.
+
+### Armazenamento
+
+Os dados são armazenados no PostgreSQL hospedado em ambiente de produção
+com acesso restrito. O endereço IP dos visitantes que clicam em links de
+compra é armazenado exclusivamente como hash SHA-256 — o IP bruto nunca
+é persistido, minimizando a retenção de dado pessoal identificável.
+
+### Direitos do titular
+
+O usuário pode, a qualquer momento:
+
+- **Acessar** seus dados exportando o conteúdo do seu perfil
+- **Corrigir** nome, e-mail, avatar e bio nas configurações de perfil
+- **Excluir** sua conta, o que remove permanentemente todos os seus dados
+  pessoais e looks publicados do banco de dados (exclusão em cascata via
+  `ON DELETE CASCADE` no esquema relacional)
+
+Solicitações de direitos do titular podem ser feitas diretamente pelo
+e-mail de contato da plataforma. O prazo de resposta é de até 15 dias
+corridos, conforme previsto na LGPD.
+
+### Retenção de dados
+
+Os dados do usuário são mantidos enquanto a conta estiver ativa. Após a
+exclusão da conta, todos os dados pessoais são removidos imediatamente.
+Registros de cliques anonimizados (sem vínculo com usuário identificável)
+podem ser mantidos para fins estatísticos agregados.
