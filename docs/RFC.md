@@ -1455,3 +1455,95 @@ forem atendidos simultaneamente:
 - Aplicação acessível publicamente via URL estável em produção
 - Pelo menos 5 looks publicados por criadores reais antes do Demo Day
 - Pelo menos 1 clique em link de compra registrado por look publicado
+
+---
+
+# 8. Referências
+
+## 8.1 Pesquisa de Mercado
+
+- **NuvemCommerce 2026** — Relatório anual do e-commerce brasileiro.
+  Dados de crescimento do segmento de moda (35%, R$ 2,9 bilhões).
+  Disponível em: https://nuvemshop.com.br/nuvemcommerce
+
+- **Opinion Box** — Pesquisa "Consumo de moda no Brasil".
+  Dado: 66% dos brasileiros preferem comprar roupas online.
+  Disponível em: https://opinionbox.com
+
+- **Wake** — Dados de social commerce brasileiro.
+  Projeção de crescimento de 16,1% ao ano, US$ 4,16 bilhões em 2025.
+  Disponível em: https://wake.tech
+
+---
+
+## 8.2 Legislação e Regulação
+
+- **Lei Geral de Proteção de Dados — LGPD**
+  Lei nº 13.709, de 14 de agosto de 2018.
+  Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm
+
+- **OWASP Top 10** — Os dez riscos de segurança mais críticos em aplicações web.
+  Open Web Application Security Project, 2021.
+  Disponível em: https://owasp.org/www-project-top-ten
+
+---
+
+## 8.3 Arquitetura e Metodologia
+
+- **BROWN, Simon** — The C4 model for visualising software architecture.
+  Disponível em: https://c4model.com
+
+- **RFC 7519** — JSON Web Token (JWT).
+  Internet Engineering Task Force (IETF), 2015.
+  Disponível em: https://datatracker.ietf.org/doc/html/rfc7519
+
+---
+
+## 8.4 Documentação Técnica
+
+- **Next.js** — The React Framework for the Web.
+  Disponível em: https://nextjs.org/docs
+
+- **FastAPI** — Modern, fast web framework for building APIs with Python.
+  Disponível em: https://fastapi.tiangolo.com
+
+- **PostgreSQL** — The World's Most Advanced Open Source Relational Database.
+  Disponível em: https://www.postgresql.org/docs
+
+- **SQLAlchemy** — The Python SQL Toolkit and Object Relational Mapper.
+  Disponível em: https://docs.sqlalchemy.org
+
+- **Google Gemini API** — Documentação oficial da API de geração de imagem.
+  Disponível em: https://ai.google.dev/docs
+
+- **Stripe** — Documentação de assinaturas recorrentes e webhooks.
+  Disponível em: https://stripe.com/docs/billing/subscriptions/overview
+
+- **bcrypt** — Adaptive password hashing for Python (passlib).
+  Disponível em: https://passlib.readthedocs.io
+
+---
+
+## 8.5 Plataformas de Referência (Benchmark)
+
+- **LTK (LikeToKnowIt)** — https://shopltk.com
+- **Pinterest** — https://pinterest.com
+- **OQVestir** — https://oqvestir.com.br
+- **Instagram** — https://instagram.com
+- **TikTok** — https://tiktok.com
+
+---
+
+## 8.6 Ferramentas Utilizadas
+
+- **Structurizr** — Geração dos diagramas C4 (Nível 1, 2 e 3).
+  Disponível em: https://structurizr.com/dsl
+
+- **dbdiagram.io** — Geração do Diagrama Entidade-Relacionamento (DER).
+  Disponível em: https://dbdiagram.io
+
+- **Excalidraw** — Diagramas de fluxo de usuário (consumer e creator).
+  Disponível em: https://excalidraw.com
+
+- **Google Stitch** — Geração dos mockups de interface.
+  Disponível em: https://stitch.withgoogle.com
