@@ -1402,3 +1402,56 @@ Os dados do usuário são mantidos enquanto a conta estiver ativa. Após a
 exclusão da conta, todos os dados pessoais são removidos imediatamente.
 Registros de cliques anonimizados (sem vínculo com usuário identificável)
 podem ser mantidos para fins estatísticos agregados.
+
+---
+
+# 7. Planejamento do Projeto
+
+O desenvolvimento do VesteAí está dividido em duas fases distintas,
+separadas por semestre letivo. O primeiro semestre de 2026 é dedicado
+à documentação, definição arquitetural e aprovação pelos professores
+orientadores. O desenvolvimento da aplicação ocorre integralmente no
+segundo semestre de 2026, com entrega e apresentação no Demo Day.
+
+---
+
+## 7.1 Fase 1 — Documentação e Aprovação (1º Semestre 2026)
+
+| Marco | Descrição | Período |
+|-------|-----------|---------|
+| M1 | Definição do produto, pesquisa de usuários e benchmark | Março 2026 |
+| M2 | Engenharia de requisitos (RFs, RNFs, regras de negócio, personas) | Abril 2026 |
+| M3 | Fluxos do sistema, wireframes e mockups de UX | Abril 2026 |
+| M4 | Arquitetura do sistema (C4, modelo de dados, stack tecnológica) | Maio 2026 |
+| M5 | Segurança, privacidade e planejamento do projeto | Maio 2026 |
+| M6 | Entrega da RFC e aprovação pelos professores orientadores | Junho 2026 |
+
+---
+
+## 7.2 Fase 2 — Desenvolvimento (2º Semestre 2026)
+
+| Marco | Descrição | Período |
+|-------|-----------|---------|
+| M7 | Setup do monorepo, ambiente de desenvolvimento e CI/CD | Agosto 2026 |
+| M8 | Backend: autenticação, modelo de dados e CRUD de looks | Agosto 2026 |
+| M9 | Backend: rastreamento de cliques, validação de links e integração Gemini | Setembro 2026 |
+| M10 | Frontend: feed de looks, tela de detalhes e carrinho | Setembro 2026 |
+| M11 | Frontend: editor de looks, painel do creator e autenticação | Outubro 2026 |
+| M12 | Integração Stripe (assinatura Pro) e testes de integração | Outubro 2026 |
+| M13 | Testes unitários (cobertura mínima 70% no backend) e correções | Novembro 2026 |
+| M14 | Deploy em produção, validação com usuários reais e ajustes finais | Novembro 2026 |
+| M15 | Demo Day — apresentação do produto funcional | Dezembro 2026 |
+
+---
+
+## 7.3 Critérios de Conclusão
+
+O projeto será considerado concluído quando os seguintes critérios
+forem atendidos simultaneamente:
+
+- RFC aprovada pelos professores orientadores até o fim do 1º semestre
+- Todos os requisitos funcionais RF01–RF17 implementados e verificados
+- Cobertura mínima de 70% de testes unitários no backend
+- Aplicação acessível publicamente via URL estável em produção
+- Pelo menos 5 looks publicados por criadores reais antes do Demo Day
+- Pelo menos 1 clique em link de compra registrado por look publicado
