@@ -1402,3 +1402,232 @@ Os dados do usuário são mantidos enquanto a conta estiver ativa. Após a
 exclusão da conta, todos os dados pessoais são removidos imediatamente.
 Registros de cliques anonimizados (sem vínculo com usuário identificável)
 podem ser mantidos para fins estatísticos agregados.
+
+---
+
+# 7. Planejamento do Projeto
+
+O desenvolvimento do VesteAí está dividido em duas fases distintas,
+separadas por semestre letivo. O primeiro semestre de 2026 é dedicado
+à documentação, definição arquitetural e aprovação pelos professores
+orientadores. O desenvolvimento da aplicação ocorre integralmente no
+segundo semestre de 2026, com entrega e apresentação no Demo Day.
+
+---
+
+## 7.1 Fase 1 — Documentação e Aprovação (1º Semestre 2026)
+
+| Marco | Descrição | Período |
+|-------|-----------|---------|
+| M1 | Definição do produto, pesquisa de usuários e benchmark | Março 2026 |
+| M2 | Engenharia de requisitos (RFs, RNFs, regras de negócio, personas) | Abril 2026 |
+| M3 | Fluxos do sistema, wireframes e mockups de UX | Abril 2026 |
+| M4 | Arquitetura do sistema (C4, modelo de dados, stack tecnológica) | Maio 2026 |
+| M5 | Segurança, privacidade e planejamento do projeto | Maio 2026 |
+| M6 | Entrega da RFC e aprovação pelos professores orientadores | Junho 2026 |
+
+---
+
+## 7.2 Fase 2 — Desenvolvimento (2º Semestre 2026)
+
+| Marco | Descrição | Período |
+|-------|-----------|---------|
+| M7 | Setup do monorepo, ambiente de desenvolvimento e CI/CD | Agosto 2026 |
+| M8 | Backend: autenticação, modelo de dados e CRUD de looks | Agosto 2026 |
+| M9 | Backend: rastreamento de cliques, validação de links e integração Gemini | Setembro 2026 |
+| M10 | Frontend: feed de looks, tela de detalhes e carrinho | Setembro 2026 |
+| M11 | Frontend: editor de looks, painel do creator e autenticação | Outubro 2026 |
+| M12 | Integração Stripe (assinatura Pro) e testes de integração | Outubro 2026 |
+| M13 | Testes unitários (cobertura mínima 70% no backend) e correções | Novembro 2026 |
+| M14 | Deploy em produção, validação com usuários reais e ajustes finais | Novembro 2026 |
+| M15 | Demo Day — apresentação do produto funcional | Dezembro 2026 |
+
+---
+
+## 7.3 Critérios de Conclusão
+
+O projeto será considerado concluído quando os seguintes critérios
+forem atendidos simultaneamente:
+
+- RFC aprovada pelos professores orientadores até o fim do 1º semestre
+- Todos os requisitos funcionais RF01–RF17 implementados e verificados
+- Cobertura mínima de 70% de testes unitários no backend
+- Aplicação acessível publicamente via URL estável em produção
+- Pelo menos 5 looks publicados por criadores reais antes do Demo Day
+- Pelo menos 1 clique em link de compra registrado por look publicado
+
+---
+
+# 8. Referências
+
+## 8.1 Pesquisa de Mercado
+
+- **NuvemCommerce 2026** — Relatório anual do e-commerce brasileiro.
+  Dados de crescimento do segmento de moda (35%, R$ 2,9 bilhões).
+  Disponível em: https://nuvemshop.com.br/nuvemcommerce
+
+- **Opinion Box** — Pesquisa "Consumo de moda no Brasil".
+  Dado: 66% dos brasileiros preferem comprar roupas online.
+  Disponível em: https://opinionbox.com
+
+- **Wake** — Dados de social commerce brasileiro.
+  Projeção de crescimento de 16,1% ao ano, US$ 4,16 bilhões em 2025.
+  Disponível em: https://wake.tech
+
+---
+
+## 8.2 Legislação e Regulação
+
+- **Lei Geral de Proteção de Dados — LGPD**
+  Lei nº 13.709, de 14 de agosto de 2018.
+  Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm
+
+- **OWASP Top 10** — Os dez riscos de segurança mais críticos em aplicações web.
+  Open Web Application Security Project, 2021.
+  Disponível em: https://owasp.org/www-project-top-ten
+
+---
+
+## 8.3 Arquitetura e Metodologia
+
+- **BROWN, Simon** — The C4 model for visualising software architecture.
+  Disponível em: https://c4model.com
+
+- **RFC 7519** — JSON Web Token (JWT).
+  Internet Engineering Task Force (IETF), 2015.
+  Disponível em: https://datatracker.ietf.org/doc/html/rfc7519
+
+---
+
+## 8.4 Documentação Técnica
+
+- **Next.js** — The React Framework for the Web.
+  Disponível em: https://nextjs.org/docs
+
+- **FastAPI** — Modern, fast web framework for building APIs with Python.
+  Disponível em: https://fastapi.tiangolo.com
+
+- **PostgreSQL** — The World's Most Advanced Open Source Relational Database.
+  Disponível em: https://www.postgresql.org/docs
+
+- **SQLAlchemy** — The Python SQL Toolkit and Object Relational Mapper.
+  Disponível em: https://docs.sqlalchemy.org
+
+- **Google Gemini API** — Documentação oficial da API de geração de imagem.
+  Disponível em: https://ai.google.dev/docs
+
+- **Stripe** — Documentação de assinaturas recorrentes e webhooks.
+  Disponível em: https://stripe.com/docs/billing/subscriptions/overview
+
+- **bcrypt** — Adaptive password hashing for Python (passlib).
+  Disponível em: https://passlib.readthedocs.io
+
+---
+
+## 8.5 Plataformas de Referência (Benchmark)
+
+- **LTK (LikeToKnowIt)** — https://shopltk.com
+- **Pinterest** — https://pinterest.com
+- **OQVestir** — https://oqvestir.com.br
+- **Instagram** — https://instagram.com
+- **TikTok** — https://tiktok.com
+
+---
+
+## 8.6 Ferramentas Utilizadas
+
+- **Structurizr** — Geração dos diagramas C4 (Nível 1, 2 e 3).
+  Disponível em: https://structurizr.com/dsl
+
+- **dbdiagram.io** — Geração do Diagrama Entidade-Relacionamento (DER).
+  Disponível em: https://dbdiagram.io
+
+- **Excalidraw** — Diagramas de fluxo de usuário (consumer e creator).
+  Disponível em: https://excalidraw.com
+
+- **Google Stitch** — Geração dos mockups de interface.
+  Disponível em: https://stitch.withgoogle.com
+
+---
+
+# 9. Apêndices
+
+---
+
+## A1. Repositório do Projeto
+
+O código-fonte, a documentação e todos os assets da RFC estão
+disponíveis no repositório oficial do projeto:
+
+- **Repositório:** https://github.com/kalebefukuda/veste-ai
+- **Branch da RFC:** `docs/rfc`
+- **Pasta de assets:** `docs/assets/`
+
+---
+
+## A2. Landing Page — Identidade Visual
+
+Foi desenvolvida uma landing page do VesteAí como referência de
+identidade visual da plataforma. Ela estabelece a paleta de cores,
+tipografia e tom de comunicação que guiarão o desenvolvimento da
+interface final.
+
+**Stack:** Next.js + Tailwind CSS
+**Paleta:** `#8B5CF6` (purple), `#C4A8FF` (purple-light), `#F472B6` (rose), `#1E1B4B` (navy)
+
+![Landing Page VesteAí](assets/lp-veste-ai.png)
+
+> A landing page não representa o design final da aplicação — é uma
+> referência de identidade visual e proposta de valor do produto.
+
+---
+
+## A3. Resumo das Conversas com Usuários
+
+As conversas informais descritas na Seção 1.2 foram realizadas com
+5 participantes divididos entre os dois perfis de usuário da plataforma.
+Nenhuma gravação foi realizada — os registros abaixo são sínteses das
+observações coletadas.
+
+### Perfil Consumer (3 participantes)
+
+| Participante | Perfil | Principal observação |
+|---|---|---|
+| P1 | Mulher, 24 anos, estudante | "Fico horas tentando achar onde comprar um look que vi no Instagram" |
+| P2 | Mulher, 27 anos, analista | "Quando acho o link, às vezes é loja americana sem entrega aqui" |
+| P3 | Homem, 29 anos, designer | "Nunca consigo montar o look completo, sempre falta alguma peça" |
+
+### Perfil Creator (2 participantes)
+
+| Participante | Perfil | Principal observação |
+|---|---|---|
+| P4 | Mulher, 22 anos, influenciadora | "Respondo nos comentários onde comprei mas os links somem no stories" |
+| P5 | Mulher, 31 anos, usa afiliados Shopee | "Queria um lugar só para moda, o Linktree é genérico demais" |
+
+**Padrão identificado:** todos os 5 participantes demonstraram interesse
+imediato na proposta e perguntaram quando a plataforma estaria disponível.
+
+---
+
+# 10. Parecer do Comitê de Avaliação
+
+(A ser preenchido pelos professores)
+
+**Avaliador 1:** __________________________
+**Status:** [ ] Aprovado  [ ] Ajustar
+
+Observações:
+
+---
+
+**Avaliador 2:** __________________________
+**Status:** [ ] Aprovado  [ ] Ajustar
+
+Observações:
+
+---
+
+**Avaliador 3:** __________________________
+**Status:** [ ] Aprovado  [ ] Ajustar
+
+Observações:
