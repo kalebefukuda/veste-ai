@@ -479,11 +479,12 @@ RN04 — Um look só pode ser publicado se tiver ao menos uma peça com link de 
 RN05 — Cada peça de um look deve conter obrigatoriamente nome e link de compra.
 RN06 — O creator é o único responsável pela validade dos links de compra — o VesteAí não valida nem garante os links externos.
 RN07 — Um creator só pode editar ou remover looks criados por ele mesmo.
+RN08 — Todo look deve conter ao menos uma imagem para ser publicado, seja por upload direto ou gerada por IA.
 
 ### Métricas
 
-RN08 — O registro de clique é contabilizado apenas quando o usuário é redirecionado para a loja externa.
-RN09 — As métricas de cliques são visíveis apenas para o creator do look.
+RN09 — O registro de clique é contabilizado apenas quando o usuário é redirecionado para a loja externa.
+RN10 — As métricas de cliques são visíveis apenas para o creator do look.
 
 ## 2.6 Fora do Escopo
 
@@ -492,3 +493,805 @@ RN09 — As métricas de cliques são visíveis apenas para o creator do look.
 - O sistema não oferecerá funcionalidade de chat ou mensagens entre usuários
 - O sistema não permitirá a venda de produtos diretamente na plataforma
 - O sistema não realizará curadoria ou moderação automática de looks publicados
+
+# 3. Fluxos e Comportamento do Sistema
+
+Esta seção demonstra como o sistema funciona na prática, descrevendo os
+caminhos percorridos pelos dois perfis de usuário da plataforma — consumer
+e creator — e os desvios mais relevantes que o sistema deve tratar.
+
+---
+
+## 3.1 Fluxo Principal do Usuário
+
+O VesteAí possui dois fluxos principais distintos, um para cada perfil de
+usuário. Ambos são independentes e refletem jornadas fundamentalmente
+diferentes: o consumer descobre e compra, o creator monta e publica.
+
+---
+
+### Fluxo do Consumer
+
+O consumer acessa a plataforma sem necessidade de autenticação. A jornada
+começa pela exploração do feed de looks publicados, onde pode abrir qualquer
+look completo e visualizar todas as peças com seus respectivos links de
+compra. O clique em um link redireciona o consumer diretamente para a loja
+externa, que é o ponto de conversão central da plataforma.
+
+Caso o consumer queira salvar um look nos favoritos, o sistema verifica se
+está autenticado. Se não estiver, é direcionado para login ou cadastro antes
+de concluir a ação. Se já estiver autenticado, o look é salvo imediatamente.
+Essa é a única ação do consumer que exige autenticação — explorar o feed e
+clicar em links de compra são acessíveis a qualquer visitante.
+
+![Fluxo do Consumer](../docs/assets/fluxo-consumer.png)
+
+---
+
+### Fluxo do Creator
+
+O creator precisa estar autenticado para publicar looks. Ao acessar a
+plataforma, o sistema verifica se possui conta — caso contrário, passa pelo
+cadastro e login antes de acessar o painel. A partir do painel, inicia a
+criação do look adicionando título, descrição e as peças com seus respectivos
+links de compra.
+
+A etapa seguinte exige que o creator forneça uma imagem para o look, que é
+obrigatória para publicação. Se já tiver uma foto do look, faz o upload
+diretamente. Caso contrário, utiliza o assistente Gemini para gerar uma
+imagem de referência. Sem imagem — seja por upload ou gerada pelo Gemini —
+o look não pode ser publicado.
+
+Antes de publicar, o sistema verifica se o creator está dentro do limite de
+publicações do seu plano. Se tiver atingido o limite, é apresentada a opção
+de upgrade para o plano Pro. Caso opte por não fazer o upgrade, o fluxo é
+encerrado sem publicação. Caso faça o upgrade ou já esteja dentro do limite,
+o look é revisado e publicado, tornando-se visível no feed da plataforma.
+Após a publicação, o creator pode acompanhar as métricas de cliques no seu
+painel.
+
+![Fluxo do Creator](../docs/assets/fluxo-creator.png)
+
+---
+
+## 3.2 Fluxos Alternativos
+
+Esta seção descreve os principais desvios do caminho feliz — situações de
+erro, cancelamento ou exceção que o sistema deve tratar de forma explícita.
+
+---
+
+### FA01 — Visitante tenta salvar look sem autenticação
+
+**Contexto:** O visitante clica em "salvar look" sem estar autenticado.
+
+**Comportamento esperado:** O sistema interrompe a ação e exibe um prompt
+de login ou cadastro. Após autenticação bem-sucedida, o sistema retoma a
+ação e salva o look nos favoritos automaticamente, sem exigir que o usuário
+repita o gesto.
+
+---
+
+### FA02 — Creator tenta publicar look sem imagem
+
+**Contexto:** O creator conclui o preenchimento das peças e tenta publicar
+sem ter fornecido uma imagem — nem por upload nem via Gemini.
+
+**Comportamento esperado:** O sistema bloqueia a publicação e exibe uma
+mensagem informando que a imagem é obrigatória. O creator permanece na tela
+de criação e pode escolher entre fazer upload ou gerar via Gemini antes de
+tentar publicar novamente.
+
+---
+
+### FA03 — Creator tenta publicar look sem nenhuma peça com link
+
+**Contexto:** O creator tenta publicar um look sem ter adicionado nenhuma
+peça com link de compra cadastrado.
+
+**Comportamento esperado:** O sistema bloqueia a publicação e exibe uma
+mensagem informando que ao menos uma peça com link de compra é obrigatória
+(RN04). O creator permanece na tela de criação para completar o look antes
+de tentar novamente.
+
+---
+
+### FA04 — Link de compra inválido ou malicioso
+
+**Contexto:** O creator cadastra um link de compra que está inacessível ou
+aponta para um domínio sinalizado como malicioso.
+
+**Comportamento esperado:** O sistema executa a validação do link (RF15) e,
+ao detectar o problema, exibe uma mensagem de erro indicando qual link falhou
+na validação. O creator pode corrigir ou substituir o link antes de prosseguir.
+Links que passam na validação técnica mas são inválidos comercialmente
+permanecem sob responsabilidade do creator (RN06).
+
+---
+
+### FA05 — Erro na geração de imagem pelo Gemini
+
+**Contexto:** O creator opta por gerar a imagem via Gemini, mas a requisição
+falha por erro da API ou timeout.
+
+**Comportamento esperado:** O sistema exibe uma mensagem de erro informando
+que a geração não foi concluída e oferece duas opções: tentar novamente ou
+fazer upload manual de uma imagem. O look em criação não é perdido — as
+peças e links já cadastrados são preservados.
+
+---
+
+### FA06 — Creator atinge limite de publicações e não faz upgrade
+
+**Contexto:** O creator tenta publicar um look mas já atingiu o limite de
+publicações do plano gratuito e, ao ser apresentado ao upgrade Pro, decide
+não prosseguir.
+
+**Comportamento esperado:** O sistema encerra o fluxo de publicação sem
+descartar o look. O rascunho é preservado no painel do creator, permitindo
+que retome e publique quando decidir fazer o upgrade ou quando um slot
+de publicação estiver disponível.
+
+---
+
+# 4. Mockups e Experiência do Usuário (UX)
+
+> **Observação:** Os mockups apresentados nesta seção são a base para construção da aplicação. Eles
+> representam a estrutura, os fluxos e a intenção de design da plataforma,
+> mas não constituem o design final da interface. Elementos visuais como
+> tipografia, espaçamento, paleta de cores e componentes estão sujeitos
+> a revisão durante o desenvolvimento.
+
+Esta seção apresenta a visualização inicial do produto antes da
+implementação. Os mockups foram utilizados para validar o fluxo de
+navegação, a organização da interface, as interações dos dois perfis de
+usuário e a clareza da experiência como um todo.
+
+---
+
+## 4.1 Fluxo de Navegação
+
+O VesteAí possui dois fluxos de navegação distintos, refletindo as
+jornadas documentadas na Seção 3. Ambos partem do feed de looks como
+tela central e divergem conforme o perfil e a intenção do usuário.
+
+**Jornada do Consumer:**
+
+![Fluxo do Consumidor](assets/jornada-consumidor.png)
+
+**Jornada do Creator:**
+
+![Fluxo do Criador](assets/jornada-criador.png)
+
+Os diagramas completos, incluindo desvios e fluxos alternativos, estão
+na [Seção 3](#3-fluxos-e-comportamento-do-sistema).
+
+---
+
+## 4.2 Wireframes e Mockups das Telas
+
+### Tela 1 — Login e Cadastro
+
+A tela de autenticação adota um layout dividido em dois painéis. O painel
+esquerdo é visual e exibe o card de look característico da
+plataforma com os floating badges de engajamento, reforçando a proposta
+de valor do produto no momento de entrada do usuário. O painel direito
+contém o formulário de autenticação com campos de e-mail e senha, opção
+de login via Google e link para cadastro.
+
+A mesma tela serve tanto para login quanto para o redirecionamento
+descrito no FA01 — quando um visitante tenta salvar um look sem
+autenticação, é encaminhado para esta tela e, após autenticar, retorna
+automaticamente à ação interrompida.
+
+**Requisitos cobertos:** RF01, RF02, RF03, RF04
+
+![Login e Cadastro](assets/fluxo-user/login.png)
+
+---
+
+### Tela 2 — Feed de Looks
+
+O feed é a tela central da plataforma e o ponto de entrada para o
+consumidor. A navegação superior apresenta os filtros de categoria em
+pills horizontais, permitindo que o usuário refine o conteúdo
+sem sair da tela.
+
+O conteúdo é organizado em um grid uniforme de quatro colunas, com
+cards de proporção padronizada seguindo a convenção de marketplaces de
+moda. Cada card exibe a foto do look, o handle do creator, o título,
+as tags de estilo, a contagem de curtidas e um link direto para o look
+completo. O visitante não precisa estar autenticado para navegar no feed
+— a exploração é aberta a qualquer usuário (RN03).
+
+**Requisitos cobertos:** RF05, RF06
+
+![Feed de Looks](assets/fluxo-user/feed-look.png)
+
+---
+
+### Tela 3 — Detalhes do Look
+
+A tela de detalhes é o ponto de conversão da jornada do consumer. O
+layout é dividido em duas colunas: à esquerda, a imagem do look em
+proporção destacada com badges de "IA Gerado" e contagem de curtidas;
+à direita, o painel com título, tags, descrição e a lista de peças.
+
+Cada peça exibe nome, loja, preço indicativo e um botão de acesso ao
+link de compra externo. O botão principal "Ver todos os links de compra"
+ao final da lista direciona o usuário para o carrinho, onde os links
+ficam agregados antes do redirecionamento. Um aviso explícito informa
+que o VesteAí não realiza cobranças — as transações ocorrem nas lojas
+externas (RN06, seção 2.6).
+
+**Requisitos cobertos:** RF06, RF07, RF08
+
+![Detalhes do Look](assets/fluxo-user/detalhes-look.png)
+
+---
+
+### Tela 4 — Carrinho
+
+O carrinho do VesteAí não é um checkout — não processa pagamentos nem
+armazena dados financeiros. Sua função é agregar os itens salvos de
+múltiplos looks e centralizar os links de compra externos em um único
+lugar, eliminando a necessidade de o usuário abrir cada look
+separadamente para acessar cada link.
+
+Os itens são agrupados pelo look de origem, com o handle do creator
+identificado em cada grupo. Cada item exibe nome, loja, preço indicativo
+e um botão individual "Ir para compra →" que abre o link externo em
+nova aba. O botão "Ir para todas as compras" no painel de resumo dispara
+todos os links simultaneamente. Um aviso abaixo do botão reforça que o
+VesteAí não realiza cobranças e que o usuário será redirecionado para
+os sites das lojas.
+
+**Requisitos cobertos:** RF07, RF08, RF09
+
+![Carrinho](assets/fluxo-user/carrinho.png)
+
+---
+
+### Tela 5 — Editor de Looks
+
+O editor é a tela central do fluxo do creator. O layout de duas colunas
+separa responsabilidades visuais das informacionais: à esquerda, a área
+de upload da imagem do look com o toggle de geração via IA; à direita,
+os campos de nome, tags de estilo e a lista de peças com links.
+
+Uma barra de progresso no topo da tela indica o avanço no processo de
+criação. A lista de peças permite adicionar, visualizar e remover itens
+individualmente, com o link de compra visível para cada peça cadastrada.
+O botão "Publicar" na barra de navegação permanece desabilitado até que
+os requisitos mínimos de publicação sejam atendidos — ao menos uma peça
+com link e uma imagem (RN04, RN08).
+
+**Requisitos cobertos:** RF10, RF11, RF12, RF13, RF14, RF15, RF17
+
+![Editor de Looks](assets/fluxo-user/editor-look.png)
+
+---
+
+### Tela 6 — Painel do Creator
+
+O painel centraliza as métricas de desempenho dos looks publicados pelo
+creator. A tela é dividida em sidebar à esquerda — com seletor de
+período e atalhos de navegação — e área principal à direita com os
+indicadores e a tabela de performance.
+
+Os dois cards de métrica exibem cliques totais e visualizações de looks,
+ambas as métricas coletadas pela própria plataforma. A tabela "Performance
+by Look" lista cada look publicado com data, volume de cliques representado
+por uma barra proporcional e status de publicação. Não há dados financeiros
+ou de comissão no painel — a monetização ocorre fora da plataforma, nos
+programas de afiliados de cada loja, e é de responsabilidade do creator
+(seção 2.6).
+
+**Requisitos cobertos:** RF16
+
+![Painel do Creator](assets/fluxo-user/creator-panel.png)
+
+---
+
+## 4.3 Fluxo de Interação do Usuário
+
+### Fluxo do Consumer — Descoberta e Compra
+
+1. Usuário acessa a plataforma e visualiza o **Feed de Looks** sem
+   necessidade de autenticação
+2. Aplica filtro de categoria (ex: "Minimalista") para refinar o conteúdo
+3. Clica em um card de look para abrir os **Detalhes do Look**
+4. Visualiza as peças, loja e preço indicativo de cada item
+5. Clica em "Ver todos os links de compra" e é direcionado ao **Carrinho**
+6. No carrinho, revisa os itens agrupados por look de origem
+7. Clica em "Ir para todas as compras" e é redirecionado para as lojas
+   externas em novas abas — a transação ocorre fora da plataforma
+
+> **Desvio (FA01):** se o usuário tentar salvar um look sem estar
+> autenticado, o sistema redireciona para a tela de **Login** e,
+> após autenticação, retorna automaticamente ao look.
+
+---
+
+### Fluxo do Creator — Criação e Publicação
+
+1. Creator acessa a tela de **Login** e autentica com e-mail/senha
+   ou via Google
+2. É direcionado ao **Feed de Looks** como tela inicial da sessão
+3. Clica em "Create Look" na barra de navegação para abrir o **Editor**
+4. Faz upload da foto do look ou aciona o toggle "Gerar modelo com IA"
+5. Preenche o nome do look e seleciona as tags de estilo
+6. Adiciona peças com nome, loja e link de compra externo
+7. Clica em "Publicar" — o look passa a ser visível no feed publicamente
+8. Acessa o **Painel do Creator** para acompanhar cliques e visualizações
+
+> **Desvio (FA02/FA03):** se tentar publicar sem imagem ou sem peças
+> com link, o sistema bloqueia e exibe mensagem orientando a completar
+> os campos obrigatórios antes de prosseguir.
+
+---
+
+## 4.4 Feedback Inicial de Usuários
+
+Os mockups foram apresentados informalmente aos mesmos 5 participantes
+das conversas descritas na seção 1.2. As reações foram coletadas sem
+formulário estruturado, com foco em identificar pontos de confusão ou
+expectativas não atendidas na interface.
+
+| Tela | Observação coletada |
+|------|---------------------|
+| Feed de Looks | Filtros de categoria foram considerados intuitivos; expectativa de busca por texto também foi mencionada |
+| Detalhes do Look | A separação entre "ver o look" e "comprar as peças" ficou clara para todos os participantes |
+| Carrinho | O aviso "VesteAí não realiza cobranças" foi considerado necessário e aumentou a confiança no fluxo |
+| Editor de Looks | O toggle de geração por IA gerou curiosidade positiva; participantes demonstraram interesse em visualizar o resultado antes de publicar |
+| Painel do Creator | A ausência de dados financeiros foi compreendida após explicação do modelo de negócio |
+
+---
+
+# 5. Arquitetura do Sistema
+
+Esta seção descreve as decisões arquiteturais que estruturam o VesteAí como
+sistema de software, organizando os componentes, suas responsabilidades e as
+relações entre eles.
+
+---
+
+## 5.1 Diagrama C4
+
+O modelo C4 organiza a arquitetura em níveis progressivos de detalhe: do
+contexto geral do sistema até os componentes internos de cada serviço.
+
+---
+
+### Nível 1 — Contexto do Sistema
+
+No nível de contexto, o VesteAí é tratado como uma caixa preta. O objetivo
+é identificar quem interage com o sistema e quais sistemas externos ele depende,
+sem detalhar como o sistema funciona internamente.
+
+Dois atores humanos interagem diretamente com a plataforma. O **Visitante** é
+qualquer pessoa que acessa o VesteAí sem autenticação — pode explorar o feed,
+visualizar looks completos e clicar em links de compra. O **Usuário Autenticado**
+representa o perfil unificado da plataforma: a mesma conta que salva looks
+como consumidor também pode criar e publicar looks como creator. Não existe
+separação de contas entre os dois comportamentos.
+
+O VesteAí depende de três sistemas externos. A **Google Gemini API** é utilizada
+pelo módulo de geração de imagem — quando o creator opta por não fazer upload
+de uma foto e aciona o assistente de IA para gerar uma imagem de referência do
+look. O **Stripe** processa exclusivamente a assinatura Pro do creator
+(R$29/mês), que libera publicações ilimitadas de looks; a plataforma não
+processa pagamentos de produtos nem armazena dados financeiros dos consumidores.
+As **Lojas Externas de E-commerce** (Shopee, Mercado Livre, Shein, Renner, C&A
+e demais) não integram com o VesteAí via API — o sistema apenas redireciona o
+usuário para a URL cadastrada pelo creator, e a transação ocorre inteiramente
+fora da plataforma.
+
+![Diagrama C4 — Nível 1: Contexto](assets/c4-model/level-1-context.png)
+
+---
+
+### Nível 2 — Containers
+
+No nível de containers, o interior do sistema é explicitado. O VesteAí é
+composto por dois containers principais que se comunicam via HTTPS com
+troca de dados em formato JSON.
+
+O **Frontend** é construído com Next.js e combina renderização no lado do
+servidor (SSR) para as páginas públicas — feed e detalhes de look — com
+interatividade no lado do cliente para o editor de looks e o painel do
+creator. O SSR é especialmente relevante para o feed, pois garante que o
+conteúdo seja indexável por mecanismos de busca e carregue com baixa latência
+para o visitante não autenticado. Toda a comunicação do frontend com o
+backend ocorre por meio de chamadas HTTPS à API.
+
+O **Backend** é uma API construída com FastAPI em Python. É responsável por
+toda a lógica de negócio: autenticação de usuários, criação e publicação de
+looks, registro de cliques em links, validação de URLs, orquestração da
+requisição à Gemini e processamento de eventos do Stripe. O backend persiste
+os dados no **PostgreSQL**, o banco de dados relacional central da aplicação.
+
+A **Google Gemini API** e o **Stripe** são acessados exclusivamente pelo
+backend — o frontend nunca se comunica diretamente com esses serviços. Esse
+isolamento centraliza o controle de chaves de API e evita que credenciais
+sensíveis sejam expostas no cliente.
+
+![Diagrama C4 — Nível 2: Containers](assets/c4-model/level-2-containers.png)
+
+---
+
+### Nível 3 — Componentes
+
+No nível de componentes, o interior do container FastAPI é detalhado. A API
+segue uma arquitetura em camadas que separa responsabilidades de forma clara:
+**routers** recebem as requisições HTTP e delegam para os serviços; **services**
+concentram as regras de negócio; **repositories** encapsulam o acesso ao banco
+de dados; e **clients** abstraem a comunicação com serviços externos.
+
+Os principais componentes da API são:
+
+**AuthService** — gerencia o ciclo de vida de autenticação: criação de conta
+com senha armazenada como hash bcrypt, login com geração de token JWT e
+validação do token nas rotas protegidas.
+
+**LookService** — coordena as operações de criação, edição, publicação e remoção
+de looks. Verifica as pré-condições de publicação (imagem obrigatória, ao menos
+uma peça com link) e aplica a regra de limite de publicações por plano antes de
+persistir o look como público.
+
+**PieceService** — gerencia as peças associadas a cada look. Recebe nome, loja,
+preço, imagem e link de compra de cada item. Aciona a validação de URL para
+cada link cadastrado antes de confirmar o cadastro da peça.
+
+**ClickTracker** — registra cada clique em link de compra externo. Ao receber
+uma requisição de redirecionamento, persiste o evento na tabela `Click` com o
+identificador da peça, o identificador do look, o `user_agent` e um hash do
+endereço IP — sem armazenar o IP bruto — e então redireciona o usuário para a
+URL externa. Esse componente é o responsável direto pela north star metric da
+plataforma: contagem de cliques em links de compra.
+
+**ImageService** — encapsula a integração com a Google Gemini API. Recebe uma
+descrição textual do look, monta o prompt e envia a requisição para a API de
+geração de imagem. Em caso de falha ou timeout, retorna um erro estruturado
+para o LookService, que aciona o fluxo alternativo FA05 descrito na Seção 3.
+
+**StripeClient** — abstrai a integração com o Stripe. Processa a criação da
+assinatura Pro do creator e responde a webhooks de confirmação e cancelamento
+de pagamento, atualizando o campo `plano` na entidade `User`.
+
+**LinkValidator** — valida os links de compra cadastrados pelos creators. Verifica
+se a URL está acessível (resposta HTTP válida) e se o domínio de destino não
+consta em listas de domínios sinalizados como maliciosos. Não garante a validade
+comercial do link — apenas a acessibilidade e a segurança técnica (RF15, RN06).
+
+![Diagrama C4 — Nível 3: Componentes da API](assets/c4-model/level-3-components.png)
+
+---
+
+## 5.2 Modelo de Dados
+
+O modelo relacional do VesteAí é composto por cinco entidades principais. O
+diagrama a seguir representa as relações entre elas, seguido pelo esquema
+relacional com os tipos de dados adotados no PostgreSQL.
+
+![DER — Diagrama Entidade-Relacionamento do VesteAí](assets/c4-model/der.png)
+
+---
+
+### Relacionamentos
+
+- `User` **1:N** `Look` — um usuário pode criar múltiplos looks; cada look
+  pertence a exatamente um usuário.
+- `Look` **1:N** `Piece` — um look é composto por múltiplas peças; cada peça
+  pertence a exatamente um look.
+- `Piece` **1:N** `Click` — um clique é sempre associado a uma peça específica
+  e ao look ao qual essa peça pertence; cada registro de clique pertence a
+  exatamente uma peça.
+- `User` **N:M** `Look` via `SavedLook` — um usuário pode salvar múltiplos
+  looks e um mesmo look pode ser salvo por múltiplos usuários; a entidade
+  `SavedLook` representa essa associação com o registro da data de salvamento.
+
+---
+
+### Esquema Relacional
+
+```sql
+User (
+  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome         VARCHAR(100) NOT NULL,
+  email        VARCHAR(255) NOT NULL UNIQUE,
+  senha_hash   TEXT         NOT NULL,
+  plano        VARCHAR(20)  NOT NULL DEFAULT 'free',  -- 'free' | 'pro'
+  avatar       TEXT,
+  bio          TEXT,
+  created_at   TIMESTAMP    NOT NULL DEFAULT now()
+)
+
+Look (
+  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      UUID         NOT NULL REFERENCES User(id) ON DELETE CASCADE,
+  titulo       VARCHAR(200) NOT NULL,
+  descricao    TEXT,
+  imagem_url   TEXT         NOT NULL,
+  ia_gerada    BOOLEAN      NOT NULL DEFAULT false,
+  status       VARCHAR(20)  NOT NULL DEFAULT 'rascunho',  -- 'rascunho' | 'publicado'
+  created_at   TIMESTAMP    NOT NULL DEFAULT now()
+)
+
+Piece (
+  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  look_id      UUID         NOT NULL REFERENCES Look(id) ON DELETE CASCADE,
+  nome         VARCHAR(200) NOT NULL,
+  loja         VARCHAR(100),
+  preco        NUMERIC(10,2),
+  link_compra  TEXT         NOT NULL,
+  imagem_url   TEXT,
+  created_at   TIMESTAMP    NOT NULL DEFAULT now()
+)
+
+Click (
+  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  piece_id     UUID         NOT NULL REFERENCES Piece(id) ON DELETE CASCADE,
+  look_id      UUID         NOT NULL REFERENCES Look(id) ON DELETE CASCADE,
+  user_agent   TEXT,
+  ip_hash      VARCHAR(64),
+  created_at   TIMESTAMP    NOT NULL DEFAULT now()
+)
+
+SavedLook (
+  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      UUID         NOT NULL REFERENCES User(id) ON DELETE CASCADE,
+  look_id      UUID         NOT NULL REFERENCES Look(id) ON DELETE CASCADE,
+  created_at   TIMESTAMP    NOT NULL DEFAULT now(),
+  UNIQUE (user_id, look_id)
+)
+```
+
+O campo `ip_hash` na entidade `Click` armazena um hash do endereço IP do
+visitante em vez do IP bruto, evitando a retenção de dado pessoal desnecessário.
+O campo `look_id` é mantido diretamente na entidade `Click` — ainda que
+derivável via `Piece` — para permitir consultas de métricas agregadas por look
+sem a necessidade de junções adicionais, o que favorece o desempenho das
+consultas do painel do creator.
+
+---
+
+## 5.3 Principais Componentes
+
+Esta seção descreve os módulos que compõem o sistema, sua responsabilidade
+funcional e os requisitos que cada um atende.
+
+---
+
+### Módulo de Autenticação
+
+O módulo de autenticação gerencia o cadastro e o login de usuários. Ao criar
+uma conta, a senha é processada com bcrypt antes de ser persistida —
+nenhuma senha em texto claro é armazenada no banco. No login, as credenciais
+são verificadas e um token JWT é gerado com prazo de expiração configurável.
+Esse token é enviado pelo frontend em todas as requisições que exigem
+autenticação e validado pelo middleware da API antes de acionar qualquer
+serviço protegido. O módulo cobre os requisitos RF01, RF02, RF03 e os
+requisitos não funcionais RNF04, RNF05 e RNF07.
+
+---
+
+### Módulo de Looks
+
+O módulo de looks concentra as operações de criação, edição, publicação e
+remoção de looks. É o módulo central da plataforma em termos de lógica de
+negócio: verifica se as pré-condições de publicação estão satisfeitas (RN04,
+RN08), aplica o limite de publicações conforme o plano do usuário (RN07) e
+persiste o estado do look como `rascunho` ou `publicado`. O feed público
+retorna apenas looks com status `publicado`, paginados para atender ao
+requisito de desempenho RNF10. O módulo cobre os requisitos RF05, RF10, RF11,
+RF12, RF13 e RF14.
+
+---
+
+### Módulo de Peças
+
+O módulo de peças gerencia os itens que compõem um look. Cada peça é associada
+a um look específico e deve conter obrigatoriamente nome e link de compra
+(RN05). O módulo aciona o LinkValidator antes de confirmar o cadastro de cada
+peça, garantindo que links tecnicamente inválidos ou maliciosos sejam
+bloqueados na entrada (RF15). Links que passam na validação técnica mas são
+comercialmente inválidos permanecem sob responsabilidade do creator, conforme
+estabelecido pela regra de negócio RN06.
+
+---
+
+### Módulo de Rastreamento de Cliques
+
+O rastreamento de cliques é o mecanismo central de medição da north star metric
+da plataforma. Toda vez que um usuário acessa um link de compra, a requisição
+passa pelo ClickTracker antes do redirecionamento: o evento é registrado na
+tabela `Click` com os metadados relevantes e o usuário é redirecionado para a
+URL externa. Esse fluxo garante que cada clique seja contabilizado de forma
+atômica — sem depender de JavaScript no cliente — e que as métricas do painel
+do creator reflitam a realidade com precisão. O módulo cobre os requisitos RF07
+e RF16, além da regra de negócio RN09.
+
+---
+
+### Integração com Google Gemini
+
+O ImageService encapsula toda a comunicação com a Google Gemini API. Ao ser
+acionado, recebe os dados do look em criação — título, tags de estilo e
+descrição das peças — e constrói um prompt estruturado para a geração de uma
+imagem de modelo virtual vestindo o look. A resposta da API é processada e a
+URL da imagem gerada é associada ao look com o campo `ia_gerada` marcado como
+`true`, permitindo que o frontend exiba o badge "IA Gerado" na tela de
+detalhes do look. Em caso de falha, o serviço retorna um erro estruturado que
+aciona o fluxo alternativo FA05. O módulo cobre o requisito RF17.
+
+---
+
+### Integração com Stripe
+
+O StripeClient gerencia exclusivamente o ciclo de vida da assinatura Pro do
+creator. O fluxo de upgrade cria uma sessão de checkout no Stripe; após o
+pagamento confirmado via webhook, o campo `plano` do usuário é atualizado de
+`free` para `pro` no banco de dados. Cancelamentos e inadimplências são
+processados pelo mesmo mecanismo de webhook, revertendo o plano para `free`
+quando necessário. O VesteAí não armazena dados de cartão nem processa
+pagamentos de produtos em nenhuma circunstância — toda a transação financeira
+ocorre no ambiente seguro do Stripe.
+
+---
+
+### Validação de Links
+
+O LinkValidator é um componente utilitário acionado pelo módulo de peças
+durante o cadastro de links de compra. Realiza duas verificações sequenciais:
+primeiro, testa a acessibilidade da URL com uma requisição HTTP e verifica se
+a resposta indica um destino válido; segundo, consulta o domínio de destino
+contra uma lista de domínios sinalizados como maliciosos. Links que falham
+em qualquer uma das verificações são rejeitados com uma mensagem de erro
+identificando qual link causou o problema (FA04). O componente cobre o
+requisito RF15 e operacionaliza a regra de negócio RN06.
+
+---
+
+## 5.4 Stack Tecnológica
+
+As escolhas tecnológicas do VesteAí foram orientadas por três critérios
+principais: adequação técnica aos requisitos do projeto, produtividade no
+contexto de um time reduzido e um único desenvolvedor, e maturidade do
+ecossistema para um produto web em produção. Esta seção justifica cada
+escolha em relação às alternativas disponíveis.
+
+---
+
+### Next.js (Frontend)
+
+O Next.js foi escolhido como framework de frontend por combinar, em uma única
+solução, renderização no lado do servidor (SSR), geração estática (SSG) e
+interatividade no cliente via React. Essa flexibilidade é especialmente
+relevante para o VesteAí: o feed público e as páginas de look individual se
+beneficiam do SSR para indexação por mecanismos de busca e carregamento rápido
+sem autenticação, enquanto o editor de looks e o painel do creator operam
+com estado dinâmico no cliente.
+
+A alternativa direta seria um SPA puro com React e Vite, que entrega
+interatividade equivalente mas sem renderização no servidor — o que
+prejudicaria a indexabilidade do feed de looks e o tempo de carregamento
+percebido pelo visitante não autenticado. O Next.js elimina essa troca ao
+permitir que cada rota adote a estratégia de renderização mais adequada ao
+seu perfil de acesso.
+
+---
+
+### FastAPI com Python (Backend)
+
+O FastAPI foi escolhido como framework de backend pela combinação de alta
+performance, tipagem estática nativa via Pydantic e geração automática de
+documentação OpenAPI. A tipagem forte no contrato da API reduz erros de
+integração com o frontend e facilita a validação dos dados de entrada sem
+código boilerplate adicional.
+
+Em relação ao Flask — a alternativa Python mais comum — o FastAPI oferece
+suporte nativo a operações assíncronas e validação de dados integrada ao
+framework, o que é relevante para operações de I/O como chamadas à Gemini API
+e ao Stripe. A escolha por Python como linguagem do backend também é motivada
+pela facilidade de integração com SDKs de IA, considerando que a Google AI SDK
+para Python é a mais madura e documentada entre as disponíveis.
+
+---
+
+### PostgreSQL (Banco de Dados)
+
+O PostgreSQL foi escolhido como banco de dados relacional pela robustez,
+pelo suporte nativo a UUIDs como chave primária e pela maturidade do
+ecossistema de ferramentas e bibliotecas de acesso em Python. O modelo
+relacional é adequado ao domínio do VesteAí: as entidades possuem
+relacionamentos bem definidos (Look → Piece → Click) e as consultas de
+métricas do painel do creator se beneficiam da expressividade do SQL
+para agregações.
+
+A alternativa de um banco NoSQL como MongoDB não foi adotada porque o
+esquema de dados do VesteAí é estável e fortemente relacional. A
+flexibilidade de esquema do MongoDB não apresenta vantagem nesse contexto
+e introduz complexidade adicional na manutenção da integridade referencial
+entre as entidades.
+
+---
+
+### Google Gemini API (Geração de Imagem)
+
+A Google Gemini API foi escolhida para a funcionalidade de geração de imagem
+de look com modelo virtual por oferecer capacidade multimodal — geração de
+imagem a partir de texto descritivo — com SDK Python oficial e documentação
+ampla. A integração se encaixa no fluxo do creator como uma funcionalidade
+auxiliar: o creator que não tem uma foto do look pode gerar uma imagem de
+referência sem precisar sair da plataforma.
+
+Em relação à alternativa DALL-E da OpenAI, a Gemini API foi preferida pela
+integração mais direta com o ecossistema Google e pela disponibilidade de
+modelos de geração de imagem com custo por chamada adequado ao volume
+esperado em um MVP. A funcionalidade é apresentada ao usuário como um
+auxílio à criação, não como diferencial central — o que justifica uma
+escolha pragmática baseada em disponibilidade e custo operacional.
+
+---
+
+### Stripe (Processamento de Assinatura)
+
+O Stripe foi escolhido para processar a assinatura Pro do creator por ser a
+plataforma de pagamentos recorrentes com melhor suporte a webhooks, documentação
+mais completa e SDK oficial para Python. O modelo de assinatura recorrente
+(R$29/mês) é exatamente o caso de uso central do Stripe — o que simplifica
+a implementação em comparação com soluções alternativas como PagSeguro ou
+Mercado Pago, que têm suporte menos maduro a cobranças recorrentes
+programáticas.
+
+É importante reiterar que o Stripe é utilizado exclusivamente para a assinatura
+da plataforma. A monetização dos creators — as comissões de afiliado — ocorre
+fora do VesteAí, nos programas de afiliados das próprias lojas, e não envolve
+nenhum fluxo financeiro dentro do sistema.
+
+---
+
+### JWT + bcrypt (Autenticação)
+
+A autenticação por tokens JWT foi escolhida por ser stateless — o servidor
+não precisa manter sessões em memória ou banco — o que simplifica a
+arquitetura ao eliminar a necessidade de um serviço de sessões. O token
+carrega os dados necessários para identificar o usuário e é validado pelo
+middleware da API a cada requisição protegida.
+
+O bcrypt foi escolhido para o hash de senhas por ser o algoritmo recomendado
+para armazenamento seguro de credenciais: é adaptativo (o fator de custo pode
+ser aumentado conforme o hardware evolui), resistente a ataques de força bruta
+por ser computacionalmente custoso por design, e amplamente suportado nas
+bibliotecas Python de segurança. Essa combinação atende diretamente aos
+requisitos não funcionais RNF04 e RNF05.
+
+---
+
+### GitHub — Monorepo (Controle de Versão e Deploy)
+
+O repositório do VesteAí é organizado como monorepo no GitHub, com o frontend
+Next.js e o backend FastAPI no mesmo repositório. Essa organização facilita
+a consistência entre as versões dos dois serviços, simplifica o gerenciamento
+de dependências compartilhadas e permite que um único pull request abranja
+alterações que afetam tanto o frontend quanto o backend — o que é especialmente
+relevante em um projeto desenvolvido por um único desenvolvedor.
+
+A alternativa de repositórios separados (polyrepo) introduziria overhead de
+sincronização sem benefício real no contexto do MVP — os times independentes
+que justificariam repositórios separados não existem nesse projeto.
+
+---
+
+### Resumo da Stack
+
+| Camada | Tecnologia | Alternativa Considerada | Razão da Escolha |
+|--------|-----------|------------------------|-----------------|
+| Frontend | Next.js (React) | React + Vite (SPA) | SSR para feed público e indexabilidade |
+| Backend | FastAPI (Python) | Flask (Python) | Tipagem nativa, async, validação integrada |
+| Banco de dados | PostgreSQL | MongoDB | Esquema relacional estável, integridade referencial |
+| IA | Google Gemini API | DALL-E (OpenAI) | Ecossistema Python, custo operacional do MVP |
+| Pagamentos | Stripe | PagSeguro / Mercado Pago | Suporte maduro a assinaturas recorrentes |
+| Autenticação | JWT + bcrypt | Sessões em banco | Stateless, sem necessidade de serviço de sessão |
+| Repositório | GitHub (monorepo) | Polyrepo | Time único, sincronização simplificada |
