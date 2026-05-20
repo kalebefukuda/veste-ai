@@ -1606,3 +1606,28 @@ observações coletadas.
 
 **Padrão identificado:** todos os 5 participantes demonstraram interesse
 imediato na proposta e perguntaram quando a plataforma estaria disponível.
+
+---
+
+# 10. Parecer do Comitê de Avaliação
+
+(A ser preenchido pelos professores)
+
+**Avaliador 1:** __________________________
+**Status:** [ ] Aprovado  [ ] Ajustar
+
+Observações:
+
+---
+
+**Avaliador 2:** __________________________
+**Status:** [ ] Aprovado  [ ] Ajustar
+
+Observações:
+
+---
+
+**Avaliador 3:** __________________________
+**Status:** [ ] Aprovado  [ ] Ajustar
+
+Observações:
