@@ -868,8 +868,7 @@ contexto geral do sistema até os componentes internos de cada serviço.
 
 ### Nível 1 — Contexto do Sistema
 
-No nível de contexto, o VesteAí é tratado como uma caixa preta. O objetivo
-é identificar quem interage com o sistema e quais sistemas externos ele depende,
+No nível de contexto, o objetivo é identificar quem interage com o sistema e quais sistemas externos ele depende,
 sem detalhar como o sistema funciona internamente.
 
 Dois atores humanos interagem diretamente com a plataforma. O **Visitante** é
@@ -882,8 +881,7 @@ separação de contas entre os dois comportamentos.
 O VesteAí depende de três sistemas externos. A **Google Gemini API** é utilizada
 pelo módulo de geração de imagem — quando o creator opta por não fazer upload
 de uma foto e aciona o assistente de IA para gerar uma imagem de referência do
-look. O **Stripe** processa exclusivamente a assinatura Pro do creator
-(R$29/mês), que libera publicações ilimitadas de looks; a plataforma não
+look. O **Stripe** processa exclusivamente a assinatura Pro do creator, que libera publicações ilimitadas de looks; a plataforma não
 processa pagamentos de produtos nem armazena dados financeiros dos consumidores.
 As **Lojas Externas de E-commerce** (Shopee, Mercado Livre, Shein, Renner, C&A
 e demais) não integram com o VesteAí via API — o sistema apenas redireciona o
@@ -991,8 +989,7 @@ relacional com os tipos de dados adotados no PostgreSQL.
   e ao look ao qual essa peça pertence; cada registro de clique pertence a
   exatamente uma peça.
 - `User` **N:M** `Look` via `SavedLook` — um usuário pode salvar múltiplos
-  looks e um mesmo look pode ser salvo por múltiplos usuários; a entidade
-  `SavedLook` representa essa associação com o registro da data de salvamento.
+  looks e um mesmo look pode ser salvo por múltiplos usuários.
 
 ---
 
@@ -1176,13 +1173,6 @@ beneficiam do SSR para indexação por mecanismos de busca e carregamento rápid
 sem autenticação, enquanto o editor de looks e o painel do creator operam
 com estado dinâmico no cliente.
 
-A alternativa direta seria um SPA puro com React e Vite, que entrega
-interatividade equivalente mas sem renderização no servidor — o que
-prejudicaria a indexabilidade do feed de looks e o tempo de carregamento
-percebido pelo visitante não autenticado. O Next.js elimina essa troca ao
-permitir que cada rota adote a estratégia de renderização mais adequada ao
-seu perfil de acesso.
-
 ---
 
 ### FastAPI com Python (Backend)
@@ -1192,13 +1182,6 @@ performance, tipagem estática nativa via Pydantic e geração automática de
 documentação OpenAPI. A tipagem forte no contrato da API reduz erros de
 integração com o frontend e facilita a validação dos dados de entrada sem
 código boilerplate adicional.
-
-Em relação ao Flask — a alternativa Python mais comum — o FastAPI oferece
-suporte nativo a operações assíncronas e validação de dados integrada ao
-framework, o que é relevante para operações de I/O como chamadas à Gemini API
-e ao Stripe. A escolha por Python como linguagem do backend também é motivada
-pela facilidade de integração com SDKs de IA, considerando que a Google AI SDK
-para Python é a mais madura e documentada entre as disponíveis.
 
 ---
 
@@ -1212,12 +1195,6 @@ relacionamentos bem definidos (Look → Piece → Click) e as consultas de
 métricas do painel do creator se beneficiam da expressividade do SQL
 para agregações.
 
-A alternativa de um banco NoSQL como MongoDB não foi adotada porque o
-esquema de dados do VesteAí é estável e fortemente relacional. A
-flexibilidade de esquema do MongoDB não apresenta vantagem nesse contexto
-e introduz complexidade adicional na manutenção da integridade referencial
-entre as entidades.
-
 ---
 
 ### Google Gemini API (Geração de Imagem)
@@ -1229,21 +1206,13 @@ ampla. A integração se encaixa no fluxo do creator como uma funcionalidade
 auxiliar: o creator que não tem uma foto do look pode gerar uma imagem de
 referência sem precisar sair da plataforma.
 
-Em relação à alternativa DALL-E da OpenAI, a Gemini API foi preferida pela
-integração mais direta com o ecossistema Google e pela disponibilidade de
-modelos de geração de imagem com custo por chamada adequado ao volume
-esperado em um MVP. A funcionalidade é apresentada ao usuário como um
-auxílio à criação, não como diferencial central — o que justifica uma
-escolha pragmática baseada em disponibilidade e custo operacional.
-
 ---
 
 ### Stripe (Processamento de Assinatura)
 
 O Stripe foi escolhido para processar a assinatura Pro do creator por ser a
 plataforma de pagamentos recorrentes com melhor suporte a webhooks, documentação
-mais completa e SDK oficial para Python. O modelo de assinatura recorrente
-(R$29/mês) é exatamente o caso de uso central do Stripe — o que simplifica
+mais completa e SDK oficial para Python. O modelo de assinatura recorrente é exatamente o caso de uso central do Stripe — o que simplifica
 a implementação em comparação com soluções alternativas como PagSeguro ou
 Mercado Pago, que têm suporte menos maduro a cobranças recorrentes
 programáticas.
@@ -1281,10 +1250,6 @@ de dependências compartilhadas e permite que um único pull request abranja
 alterações que afetam tanto o frontend quanto o backend — o que é especialmente
 relevante em um projeto desenvolvido por um único desenvolvedor.
 
-A alternativa de repositórios separados (polyrepo) introduziria overhead de
-sincronização sem benefício real no contexto do MVP — os times independentes
-que justificariam repositórios separados não existem nesse projeto.
-
 ---
 
 ### GitHub Actions (CI/CD)
@@ -1321,26 +1286,15 @@ e por período, atendendo ao RF16 com menos código de infraestrutura.
 
 ---
 
-### Google Cloud Monitoring (Observabilidade)
+### Prometheus + Grafana (Observabilidade)
 
-O monitoramento de infraestrutura é realizado pelo Google Cloud
-Monitoring, já incluso no GCP sem configuração adicional. São
-monitorados: latência das rotas da API, taxa de erros HTTP, uso de
-CPU e memória dos serviços e disponibilidade da aplicação. Alertas
-são configurados para disponibilidade abaixo de 99% (RNF08) e
-latência acima dos limites definidos em RNF01–RNF03.
+O monitoramento de infraestrutura é realizado com Prometheus para coleta de métricas e Grafana para visualização, ambos executados como containers Docker na própria instância EC2. São monitorados: latência das rotas da API, taxa de erros HTTP, uso de CPU e memória dos serviços e disponibilidade da aplicação. Alertas são configurados para disponibilidade abaixo de 99% (RNF08) e latência acima dos limites definidos em RNF01–RNF03.
 
 ---
 
-### Google Cloud Platform (Infraestrutura e Deploy)
+### Amazon Web Services (Infraestrutura e Deploy)
 
-A aplicação é hospedada no Google Cloud Platform. O backend FastAPI é
-implantado no App Engine (Python runtime nativo, sem necessidade de
-containerização) e o frontend Next.js no Cloud Run ou via build estático.
-O banco de dados PostgreSQL é provisionado no Cloud SQL. A escolha pelo
-GCP é motivada pela integração direta com a Google Gemini API — ambos
-no mesmo ecossistema — e pelo modelo de cobrança por uso, adequado ao
-volume esperado de um MVP.
+A aplicação é hospedada na Amazon Web Services. O backend FastAPI e o frontend Next.js são implantados em uma instância EC2 (t2.micro) via containers Docker, e o banco de dados PostgreSQL é provisionado no Amazon RDS (db.t3.micro). A escolha pela AWS é motivada pelo free tier de 12 meses — que cobre EC2 e RDS dentro do volume esperado de um MVP — e pelo controle total sobre a infraestrutura que a combinação EC2 + Docker proporciona, demonstrando domínio técnico sobre o ambiente de execução.
 
 ---
 
@@ -1358,8 +1312,8 @@ volume esperado de um MVP.
 | CI/CD | GitHub Actions | Jenkins | Integrado ao repositório, sem infraestrutura adicional |
 | Qualidade | SonarCloud | SonarQube (self-hosted) | Análise automática integrada ao PR sem setup de servidor |
 | Product Analytics | PostHog | ClickTracker customizado | Rastreamento de eventos sem construir infraestrutura própria |
-| Monitoramento | Google Cloud Monitoring | Prometheus + Grafana | Já incluso no GCP, sem setup adicional |
-| Infraestrutura | GCP App Engine + Cloud SQL | AWS EC2 | Mesmo ecossistema da Gemini API, cobrança por uso |
+| Monitoramento | Prometheus + Grafana | Google Cloud Monitoring | Open-source, sem custo adicional, demonstra domínio técnico |
+| Infraestrutura | AWS EC2 + RDS | GCP App Engine + Cloud SQL | Free tier de 12 meses, controle total sobre infraestrutura |
 
 ---
 
@@ -1497,14 +1451,14 @@ segundo semestre de 2026, com entrega e apresentação no Demo Day.
 
 | Marco | Descrição | Período |
 |-------|-----------|---------|
-| M7 | Setup do monorepo, pipeline CI/CD (GitHub Actions), SonarCloud e ambientes GCP | Agosto 2026 |
+| M7 | Setup do monorepo, pipeline CI/CD (GitHub Actions), SonarCloud e ambientes AWS | Agosto 2026 |
 | M8 | Backend: autenticação, modelo de dados e CRUD de looks (TDD) | Agosto 2026 |
 | M9 | Backend: rastreamento de cliques, validação de links e integração Gemini (TDD) | Setembro 2026 |
 | M10 | Frontend: feed de looks, tela de detalhes e carrinho | Setembro 2026 |
 | M11 | Frontend: editor de looks, painel do creator e autenticação | Outubro 2026 |
 | M12 | Integração Stripe (assinatura Pro) e testes de integração | Outubro 2026 |
-| M13 | Testes unitários (75% backend, 25% frontend), PostHog e Google Cloud Monitoring | Novembro 2026 |
-| M14 | Deploy no Google Cloud Run, validação com usuários reais e ajustes finais | Novembro 2026 |
+| M13 | Testes unitários (75% backend, 25% frontend), PostHog e Prometheus + Grafana | Novembro 2026 |
+| M14 | Deploy na AWS EC2, validação com usuários reais e ajustes finais | Novembro 2026 |
 | M15 | Demo Day — apresentação do produto funcional | Dezembro 2026 |
 
 ---
@@ -1521,41 +1475,36 @@ forem atendidos simultaneamente:
 - Pipeline CI/CD ativo com execução automática de testes a cada push
 - SonarCloud sem issues críticos de segurança ou qualidade
 - Monitoramento configurado (Prometheus + Grafana) em produção
-- Aplicação acessível publicamente no Google Cloud Run via URL estável
+- Aplicação acessível publicamente na AWS EC2 via URL estável
 - Pelo menos 5 looks publicados por criadores reais antes do Demo Day
 - Pelo menos 1 clique em link de compra registrado por look publicado
 
 ## 7.4 Instruções de Deploy
 
 O deploy do VesteAí é realizado automaticamente pelo pipeline CI/CD a
-cada merge na branch `main`. O processo segue os passos abaixo:
+cada merge na branch `main`.
 
 **Pré-requisitos:**
-- Conta no Google Cloud Platform com projeto configurado
-- Cloud SQL (PostgreSQL) provisionado
-- Variáveis de ambiente configuradas no Secret Manager do GCP:
+- Conta na AWS com instância EC2 (t2.micro) e RDS PostgreSQL (db.t3.micro) configurados
+- Docker e Docker Compose instalados na instância EC2
+- Variáveis de ambiente configuradas via AWS Secrets Manager ou `.env` na instância:
   `DATABASE_URL`, `JWT_SECRET`, `GEMINI_API_KEY`, `STRIPE_SECRET_KEY`,
   `STRIPE_WEBHOOK_SECRET`
 
 **Pipeline automatizado (GitHub Actions):**
 1. Executa testes unitários (backend e frontend)
 2. Executa análise estática via SonarCloud
-3. Realiza deploy do backend no GCP App Engine (`gcloud app deploy`)
-4. Realiza deploy do frontend no GCP Cloud Run
-5. Executa smoke test na URL pública
+3. Realiza build das imagens Docker
+4. Envia as imagens para o Amazon ECR
+5. Conecta via SSH na instância EC2 e executa `docker compose up -d`
+6. Executa smoke test na URL pública
 
 **Deploy manual (emergencial):**
 ```bash
-# Backend (App Engine)
-cd backend
-gcloud app deploy
-
-# Frontend (Cloud Run)
-cd frontend
-gcloud run deploy vesteai-frontend --source . --region us-central1
+# Na instância EC2
+docker compose pull
+docker compose up -d
 ```
-
-> O deploy manual via SSH ou FTP não é utilizado em nenhuma circunstância.
 
 ---
 
