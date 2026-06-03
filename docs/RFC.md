@@ -124,7 +124,7 @@ um post no Instagram onde seguidores pedem o preço e o link das peças
 diretamente nos comentários, sem receber nenhuma resposta centralizada —
 evidência direta da dor que o VesteAí se propõe a resolver:
 
-![Instagram sem link](https://raw.githubusercontent.com/kalebefukuda/veste-ai/docs/rfc/docs/assets/instagram-no-link.png)
+![Instagram sem link](https://raw.githubusercontent.com/kalebefukuda/veste-ai/docs/rfc/docs/assets/instagram-no-link-2.png)
 
 ### Contexto de Mercado
 
@@ -945,10 +945,9 @@ preço, imagem e link de compra de cada item. Aciona a validação de URL para
 cada link cadastrado antes de confirmar o cadastro da peça.
 
 **ClickTracker** — registra cada clique em link de compra externo. Ao receber
-uma requisição de redirecionamento, persiste o evento na tabela `Click` com o
-identificador da peça, o identificador do look, o `user_agent` e um hash do
-endereço IP — sem armazenar o IP bruto — e então redireciona o usuário para a
-URL externa. Esse componente é o responsável direto pela north star metric da
+uma requisição de redirecionamento, persiste o evento na tabela `clicks` com o
+identificador da peça e do look, e então redireciona o usuário para a URL
+externa. Esse componente é o responsável direto pela north star metric da
 plataforma: contagem de cliques em links de compra.
 
 **ImageService** — encapsula a integração com a Google Gemini API. Recebe uma
@@ -958,7 +957,7 @@ para o LookService, que aciona o fluxo alternativo FA05 descrito na Seção 3.
 
 **StripeClient** — abstrai a integração com o Stripe. Processa a criação da
 assinatura Pro do creator e responde a webhooks de confirmação e cancelamento
-de pagamento, atualizando o campo `plano` na entidade `User`.
+de pagamento, atualizando o campo `plan` na entidade `users`.
 
 **LinkValidator** — valida os links de compra cadastrados pelos creators. Verifica
 se a URL está acessível (resposta HTTP válida) e se o domínio de destino não
@@ -981,14 +980,14 @@ relacional com os tipos de dados adotados no PostgreSQL.
 
 ### Relacionamentos
 
-- `User` **1:N** `Look` — um usuário pode criar múltiplos looks; cada look
+- `users` **1:N** `looks` — um usuário pode criar múltiplos looks; cada look
   pertence a exatamente um usuário.
-- `Look` **1:N** `Piece` — um look é composto por múltiplas peças; cada peça
+- `looks` **1:N** `pieces` — um look é composto por múltiplas peças; cada peça
   pertence a exatamente um look.
-- `Piece` **1:N** `Click` — um clique é sempre associado a uma peça específica
+- `pieces` **1:N** `clicks` — um clique é sempre associado a uma peça específica
   e ao look ao qual essa peça pertence; cada registro de clique pertence a
   exatamente uma peça.
-- `User` **N:M** `Look` via `SavedLook` — um usuário pode salvar múltiplos
+- `users` **N:M** `looks` via `saved_looks` — um usuário pode salvar múltiplos
   looks e um mesmo look pode ser salvo por múltiplos usuários.
 
 ---
@@ -996,63 +995,55 @@ relacional com os tipos de dados adotados no PostgreSQL.
 ### Esquema Relacional
 
 ```sql
-User (
+users (
   id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome         VARCHAR(100) NOT NULL,
+  name         VARCHAR(100) NOT NULL,
   email        VARCHAR(255) NOT NULL UNIQUE,
-  senha_hash   TEXT         NOT NULL,
-  plano        VARCHAR(20)  NOT NULL DEFAULT 'free',  -- 'free' | 'pro'
+  password     TEXT         NOT NULL,
+  plan         VARCHAR(20)  NOT NULL DEFAULT 'free',  -- 'free' | 'pro'
   avatar       TEXT,
   bio          TEXT,
   created_at   TIMESTAMP    NOT NULL DEFAULT now()
 )
 
-Look (
+looks (
   id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      UUID         NOT NULL REFERENCES User(id) ON DELETE CASCADE,
-  titulo       VARCHAR(200) NOT NULL,
-  descricao    TEXT,
-  imagem_url   TEXT         NOT NULL,
-  ia_gerada    BOOLEAN      NOT NULL DEFAULT false,
-  status       VARCHAR(20)  NOT NULL DEFAULT 'rascunho',  -- 'rascunho' | 'publicado'
+  user_id      UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title        VARCHAR(200) NOT NULL,
+  description  TEXT,
+  image_url    TEXT         NOT NULL,
+  ai_generated BOOLEAN      NOT NULL DEFAULT false,
+  status       VARCHAR(20)  NOT NULL DEFAULT 'draft',  -- 'draft' | 'published'
   created_at   TIMESTAMP    NOT NULL DEFAULT now()
 )
 
-Piece (
+pieces (
   id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  look_id      UUID         NOT NULL REFERENCES Look(id) ON DELETE CASCADE,
-  nome         VARCHAR(200) NOT NULL,
-  loja         VARCHAR(100),
-  preco        NUMERIC(10,2),
-  link_compra  TEXT         NOT NULL,
-  imagem_url   TEXT,
+  look_id      UUID         NOT NULL REFERENCES looks(id) ON DELETE CASCADE,
+  name         VARCHAR(200) NOT NULL,
+  store        VARCHAR(100),
+  price        NUMERIC(10,2),
+  purchase_url TEXT         NOT NULL,
+  image_url    TEXT,
   created_at   TIMESTAMP    NOT NULL DEFAULT now()
 )
 
-Click (
+clicks (
   id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  piece_id     UUID         NOT NULL REFERENCES Piece(id) ON DELETE CASCADE,
-  look_id      UUID         NOT NULL REFERENCES Look(id) ON DELETE CASCADE,
-  user_agent   TEXT,
-  ip_hash      VARCHAR(64),
+  piece_id     UUID         NOT NULL REFERENCES pieces(id) ON DELETE CASCADE,
+  look_id      UUID         NOT NULL REFERENCES looks(id) ON DELETE CASCADE,
   created_at   TIMESTAMP    NOT NULL DEFAULT now()
 )
 
-SavedLook (
+saved_looks (
   id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      UUID         NOT NULL REFERENCES User(id) ON DELETE CASCADE,
-  look_id      UUID         NOT NULL REFERENCES Look(id) ON DELETE CASCADE,
+  user_id      UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  look_id      UUID         NOT NULL REFERENCES looks(id) ON DELETE CASCADE,
   created_at   TIMESTAMP    NOT NULL DEFAULT now(),
   UNIQUE (user_id, look_id)
 )
 ```
-
-O campo `ip_hash` na entidade `Click` armazena um hash do endereço IP do
-visitante em vez do IP bruto, evitando a retenção de dado pessoal desnecessário.
-O campo `look_id` é mantido diretamente na entidade `Click` — ainda que
-derivável via `Piece` — para permitir consultas de métricas agregadas por look
-sem a necessidade de junções adicionais, o que favorece o desempenho das
-consultas do painel do creator.
+O campo `look_id` é mantido diretamente na entidade `clicks` — ainda que derivável via `pieces` — para permitir consultas de métricas agregadas por look sem a necessidade de junções adicionais, o que favorece o desempenho das consultas do painel do creator.
 
 ---
 
@@ -1082,8 +1073,8 @@ O módulo de looks concentra as operações de criação, edição, publicação
 remoção de looks. É o módulo central da plataforma em termos de lógica de
 negócio: verifica se as pré-condições de publicação estão satisfeitas (RN04,
 RN08), aplica o limite de publicações conforme o plano do usuário (RN07) e
-persiste o estado do look como `rascunho` ou `publicado`. O feed público
-retorna apenas looks com status `publicado`, paginados para atender ao
+persiste o estado do look como `draft` ou `published`. O feed público
+retorna apenas looks com status `published`, paginados para atender ao
 requisito de desempenho RNF10. O módulo cobre os requisitos RF05, RF10, RF11,
 RF12, RF13 e RF14.
 
@@ -1106,7 +1097,7 @@ estabelecido pela regra de negócio RN06.
 O rastreamento de cliques é o mecanismo central de medição da north star metric
 da plataforma. Toda vez que um usuário acessa um link de compra, a requisição
 passa pelo ClickTracker antes do redirecionamento: o evento é registrado na
-tabela `Click` com os metadados relevantes e o usuário é redirecionado para a
+tabela `clicks` com o identificador da peça e do look, e o usuário é redirecionado para a
 URL externa. Esse fluxo garante que cada clique seja contabilizado de forma
 atômica — sem depender de JavaScript no cliente — e que as métricas do painel
 do creator reflitam a realidade com precisão. O módulo cobre os requisitos RF07
@@ -1120,7 +1111,7 @@ O ImageService encapsula toda a comunicação com a Google Gemini API. Ao ser
 acionado, recebe os dados do look em criação — título, tags de estilo e
 descrição das peças — e constrói um prompt estruturado para a geração de uma
 imagem de modelo virtual vestindo o look. A resposta da API é processada e a
-URL da imagem gerada é associada ao look com o campo `ia_gerada` marcado como
+URL da imagem gerada é associada ao look com o campo `ai_generated` marcado como
 `true`, permitindo que o frontend exiba o badge "IA Gerado" na tela de
 detalhes do look. Em caso de falha, o serviço retorna um erro estruturado que
 aciona o fluxo alternativo FA05. O módulo cobre o requisito RF17.
@@ -1131,7 +1122,7 @@ aciona o fluxo alternativo FA05. O módulo cobre o requisito RF17.
 
 O StripeClient gerencia exclusivamente o ciclo de vida da assinatura Pro do
 creator. O fluxo de upgrade cria uma sessão de checkout no Stripe; após o
-pagamento confirmado via webhook, o campo `plano` do usuário é atualizado de
+pagamento confirmado via webhook, o campo `plan` do usuário é atualizado de
 `free` para `pro` no banco de dados. Cancelamentos e inadimplências são
 processados pelo mesmo mecanismo de webhook, revertendo o plano para `free`
 quando necessário. O VesteAí não armazena dados de cartão nem processa
@@ -1274,18 +1265,6 @@ com issues de severidade crítica.
 
 ---
 
-### PostHog (Product Analytics)
-
-O PostHog é utilizado para rastreamento de eventos de produto e
-alimentação das métricas do painel do creator. Substitui a necessidade
-de construir um ClickTracker customizado na API — cada clique em link
-de compra é capturado via `posthog.capture('link_clicked', { piece_id, look_id })`
-diretamente no frontend, sem depender de uma rota de redirecionamento
-própria. Os dashboards do PostHog exibem contagens de cliques por look
-e por período, atendendo ao RF16 com menos código de infraestrutura.
-
----
-
 ### Prometheus + Grafana (Observabilidade)
 
 O monitoramento de infraestrutura é realizado com Prometheus para coleta de métricas e Grafana para visualização, ambos executados como containers Docker na própria instância EC2. São monitorados: latência das rotas da API, taxa de erros HTTP, uso de CPU e memória dos serviços e disponibilidade da aplicação. Alertas são configurados para disponibilidade abaixo de 99% (RNF08) e latência acima dos limites definidos em RNF01–RNF03.
@@ -1311,7 +1290,7 @@ A aplicação é hospedada na Amazon Web Services. O backend FastAPI e o fronten
 | Repositório | GitHub (monorepo) | Polyrepo | Time único, sincronização simplificada |
 | CI/CD | GitHub Actions | Jenkins | Integrado ao repositório, sem infraestrutura adicional |
 | Qualidade | SonarCloud | SonarQube (self-hosted) | Análise automática integrada ao PR sem setup de servidor |
-| Product Analytics | PostHog | ClickTracker customizado | Rastreamento de eventos sem construir infraestrutura própria |
+| Product Analytics | ClickTracker customizado | Rastreamento de eventos sem construir infraestrutura própria |
 | Monitoramento | Prometheus + Grafana | Google Cloud Monitoring | Open-source, sem custo adicional, demonstra domínio técnico |
 | Infraestrutura | AWS EC2 + RDS | GCP App Engine + Cloud SQL | Free tier de 12 meses, controle total sobre infraestrutura |
 
@@ -1353,7 +1332,7 @@ medidas adotadas para mitigá-las:
 | Ameaça | Medida adotada |
 |--------|---------------|
 | Broken Access Control | Middleware de autenticação JWT em todos os endpoints protegidos; verificação de propriedade antes de editar ou remover recursos |
-| Cryptographic Failures | Senhas armazenadas com bcrypt; comunicação exclusivamente via HTTPS; IPs armazenados apenas como hash |
+| Cryptographic Failures | Senhas armazenadas com bcrypt; comunicação exclusivamente via HTTPS|
 | Injection | Queries executadas via SQLAlchemy com parâmetros — sem concatenação de SQL; validação de entrada via Pydantic no FastAPI |
 | Insecure Design | Separação entre frontend e backend; credenciais de API externas (Gemini, Stripe) acessadas exclusivamente pelo backend |
 | Security Misconfiguration | Variáveis sensíveis (chaves de API, secret JWT, credenciais do banco) gerenciadas via variáveis de ambiente, nunca em código |
@@ -1457,7 +1436,7 @@ segundo semestre de 2026, com entrega e apresentação no Demo Day.
 | M10 | Frontend: feed de looks, tela de detalhes e carrinho | Setembro 2026 |
 | M11 | Frontend: editor de looks, painel do creator e autenticação | Outubro 2026 |
 | M12 | Integração Stripe (assinatura Pro) e testes de integração | Outubro 2026 |
-| M13 | Testes unitários (75% backend, 25% frontend), PostHog e Prometheus + Grafana | Novembro 2026 |
+| M13 | Testes unitários (75% backend, 25% frontend), Prometheus + Grafana | Novembro 2026 |
 | M14 | Deploy na AWS EC2, validação com usuários reais e ajustes finais | Novembro 2026 |
 | M15 | Demo Day — apresentação do produto funcional | Dezembro 2026 |
 
