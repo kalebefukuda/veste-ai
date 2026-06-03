@@ -124,7 +124,7 @@ um post no Instagram onde seguidores pedem o preço e o link das peças
 diretamente nos comentários, sem receber nenhuma resposta centralizada —
 evidência direta da dor que o VesteAí se propõe a resolver:
 
-![Instagram sem link](https://raw.githubusercontent.com/kalebefukuda/veste-ai/docs/rfc/docs/assets/instagram-no-link.png)
+![Instagram sem link](https://raw.githubusercontent.com/kalebefukuda/veste-ai/docs/rfc/docs/assets/instagram-no-link-2.png)
 
 ### Contexto de Mercado
 
