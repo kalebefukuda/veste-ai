@@ -9,6 +9,20 @@ out
 build
 dist
 
+# python
+__pycache__
+*.py[cod]
+.venv
+venv
+
+# test and coverage
+.pytest_cache
+.ruff_cache
+.coverage
+coverage
+coverage.xml
+htmlcov
+
 # misc
 .DS_Store
 *.local
