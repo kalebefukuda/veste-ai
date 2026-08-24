@@ -12,10 +12,23 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def include_object(obj, name, type_, reflected, compare_to) -> bool:
+    """Keep autogenerate from dropping tables whose models do not exist yet.
+
+    The schema is created upfront by migration 0001, while the SQLAlchemy models
+    arrive per sprint. Without this filter, `revision --autogenerate` reads a table
+    that has no model as removed and emits a DROP for it.
+    """
+    if type_ == "table" and reflected and name not in target_metadata.tables:
+        return False
+    return True
+
+
 def run_migrations_offline() -> None:
     context.configure(
         url=get_settings().database_url,
         target_metadata=target_metadata,
+        include_object=include_object,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -26,7 +39,11 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     with get_engine().connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_object,
+        )
 
         with context.begin_transaction():
             context.run_migrations()
