@@ -7,4 +7,3 @@ venv
 .coverage
 coverage.xml
 htmlcov
-tests
