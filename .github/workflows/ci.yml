@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+# Runs de PR superados são cancelados; runs de push em `dev` e `main` nunca são.
+# Dois merges seguidos na `dev` cancelariam o run do primeiro commit, deixando-o sem
+# cobertura e sem análise — e uma regressão que só ele introduziu nunca seria avaliada.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: backend — lint and tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          # requirements-dev.txt só contém `-r requirements.txt`; sem listar os dois,
+          # uma mudança de dependência de produção não invalidaria o cache.
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      # The threshold matches the coverage measured when this pipeline was written.
+      # It is a ratchet against regression, not the target: the goal is 75%, and the
+      # number here is raised as each sprint adds tests. It never goes down.
+      - name: Tests
+        run: pytest --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=36
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 7
+
+  frontend:
+    name: frontend — lint and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          # A máquina de desenvolvimento roda Node 26; a 20 já saiu da janela de
+          # suporte do Node. A 22 fica em manutenção até abr/2027, cobrindo com folga
+          # a entrega em novembro e o período de notas em dezembro.
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # `next build` type-checks the project, so it stands in for a typecheck step
+      # while the frontend has no dedicated script.
+      - name: Build
+        run: npm run build
+
+  sonarcloud:
+    name: sonarcloud — static analysis
+    runs-on: ubuntu-latest
+    needs: [backend]
+    # Job-level env is the only place a secret can be read by a step-level `if`.
+    # Without the token the scan is skipped instead of failing the pipeline, so the
+    # analysis starts running on its own the moment SONAR_TOKEN is configured.
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: https://sonarcloud.io
+    steps:
+      - name: Report missing token
+        if: env.SONAR_TOKEN == ''
+        run: echo "SONAR_TOKEN is not configured — skipping the analysis." >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: env.SONAR_TOKEN != ''
+        with:
+          # Full history lets SonarCloud assign issues to the commit that introduced
+          # them and compute the new-code period.
+          fetch-depth: 0
+
+      - name: Download coverage report
+        if: env.SONAR_TOKEN != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: backend-coverage
+          path: backend
+
+      - name: Scan
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703 # v5
