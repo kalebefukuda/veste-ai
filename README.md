@@ -18,7 +18,7 @@ TCC de Engenharia de Software — Católica SC, 8º semestre, linha Web App.
 | Frontend | Next.js (App Router), TypeScript, Tailwind |
 | Backend | FastAPI, SQLAlchemy 2.0, Alembic |
 | Banco | PostgreSQL 16 |
-| Hospedagem | Vercel (frontend) · Railway (backend e banco) |
+| Hospedagem | Vercel (frontend) · AWS ECS Fargate + RDS (backend e banco) |
 
 ## Estrutura
 
@@ -26,7 +26,7 @@ TCC de Engenharia de Software — Católica SC, 8º semestre, linha Web App.
 veste-ai/
 ├─ backend/     API FastAPI — routers, services, repositories, clients
 ├─ frontend/    aplicação Next.js
-└─ docs/        RFC, ADRs e fonte da wiki
+└─ docs/        RFC e diagramas
 ```
 
 ## Como rodar localmente
@@ -59,9 +59,8 @@ Metas de cobertura: **75% no backend** e **25% no frontend**.
 
 ## Documentação
 
-A documentação do sistema fica em [`docs/`](docs/) e é publicada na
-[Wiki do repositório](https://github.com/kalebefukuda/veste-ai/wiki) pelo pipeline.
-A RFC está em [`docs/RFC.md`](docs/RFC.md).
+A RFC está em [`docs/RFC.md`](docs/RFC.md), com os diagramas em
+[`docs/assets/`](docs/assets/).
 
 ## Contribuindo
 
