@@ -1,0 +1,24 @@
+version: 2
+updates:
+  # As actions estão presas por SHA. Sem este bloco, o pin nunca é atualizado e o
+  # ganho de segurança vira dívida: o Dependabot é o que mantém o SHA fresco.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
