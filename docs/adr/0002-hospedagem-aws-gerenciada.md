@@ -28,7 +28,8 @@ força este registro.
 
 A restrição que a substituta precisa satisfazer é específica. O item a evitar da
 linha Web App não é "usar nuvem": é *"serviços de cloud que ocultam infraestrutura e
-automação de deploy **sem domínio técnico sobre o ambiente**"*. A pergunta, portanto,
+automação de deploy (integração direta via GitHub e SSL automático) **sem domínio
+técnico sobre o ambiente**"*. A pergunta, portanto,
 não é qual plataforma é mais fácil — é qual delas deixa a infraestrutura **explícita
 e revisável**.
 
@@ -73,9 +74,17 @@ do que o item "sem domínio técnico sobre o ambiente" pune.
 | Deploy | **GitHub Actions**: build → **ECR** → `aws ecs update-service --force-new-deployment` |
 | Autenticação do CI | **OIDC com role assumida** — nenhuma chave estática da AWS no repositório |
 
-O deploy **não passa por SSH em ponto nenhum**: quem publica é o Actions, pela API da
-AWS. Não há porta 22 aberta, não há chave privada em secret, não há sessão humana no
-caminho. O item de reprovação some por construção, não por argumentação.
+Neste desenho o deploy **não passa por SSH em ponto nenhum**: quem publica é o Actions,
+pela API da AWS. Não há porta 22 aberta, não há chave privada em secret, não há sessão
+humana no caminho — o item de reprovação deixa de se aplicar por construção, e não por
+argumentação.
+
+> ⚠️ **Decidido, ainda não implementado.** Na data deste ADR existe o CI — lint, testes
+> com cobertura e análise estática — mas não o CD: não há `infra/`, nenhum arquivo
+> Terraform, e nenhum job de build de imagem, push para o ECR ou `aws ecs update-service`.
+> O que está registrado aqui é a **decisão**; a evidência vem quando a Sprint 1
+> provisionar a infraestrutura. Até lá, o parágrafo acima descreve o desenho, não o
+> sistema no ar.
 
 ## Consequências
 
@@ -118,5 +127,11 @@ caminho. O item de reprovação some por construção, não por argumentação.
 - **Duas decisões derivadas ficam para ADR próprio:** a task Fargate em sub-rede
   pública para evitar o NAT Gateway (~US$ 35/mês) e o detalhamento do RDS em sub-rede
   privada.
+- **A região continua em aberto, e é ela que move o número acima.** `sa-east-1` foi
+  escolhida por latência quando havia US$ 200 na mesa. Com US$ 120, a premissa caiu:
+  `us-east-1` sai ~30–40% mais barata (~US$ 38/mês, ~3,2 meses de crédito contra ~2,1).
+  A disciplina exige que **esteja no ar**, não **onde** — e num CRUD de TCC a diferença
+  de latência é imperceptível. A decisão fica pendente da modelagem no AWS Pricing
+  Calculator com os dois cenários lado a lado, que é pré-requisito do primeiro `apply`.
 - **O KPI de 200 usuários simultâneos continua sem prova.** Uma task de 0.25 vCPU não
   sustenta isso por decreto — exige teste de carga.
