@@ -58,6 +58,9 @@ Usar exatamente estes — não adivinhar variação.
 
 Migrations: `docker compose exec api alembic upgrade head`.
 
+O CI roda o mesmo comando de teste acrescido de `--cov-fail-under`. O limiar vive só em
+`.github/workflows/ci.yml`, para não precisar subir em dois arquivos a cada sprint.
+
 ## Arquitetura
 
 - **Frontend:** Next.js (App Router) + TypeScript + Tailwind. SSR nas rotas públicas
@@ -109,8 +112,10 @@ venda direta na plataforma · curadoria/moderação automática.
 ## Convenções
 
 - **Commits:** Conventional Commits, em inglês, imperativo, minúsculo após o `:`, sem
-  ponto final. Escopo quando ajuda a orientar quem lê o log — `api`, `web`, `db`,
-  `ci`, `wiki`, `infra`. Sem menção de stack entre parênteses.
+  ponto final. **Escopo obrigatório** — `api`, `web`, `db`, `ci`, `wiki`, `docs`,
+  `infra` — exceto em mudança de arquivo de raiz (`README`, `LICENSE`, `CLAUDE.md`),
+  onde nenhum escopo da lista se aplica. Sem menção de stack entre parênteses.
+  Detalhe em `CONTRIBUTING.md`.
 - **Nenhum commit toca `backend/` e `frontend/` ao mesmo tempo.** Um commit pertence a
   um lado. Nunca `git add .`; sempre `git add backend/` ou `git add frontend/`.
 - **Nunca** incluir `Co-Authored-By`, link de sessão ou "Generated with" em commit ou PR.
