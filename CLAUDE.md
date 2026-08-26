@@ -114,6 +114,7 @@ venda direta na plataforma · curadoria/moderação automática.
 - **Nenhum commit toca `backend/` e `frontend/` ao mesmo tempo.** Um commit pertence a
   um lado. Nunca `git add .`; sempre `git add backend/` ou `git add frontend/`.
 - **Nunca** incluir `Co-Authored-By`, link de sessão ou "Generated with" em commit ou PR.
+- **Comentário só quando o código não se explica, e no máximo uma linha.** Bloco de comentário explicando decisão é ruído: o porquê mora no PR, no ADR ou no vault.
 - Python: `ruff` + type hints em tudo. Pydantic para entrada e saída.
 - TypeScript: `strict`. Sem `any`. Sem `console.log` em código de produção.
 - Nomes de domínio em inglês (look, piece, click); mensagens de usuário em português.
