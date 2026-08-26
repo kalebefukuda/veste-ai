@@ -31,6 +31,9 @@ minúsculo depois do `:` e sem ponto final.
 
 Escopos: `api` · `web` · `db` · `ci` · `wiki` · `docs` · `infra`.
 
+Única exceção: mudança em arquivo de raiz — `README.md`, `LICENSE`, `CLAUDE.md`,
+`CONTRIBUTING.md` — vai sem escopo, porque nenhum da lista descreve onde ela mexe.
+
 ```
 feat(api): add login endpoint issuing a jwt
 test(api): cover token expiration and invalid credentials
