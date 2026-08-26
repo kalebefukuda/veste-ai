@@ -84,10 +84,18 @@ jobs:
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: https://sonarcloud.io
+      IS_FORK: ${{ github.event.pull_request.head.repo.fork || false }}
     steps:
-      - name: Report missing token
+      # Forks never receive secrets, so a missing token there is expected, not a fault.
+      - name: Require a token outside forks
         if: env.SONAR_TOKEN == ''
-        run: echo "SONAR_TOKEN is not configured — skipping the analysis." >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          if [ "$IS_FORK" = "true" ]; then
+            echo "Fork pull request — SONAR_TOKEN is unavailable, analysis skipped." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::SONAR_TOKEN is not configured and static analysis is required."
+            exit 1
+          fi
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: env.SONAR_TOKEN != ''
