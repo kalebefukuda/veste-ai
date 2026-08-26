@@ -7,3 +7,9 @@ venv
 .coverage
 coverage.xml
 htmlcov
+
+# segredo e metadado de versionamento nunca entram numa camada de imagem
+.env
+.env.*
+.git
+.gitignore
