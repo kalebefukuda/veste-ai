@@ -1,7 +1,6 @@
 version: 2
 updates:
-  # As actions estão presas por SHA. Sem este bloco, o pin nunca é atualizado e o
-  # ganho de segurança vira dívida: o Dependabot é o que mantém o SHA fresco.
+  # Actions are pinned by SHA; this is what keeps those pins from going stale.
   - package-ecosystem: github-actions
     directory: /
     schedule:

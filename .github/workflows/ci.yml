@@ -9,9 +9,7 @@ on:
 permissions:
   contents: read
 
-# Runs de PR superados são cancelados; runs de push em `dev` e `main` nunca são.
-# Dois merges seguidos na `dev` cancelariam o run do primeiro commit, deixando-o sem
-# cobertura e sem análise — e uma regressão que só ele introduziu nunca seria avaliada.
+# Cancels superseded PR runs only; a push run on dev or main always finishes.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -30,8 +28,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          # requirements-dev.txt só contém `-r requirements.txt`; sem listar os dois,
-          # uma mudança de dependência de produção não invalidaria o cache.
+          # Both files, or a change to requirements.txt alone would reuse a stale cache.
           cache-dependency-path: |
             backend/requirements.txt
             backend/requirements-dev.txt
@@ -42,9 +39,7 @@ jobs:
       - name: Lint
         run: ruff check .
 
-      # The threshold matches the coverage measured when this pipeline was written.
-      # It is a ratchet against regression, not the target: the goal is 75%, and the
-      # number here is raised as each sprint adds tests. It never goes down.
+      # A ratchet against regression, not the target — raised each sprint, never lowered.
       - name: Tests
         run: pytest --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=36
 
@@ -66,9 +61,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          # A máquina de desenvolvimento roda Node 26; a 20 já saiu da janela de
-          # suporte do Node. A 22 fica em manutenção até abr/2027, cobrindo com folga
-          # a entrega em novembro e o período de notas em dezembro.
+          # In maintenance until Apr/2027, covering delivery and the grading period.
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
@@ -79,8 +72,7 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # `next build` type-checks the project, so it stands in for a typecheck step
-      # while the frontend has no dedicated script.
+      # `next build` type-checks, standing in for the typecheck script the app lacks.
       - name: Build
         run: npm run build
 
@@ -88,9 +80,7 @@ jobs:
     name: sonarcloud — static analysis
     runs-on: ubuntu-latest
     needs: [backend]
-    # Job-level env is the only place a secret can be read by a step-level `if`.
-    # Without the token the scan is skipped instead of failing the pipeline, so the
-    # analysis starts running on its own the moment SONAR_TOKEN is configured.
+    # Job-level env is the only place a secret is readable by a step-level `if`.
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: https://sonarcloud.io
@@ -102,8 +92,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: env.SONAR_TOKEN != ''
         with:
-          # Full history lets SonarCloud assign issues to the commit that introduced
-          # them and compute the new-code period.
+          # Full history, so SonarCloud can blame issues and compute the new-code period.
           fetch-depth: 0
 
       - name: Download coverage report
