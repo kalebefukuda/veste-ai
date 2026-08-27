@@ -2,13 +2,17 @@
 
 import { usePathname } from "next/navigation";
 
-// A key força o remonte a cada rota, que é o que reinicia a animação de entrada.
-// `motion-safe` desliga tudo sozinho quando o sistema pede menos movimento.
+// A chave é a área, não a rota: trocar de login para cadastro fica dentro da mesma
+// área e não remonta, então quem anima é só o painel do formulário.
+function area(pathname: string): string {
+  return pathname === "/login" || pathname === "/register" ? "auth" : pathname;
+}
+
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div key={pathname} className="motion-safe:animate-page-in">
+    <div key={area(pathname)} className="motion-safe:animate-page-in">
       {children}
     </div>
   );

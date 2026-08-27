@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { AFTER_AUTH, LOGIN } from "@/lib/routes";
 import { register } from "@/lib/api";
 
 const MIN_PASSWORD = 8;
@@ -27,7 +28,7 @@ export default function RegisterPage() {
 
     try {
       await register(name, email, password);
-      router.push("/");
+      router.push(AFTER_AUTH);
     } catch (failure) {
       setError((failure as Error).message);
       setLoading(false);
@@ -85,7 +86,7 @@ export default function RegisterPage() {
       <p className="mt-8 text-center text-sm text-navy/60">
         Já tem conta?{" "}
         <Link
-          href="/login"
+          href={LOGIN}
           className="rounded font-semibold text-purple underline-offset-4 hover:underline
             focus-visible:ring-2 focus-visible:ring-purple/40"
         >

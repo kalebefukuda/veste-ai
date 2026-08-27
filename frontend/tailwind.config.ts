@@ -25,6 +25,14 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(10px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        "slide-from-below": {
+          from: { opacity: "0", transform: "translateY(24px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-from-above": {
+          from: { opacity: "0", transform: "translateY(-24px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
         "float-a": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-12px)" },
@@ -45,6 +53,8 @@ const config: Config = {
       animation: {
         "fade-up": "fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         "page-in": "page-in 220ms ease-out",
+        "slide-from-below": "slide-from-below 260ms ease-out",
+        "slide-from-above": "slide-from-above 260ms ease-out",
         "float-a": "float-a 6s ease-in-out infinite",
         "float-b": "float-b 7s ease-in-out infinite 0.5s",
         "float-c": "float-c 5.5s ease-in-out infinite 1s",

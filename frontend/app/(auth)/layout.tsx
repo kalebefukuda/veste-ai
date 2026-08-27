@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { AuthPanelTransition } from "@/components/AuthPanelTransition";
+
 const Wordmark = ({ tone = "navy" }: { tone?: "navy" | "white" }) => (
   <span
     className={`text-2xl font-bold tracking-[-0.03em] ${tone === "white" ? "text-white" : "text-navy"}`}
@@ -38,7 +40,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             </Link>
           </div>
 
-          <div className="mt-10 lg:mt-0">{children}</div>
+          <div className="mt-10 lg:mt-0">
+            <AuthPanelTransition>{children}</AuthPanelTransition>
+          </div>
         </div>
       </section>
     </main>

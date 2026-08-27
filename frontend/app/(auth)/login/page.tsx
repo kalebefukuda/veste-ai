@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { AFTER_AUTH, REGISTER } from "@/lib/routes";
 import { login } from "@/lib/api";
 
 export default function LoginPage() {
@@ -22,7 +23,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push("/");
+      router.push(AFTER_AUTH);
     } catch (failure) {
       setError((failure as Error).message);
       setLoading(false);
@@ -69,7 +70,7 @@ export default function LoginPage() {
       <p className="mt-8 text-center text-sm text-navy/60">
         Não tem conta?{" "}
         <Link
-          href="/register"
+          href={REGISTER}
           className="rounded font-semibold text-purple underline-offset-4 hover:underline
             focus-visible:ring-2 focus-visible:ring-purple/40"
         >
