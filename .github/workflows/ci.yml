@@ -21,6 +21,26 @@ jobs:
     defaults:
       run:
         working-directory: backend
+
+    # Postgres de verdade: SQLite mentiria sobre UUID e ON DELETE CASCADE.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vesteai
+          POSTGRES_PASSWORD: vesteai
+          POSTGRES_DB: vesteai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg://vesteai:vesteai@localhost:5432/vesteai_test
+
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -41,7 +61,7 @@ jobs:
 
       # A ratchet against regression, not the target — raised each sprint, never lowered.
       - name: Tests
-        run: pytest --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=36
+        run: pytest --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=90
 
       - name: Upload coverage report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
