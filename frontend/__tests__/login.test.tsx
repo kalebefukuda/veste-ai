@@ -65,3 +65,19 @@ describe("tela de login", () => {
     expect(submitting).toBeDisabled();
   });
 });
+
+describe("campo de senha", () => {
+  // O botão de olho troca o aria-label junto com o tipo do campo: quem usa leitor
+  // de tela precisa saber o que aconteceu, não só quem enxerga o ícone.
+  it("alterna a visibilidade da senha e anuncia o estado", async () => {
+    render(<LoginPage />);
+
+    const senha = screen.getByLabelText("Senha");
+    expect(senha).toHaveAttribute("type", "password");
+
+    await userEvent.click(screen.getByRole("button", { name: "Mostrar senha" }));
+
+    expect(screen.getByLabelText("Senha")).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Ocultar senha" })).toBeInTheDocument();
+  });
+});
