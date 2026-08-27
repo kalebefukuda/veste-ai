@@ -92,6 +92,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Tests
+        run: npm run test:coverage
+
       # `next build` type-checks, standing in for the typecheck script the app lacks.
       - name: Build
         run: npm run build

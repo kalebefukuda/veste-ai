@@ -52,7 +52,7 @@ Usar exatamente estes — não adivinhar variação.
 | **Install** | `pip install -r requirements-dev.txt` | `npm ci` |
 | **Lint** | `ruff check .` | `npm run lint` |
 | **Typecheck** | não existe | não existe como script — roda dentro do `npm run build` |
-| **Test** | `pytest --cov=app --cov-report=term-missing` — exige Postgres no ar | **não existe** — sem script `test` no `package.json` até o setup do Vitest |
+| **Test** | `pytest --cov=app --cov-report=term-missing` — exige Postgres no ar | `npm test` · `npm run test:coverage` |
 | **Build** | `docker build -t vesteai-api .` | `npm run build` |
 | **Run/Dev** | `docker compose up` (api :8000 · web :3000 · postgres :5432) | |
 
