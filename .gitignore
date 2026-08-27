@@ -34,3 +34,11 @@ htmlcov
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# terraform
+.terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.tfstate.lock.info

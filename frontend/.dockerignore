@@ -2,3 +2,9 @@ node_modules
 .next
 out
 coverage
+
+# segredo e metadado de versionamento nunca entram numa camada de imagem
+.env
+.env.*
+.git
+.gitignore
