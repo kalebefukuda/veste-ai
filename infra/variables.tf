@@ -73,3 +73,21 @@ variable "frontend_origin" {
   type        = string
   default     = "http://localhost:3000"
 }
+
+variable "deploy_branch" {
+  description = "Única branch autorizada a assumir a role de deploy por OIDC."
+  type        = string
+  default     = "main"
+}
+
+variable "api_image_tag" {
+  description = "Tag da imagem inicial. O pipeline passa a gerenciar isso depois do primeiro deploy."
+  type        = string
+  default     = "bootstrap"
+}
+
+variable "final_snapshot_identifier" {
+  description = "Snapshot tirado antes de destruir o banco. Vazio destrói sem snapshot e perde os dados."
+  type        = string
+  default     = "vesteai-final"
+}

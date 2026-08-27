@@ -27,7 +27,7 @@ data "aws_iam_policy_document" "github_assume" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:*"]
+      values   = ["repo:${var.github_repository}:ref:refs/heads/${var.deploy_branch}"]
     }
   }
 }
@@ -56,14 +56,19 @@ data "aws_iam_policy_document" "deploy" {
     resources = [aws_ecr_repository.api.arn]
   }
 
+  # RegisterTaskDefinition é a única que não aceita ARN de recurso.
   statement {
-    effect = "Allow"
-    actions = [
-      "ecs:DescribeServices",
-      "ecs:RegisterTaskDefinition",
-      "ecs:UpdateService",
-    ]
+    effect    = "Allow"
+    actions   = ["ecs:RegisterTaskDefinition"]
     resources = ["*"]
+  }
+
+  statement {
+    effect  = "Allow"
+    actions = ["ecs:DescribeServices", "ecs:UpdateService"]
+    resources = [
+      "arn:aws:ecs:${var.region}:${data.aws_caller_identity.current.account_id}:service/${aws_ecs_cluster.this.name}/${var.project}-api",
+    ]
   }
 
   statement {

@@ -24,6 +24,8 @@ resource "aws_db_instance" "this" {
   publicly_accessible    = false
 
   backup_retention_period = 7
-  skip_final_snapshot     = true
-  apply_immediately       = true
+  # Padrão seguro: desligar o ambiente tira snapshot antes de destruir.
+  skip_final_snapshot       = var.final_snapshot_identifier == ""
+  final_snapshot_identifier = var.final_snapshot_identifier == "" ? null : var.final_snapshot_identifier
+  apply_immediately         = true
 }
