@@ -22,3 +22,15 @@ output "api_url" {
   description = "Endereço público da API. Vazio enquanto enable_runtime for falso."
   value       = var.enable_runtime ? "http${var.domain_name == "" ? "" : "s"}://${var.domain_name == "" ? aws_lb.this[0].dns_name : var.domain_name}" : ""
 }
+
+# Os registros que precisam ser criados no DNS para o certificado sair de pendente.
+output "acm_validation_records" {
+  description = "Registros DNS de validação do certificado."
+  value = var.enable_runtime && var.domain_name != "" ? [
+    for o in aws_acm_certificate.this[0].domain_validation_options : {
+      name  = o.resource_record_name
+      type  = o.resource_record_type
+      value = o.resource_record_value
+    }
+  ] : []
+}

@@ -36,6 +36,18 @@ resource "aws_acm_certificate" "this" {
   }
 }
 
+# O ALB recusa certificado que não esteja ISSUED, então o apply espera aqui até o
+# registro DNS de validação existir — ver o passo de bootstrap em infra/README.md.
+resource "aws_acm_certificate_validation" "this" {
+  count = var.enable_runtime && var.domain_name != "" ? 1 : 0
+
+  certificate_arn = aws_acm_certificate.this[0].arn
+
+  timeouts {
+    create = "30m"
+  }
+}
+
 # Sem domínio o ALB serve HTTP direto; com domínio, a 80 só redireciona.
 resource "aws_lb_listener" "http" {
   count = var.enable_runtime ? 1 : 0
@@ -75,7 +87,7 @@ resource "aws_lb_listener" "https" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = aws_acm_certificate.this[0].arn
+  certificate_arn   = aws_acm_certificate_validation.this[0].certificate_arn
 
   default_action {
     type             = "forward"
