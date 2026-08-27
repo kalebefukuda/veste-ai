@@ -8,6 +8,8 @@ class Settings(BaseSettings):
 
     database_url: str
     frontend_origin: str = "http://localhost:3000"
+    jwt_secret: str
+    jwt_expiration_minutes: int = 60 * 24
 
 
 @lru_cache
