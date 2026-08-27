@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import CadastrarPage from "@/app/(auth)/cadastrar/page";
+import RegisterPage from "@/app/(auth)/register/page";
 import * as api from "@/lib/api";
 
 const push = vi.fn();
@@ -15,7 +15,7 @@ describe("tela de cadastro", () => {
   });
 
   it("bloqueia o envio enquanto a senha for curta demais", async () => {
-    render(<CadastrarPage />);
+    render(<RegisterPage />);
     await userEvent.type(screen.getByLabelText("Senha"), "curta");
 
     expect(screen.getByRole("alert")).toHaveTextContent("ao menos 8 caracteres");
@@ -30,7 +30,7 @@ describe("tela de cadastro", () => {
       plan: "free",
     });
 
-    render(<CadastrarPage />);
+    render(<RegisterPage />);
     await userEvent.type(screen.getByLabelText("Nome"), "Mariana");
     await userEvent.type(screen.getByLabelText("E-mail"), "mariana@exemplo.com");
     await userEvent.type(screen.getByLabelText("Senha"), "senha-longa-1");

@@ -5,6 +5,6 @@ export const metadata: Metadata = {
   description: "Crie sua conta gratuita e comece a publicar looks com links de compra.",
 };
 
-export default function CadastrarLayout({ children }: { children: React.ReactNode }) {
+export default function RegisterLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

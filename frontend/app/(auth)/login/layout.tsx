@@ -5,6 +5,6 @@ export const metadata: Metadata = {
   description: "Acesse sua conta para montar looks e acompanhar suas métricas.",
 };
 
-export default function EntrarLayout({ children }: { children: React.ReactNode }) {
+export default function LoginLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

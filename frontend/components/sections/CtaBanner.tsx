@@ -10,7 +10,7 @@ export default function CtaBanner() {
         </p>
         <div className="mt-8 flex justify-center">
           <Link
-            href="/cadastrar"
+            href="/register"
             className="rounded-full bg-white px-7 py-3 font-medium text-purple shadow-lg transition hover:opacity-90"
           >
             Criar minha conta grátis

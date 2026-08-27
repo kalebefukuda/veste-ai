@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import EntrarPage from "@/app/(auth)/entrar/page";
+import LoginPage from "@/app/(auth)/login/page";
 import * as api from "@/lib/api";
 
 const push = vi.fn();
@@ -17,7 +17,7 @@ describe("tela de login", () => {
   // Query por papel acessível, não por classe: o teste de comportamento também
   // protege o rótulo associado ao campo.
   it("associa rótulo a cada campo", () => {
-    render(<EntrarPage />);
+    render(<LoginPage />);
 
     expect(screen.getByLabelText("E-mail")).toBeInTheDocument();
     expect(screen.getByLabelText("Senha")).toBeInTheDocument();
@@ -32,7 +32,7 @@ describe("tela de login", () => {
       plan: "free",
     });
 
-    render(<EntrarPage />);
+    render(<LoginPage />);
     await userEvent.type(screen.getByLabelText("E-mail"), "teste@exemplo.com");
     await userEvent.type(screen.getByLabelText("Senha"), "senha-longa-1");
     await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
@@ -44,7 +44,7 @@ describe("tela de login", () => {
   it("mostra a mensagem de erro e não navega quando o login falha", async () => {
     vi.spyOn(api, "login").mockRejectedValue(new Error("E-mail ou senha incorretos."));
 
-    render(<EntrarPage />);
+    render(<LoginPage />);
     await userEvent.type(screen.getByLabelText("E-mail"), "teste@exemplo.com");
     await userEvent.type(screen.getByLabelText("Senha"), "errada");
     await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
@@ -56,7 +56,7 @@ describe("tela de login", () => {
   it("desabilita o botão enquanto envia, para não disparar duas vezes", async () => {
     vi.spyOn(api, "login").mockImplementation(() => new Promise(() => {}));
 
-    render(<EntrarPage />);
+    render(<LoginPage />);
     await userEvent.type(screen.getByLabelText("E-mail"), "teste@exemplo.com");
     await userEvent.type(screen.getByLabelText("Senha"), "senha-longa-1");
     await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
