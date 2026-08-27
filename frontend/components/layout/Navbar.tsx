@@ -25,11 +25,11 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3 text-sm font-medium">
-          <a href="#" className="hidden text-navy/70 hover:text-purple sm:block">
+          <a href="/entrar" className="hidden text-navy/70 hover:text-purple sm:block">
             Login
           </a>
           <a
-            href="#cta-final"
+            href="/cadastrar"
             className="rounded-full bg-veste-gradient px-5 py-2 text-white shadow-sm shadow-purple/30 transition hover:opacity-90"
           >
             Cadastre-se

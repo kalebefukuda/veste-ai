@@ -7,18 +7,12 @@ export default function CtaBanner() {
           Junte-se a milhares de curadores que já estão monetizando seus looks com o VesteAí.
           Comece grátis, sem cartão de crédito.
         </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-4">
+        <div className="mt-8 flex justify-center">
           <a
-            href="#"
+            href="/cadastrar"
             className="rounded-full bg-white px-7 py-3 font-medium text-purple shadow-lg transition hover:opacity-90"
           >
             Criar minha conta grátis
-          </a>
-          <a
-            href="#"
-            className="rounded-full border border-white/40 px-7 py-3 font-medium text-white transition hover:border-white"
-          >
-            Falar com vendas
           </a>
         </div>
       </div>
