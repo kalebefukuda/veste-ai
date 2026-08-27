@@ -1,3 +1,4 @@
+import Link from "next/link";
 export default function CtaBanner() {
   return (
     <section id="cta-final" className="bg-veste-gradient py-20 text-center text-white">
@@ -8,12 +9,12 @@ export default function CtaBanner() {
           Comece grátis, sem cartão de crédito.
         </p>
         <div className="mt-8 flex justify-center">
-          <a
+          <Link
             href="/cadastrar"
             className="rounded-full bg-white px-7 py-3 font-medium text-purple shadow-lg transition hover:opacity-90"
           >
             Criar minha conta grátis
-          </a>
+          </Link>
         </div>
       </div>
     </section>
