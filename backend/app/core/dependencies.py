@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import InvalidCredentials
 from app.core.security import read_subject
 from app.database import get_db
 from app.models.user import User
@@ -36,7 +37,9 @@ def get_current_user(
     if subject is None:
         raise unauthorized
 
+    # Só os erros de autenticação viram 401. Falha de banco ou bug precisa subir
+    # como 500, senão o usuário tenta logar de novo enquanto o problema é outro.
     try:
         return service.get_authenticated(uuid.UUID(subject))
-    except Exception as error:
+    except (ValueError, InvalidCredentials) as error:
         raise unauthorized from error

@@ -108,3 +108,27 @@ def test_token_expirado_retorna_401(client: TestClient, registered: dict[str, st
     response = client.get("/users/me", headers={"Authorization": f"Bearer {expired}"})
 
     assert response.status_code == 401
+
+
+# Falha de infraestrutura não pode virar 401: quem vê "faça login" tenta de novo
+# para sempre, enquanto o problema real é outro e some do monitoramento.
+def test_falha_interna_nao_vira_401(client: TestClient, registered: dict[str, str]) -> None:
+    from app.core.dependencies import get_auth_service
+    from app.main import app
+
+    token = client.post(
+        "/auth/login",
+        json={"email": registered["email"], "password": registered["password"]},
+    ).json()["access_token"]
+
+    class BancoIndisponivel:
+        def get_authenticated(self, _user_id: object) -> None:
+            raise RuntimeError("conexão com o banco caiu")
+
+    app.dependency_overrides[get_auth_service] = BancoIndisponivel
+
+    try:
+        with pytest.raises(RuntimeError):
+            client.get("/users/me", headers={"Authorization": f"Bearer {token}"})
+    finally:
+        app.dependency_overrides.pop(get_auth_service, None)
