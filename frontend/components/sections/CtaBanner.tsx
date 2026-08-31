@@ -1,3 +1,4 @@
+import Link from "next/link";
 export default function CtaBanner() {
   return (
     <section id="cta-final" className="bg-veste-gradient py-20 text-center text-white">
@@ -7,19 +8,13 @@ export default function CtaBanner() {
           Junte-se a milhares de curadores que já estão monetizando seus looks com o VesteAí.
           Comece grátis, sem cartão de crédito.
         </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-4">
-          <a
-            href="#"
+        <div className="mt-8 flex justify-center">
+          <Link
+            href="/register"
             className="rounded-full bg-white px-7 py-3 font-medium text-purple shadow-lg transition hover:opacity-90"
           >
             Criar minha conta grátis
-          </a>
-          <a
-            href="#"
-            className="rounded-full border border-white/40 px-7 py-3 font-medium text-white transition hover:border-white"
-          >
-            Falar com vendas
-          </a>
+          </Link>
         </div>
       </div>
     </section>

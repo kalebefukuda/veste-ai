@@ -6,17 +6,6 @@ export default function Footer() {
           <span>Veste</span>
           <span className="text-purple">Aí</span>
         </div>
-        <div className="flex flex-wrap justify-center gap-5">
-          <a href="#" className="hover:text-purple">
-            Termos de Uso
-          </a>
-          <a href="#" className="hover:text-purple">
-            Privacidade
-          </a>
-          <a href="#" className="hover:text-purple">
-            Contato
-          </a>
-        </div>
         <p>&copy; {new Date().getFullYear()} VesteAí. Todos os direitos reservados.</p>
       </div>
     </footer>

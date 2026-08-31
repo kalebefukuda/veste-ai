@@ -21,6 +21,26 @@ jobs:
     defaults:
       run:
         working-directory: backend
+
+    # Postgres de verdade: SQLite mentiria sobre UUID e ON DELETE CASCADE.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vesteai
+          POSTGRES_PASSWORD: vesteai
+          POSTGRES_DB: vesteai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg://vesteai:vesteai@localhost:5432/vesteai_test
+
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -41,7 +61,7 @@ jobs:
 
       # A ratchet against regression, not the target — raised each sprint, never lowered.
       - name: Tests
-        run: pytest --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=36
+        run: pytest --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=90
 
       - name: Upload coverage report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -72,6 +92,16 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Tests
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+          retention-days: 7
+
       # `next build` type-checks, standing in for the typecheck script the app lacks.
       - name: Build
         run: npm run build
@@ -101,7 +131,7 @@ jobs:
   sonarcloud:
     name: sonarcloud — static analysis
     runs-on: ubuntu-latest
-    needs: [backend]
+    needs: [backend, frontend]
     # Job-level env is the only place a secret is readable by a step-level `if`.
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -125,12 +155,19 @@ jobs:
           # Full history, so SonarCloud can blame issues and compute the new-code period.
           fetch-depth: 0
 
-      - name: Download coverage report
+      - name: Download the backend coverage report
         if: env.SONAR_TOKEN != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: backend-coverage
           path: backend
+
+      - name: Download the frontend coverage report
+        if: env.SONAR_TOKEN != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
 
       - name: Scan
         if: env.SONAR_TOKEN != ''

@@ -16,6 +16,13 @@ def get_engine() -> Engine:
     return create_engine(get_settings().database_url, pool_pre_ping=True)
 
 
+# Sem o commit, o flush do repositório é desfeito ao fechar a sessão: a resposta sai
+# com id e nada é gravado.
 def get_db() -> Iterator[Session]:
     with Session(get_engine()) as session:
-        yield session
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
