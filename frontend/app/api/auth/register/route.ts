@@ -17,18 +17,21 @@ export async function POST(request: Request) {
     return NextResponse.json(created, { status: response.status });
   }
 
-  // Cadastro já entra logado: pedir para o usuário digitar as mesmas credenciais
-  // de novo é atrito sem função.
+  // Cadastro já entra logado: repetir as credenciais é atrito sem função.
   const session = await fetch(apiUrl("/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: body.email, password: body.password }),
   });
 
-  if (session.ok) {
-    const { access_token } = await session.json();
-    storeSession(access_token);
+  if (!session.ok) {
+    // A conta existe, então isto não é falha de cadastro. O cliente precisa saber
+    // que não há sessão para mandar o usuário ao login em vez da área logada.
+    return NextResponse.json({ ...created, authenticated: false }, { status: 201 });
   }
 
-  return NextResponse.json(created, { status: 201 });
+  const { access_token } = await session.json();
+  storeSession(access_token);
+
+  return NextResponse.json({ ...created, authenticated: true }, { status: 201 });
 }

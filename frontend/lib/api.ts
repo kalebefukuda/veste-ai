@@ -7,6 +7,10 @@ export type User = {
   plan: string;
 };
 
+// O cadastro pode criar a conta e ainda assim não abrir sessão; quem chama precisa
+// saber disso para mandar o usuário ao login em vez da área logada.
+export type RegisterResult = User & { authenticated: boolean };
+
 // Único ponto do frontend que fala com a API. As rotas /api/auth/* são handlers do
 // próprio Next: o token vive num cookie httpOnly e nunca chega ao JavaScript.
 async function post<T>(path: string, body: unknown): Promise<T> {
@@ -51,6 +55,10 @@ export function login(email: string, password: string): Promise<User> {
   return post<User>("/api/auth/login", { email, password });
 }
 
-export function register(name: string, email: string, password: string): Promise<User> {
-  return post<User>("/api/auth/register", { name, email, password });
+export function register(
+  name: string,
+  email: string,
+  password: string,
+): Promise<RegisterResult> {
+  return post<RegisterResult>("/api/auth/register", { name, email, password });
 }

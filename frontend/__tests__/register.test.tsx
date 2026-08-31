@@ -28,6 +28,7 @@ describe("tela de cadastro", () => {
       name: "Mariana",
       email: "mariana@exemplo.com",
       plan: "free",
+      authenticated: true,
     });
 
     render(<RegisterPage />);
@@ -38,5 +39,22 @@ describe("tela de cadastro", () => {
 
     expect(register).toHaveBeenCalledWith("Mariana", "mariana@exemplo.com", "senha-longa-1");
     expect(push).toHaveBeenCalledWith("/");
+  });
+  it("manda para o login quando a conta é criada sem sessão", async () => {
+    vi.spyOn(api, "register").mockResolvedValue({
+      id: "1",
+      name: "Mariana",
+      email: "mariana@exemplo.com",
+      plan: "free",
+      authenticated: false,
+    });
+
+    render(<RegisterPage />);
+    await userEvent.type(screen.getByLabelText("Nome"), "Mariana");
+    await userEvent.type(screen.getByLabelText("E-mail"), "mariana@exemplo.com");
+    await userEvent.type(screen.getByLabelText("Senha"), "senha-longa-1");
+    await userEvent.click(screen.getByRole("button", { name: "Criar conta" }));
+
+    expect(push).toHaveBeenCalledWith("/login");
   });
 });

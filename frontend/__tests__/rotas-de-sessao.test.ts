@@ -39,6 +39,22 @@ describe("handler de login", () => {
     expect(opcoes).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/" });
   });
 
+  // Cookie salvo junto com resposta de erro deixaria o cliente achando que entrou.
+  it("não grava a sessão se /users/me falhar depois do login", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: "tok" }) })
+        .mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({ detail: "fora" }) }),
+    );
+
+    const response = await login(pedido({ email: "t@e.com", password: "senha-longa-1" }));
+
+    expect(response.status).toBe(503);
+    expect(cookieSet).not.toHaveBeenCalled();
+  });
+
   it("repassa o erro da API e não grava cookie quando a credencial é inválida", async () => {
     vi.stubGlobal(
       "fetch",
@@ -72,7 +88,28 @@ describe("handler de cadastro", () => {
     );
 
     expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ authenticated: true });
     expect(cookieSet).toHaveBeenCalledWith("vesteai_session", "tok", expect.anything());
+  });
+
+  // A conta foi criada, então não é falha de cadastro — mas a tela precisa saber
+  // que não há sessão para mandar o usuário ao login.
+  it("avisa que não houve sessão quando o login automático falha", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, status: 201, json: async () => USER })
+        .mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({ detail: "fora" }) }),
+    );
+
+    const response = await register(
+      pedido({ name: "Teste", email: "t@e.com", password: "senha-longa-1" }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ authenticated: false });
+    expect(cookieSet).not.toHaveBeenCalled();
   });
 
   it("não abre sessão quando o cadastro falha", async () => {

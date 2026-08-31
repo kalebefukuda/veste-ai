@@ -16,11 +16,18 @@ export async function POST(request: Request) {
   }
 
   const { access_token } = await response.json();
-  storeSession(access_token);
 
   const me = await fetch(apiUrl("/users/me"), {
     headers: { Authorization: `Bearer ${access_token}` },
   });
+
+  // A sessão só é gravada depois que o fluxo inteiro deu certo: cookie salvo com
+  // resposta de erro deixaria o cliente achando que entrou sem ter entrado.
+  if (!me.ok) {
+    return NextResponse.json(await me.json(), { status: me.status });
+  }
+
+  storeSession(access_token);
 
   return NextResponse.json(await me.json());
 }

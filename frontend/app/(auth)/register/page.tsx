@@ -27,8 +27,8 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(name, email, password);
-      router.push(AFTER_AUTH);
+      const created = await register(name, email, password);
+      router.push(created.authenticated ? AFTER_AUTH : LOGIN);
     } catch (failure) {
       setError((failure as Error).message);
       setLoading(false);
