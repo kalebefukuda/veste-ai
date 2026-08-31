@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:3000"
     jwt_secret: str
     jwt_expiration_minutes: int = 60 * 24
+    reset_token_expiration_minutes: int = 60
+    brevo_api_key: str = ""
+    email_sender: str = "nao-responda@vesteai.com.br"
+    email_sender_name: str = "VesteAí"
+    frontend_reset_url: str = "http://localhost:3000/reset-password"
 
 
 @lru_cache

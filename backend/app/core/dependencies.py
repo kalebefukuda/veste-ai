@@ -9,14 +9,22 @@ from app.core.exceptions import InvalidCredentials
 from app.core.security import read_subject
 from app.database import get_db
 from app.models.user import User
+from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import AuthService
+from app.services.password_reset_service import PasswordResetService
 
 bearer = HTTPBearer(auto_error=False)
 
 
 def get_auth_service(db: Annotated[Session, Depends(get_db)]) -> AuthService:
     return AuthService(UserRepository(db))
+
+
+def get_password_reset_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> PasswordResetService:
+    return PasswordResetService(UserRepository(db), PasswordResetRepository(db))
 
 
 def get_current_user(
