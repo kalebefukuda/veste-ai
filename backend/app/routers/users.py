@@ -11,12 +11,12 @@ from app.schemas.user import UserOut, UserUpdate
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/me", response_model=UserOut)
+@router.get("/me")
 def me(user: Annotated[User, Depends(get_current_user)]) -> UserOut:
     return UserOut.model_validate(user)
 
 
-@router.patch("/me", response_model=UserOut)
+@router.patch("/me")
 def update_me(
     data: UserUpdate,
     user: Annotated[User, Depends(get_current_user)],
