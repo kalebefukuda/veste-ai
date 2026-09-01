@@ -119,31 +119,52 @@ def test_pedido_novo_invalida_o_token_anterior(
     ).status_code == 204
 
 
-# Token que ninguém recebeu não serve a ninguém: deixá-lo válido é só resíduo.
-def test_token_e_invalidado_quando_o_email_nao_sai(
-    client: TestClient, registered: dict[str, str], monkeypatch: pytest.MonkeyPatch
-) -> None:
+# A entrega roda depois da resposta, com sessão própria — então este teste não usa a
+# fixture transacional: ela não commitaria o token para a sessão nova enxergar.
+def test_deliver_invalida_o_token_quando_o_envio_nao_sai(monkeypatch: pytest.MonkeyPatch) -> None:
+    import uuid
+
     from app.core.exceptions import EmailDeliveryFailed
-
-    capturados: list[str] = []
-
-    def falha_ao_enviar(email: str, token: str) -> None:
-        capturados.append(token)
-        raise EmailDeliveryFailed()
+    from app.database import get_engine
+    from app.services.password_reset_service import deliver, fingerprint
 
     monkeypatch.setattr(
-        "app.services.password_reset_service.send_reset_email", falha_ao_enviar
+        "app.services.password_reset_service.send_reset_email",
+        lambda email, token: (_ for _ in ()).throw(EmailDeliveryFailed()),
     )
 
-    pedido = client.post("/auth/forgot-password", json={"email": registered["email"]})
+    email = f"{uuid.uuid4()}@exemplo.com"
+    token = "token-que-nao-sera-entregue"  # noqa: S105 — valor de teste, não segredo
 
-    # A resposta não muda: revelar a falha diria ao atacante que o e-mail existe.
-    assert pedido.status_code == 202
+    with get_engine().begin() as setup:
+        user_id = setup.execute(
+            text(
+                "insert into users (name, email, password) "
+                "values ('Teste', :email, 'hash') returning id"
+            ),
+            {"email": email},
+        ).scalar_one()
+        setup.execute(
+            text(
+                "insert into password_resets (user_id, token_hash, expires_at) "
+                "values (:uid, :hash, now() + interval '1 hour')"
+            ),
+            {"uid": user_id, "hash": fingerprint(token)},
+        )
 
-    resposta = client.post(
-        "/auth/reset-password", json={"token": capturados[0], "password": NOVA_SENHA}
-    )
-    assert resposta.status_code == 400
+    try:
+        deliver(email, token)
+
+        with get_engine().connect() as leitura:
+            usado = leitura.execute(
+                text("select used_at from password_resets where token_hash = :hash"),
+                {"hash": fingerprint(token)},
+            ).scalar_one()
+
+        assert usado is not None, "o token continuou válido apesar de ninguém ter recebido"
+    finally:
+        with get_engine().begin() as limpeza:
+            limpeza.execute(text("delete from users where id = :uid"), {"uid": user_id})
 
 
 # Consumir o token em duas etapas — ler, depois marcar — deixa duas requisições
