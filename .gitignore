@@ -45,3 +45,6 @@ next-env.d.ts
 
 # ferramentas locais
 .claude/
+
+# gerado pelo pipeline
+docs/generated/

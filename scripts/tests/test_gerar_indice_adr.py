@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from gerar_indice_adr import Adr, HeaderInvalido, montar_indice, ler_adr
+from gerar_indice_adr import Adr, HeaderInvalido, ler_adr, montar_indice
 
 BASE_URL = "https://github.com/kalebefukuda/veste-ai/blob/dev/docs/adr"
 
@@ -64,7 +64,8 @@ def test_indice_ordena_por_numero_e_nao_pela_ordem_de_entrada() -> None:
         Adr("0011b", "Transporte do JWT", "27/08/2026", "aceita", "0011b-jwt.md"),
     ]
 
-    linhas = [linha for linha in montar_indice(adrs, BASE_URL).splitlines() if linha.startswith("| [")]
+    indice = montar_indice(adrs, BASE_URL).splitlines()
+    linhas = [linha for linha in indice if linha.startswith("| [")]
 
     assert [linha.split("]")[0].removeprefix("| [") for linha in linhas] == [
         "ADR-0002",
