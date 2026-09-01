@@ -55,21 +55,22 @@ class PasswordResetService:
             )
         )
 
+        # Token que ninguém recebeu não serve a ninguém: deixá-lo válido é só resíduo.
         try:
             send_reset_email(user.email, token)
         except EmailDeliveryFailed:
-            logger.warning("Token de reset criado, mas o e-mail não saiu")
+            self.resets.invalidate_open(user.id)
+            logger.error("Recuperação de senha indisponível: o e-mail não foi entregue")
 
     def reset(self, token: str, password: str) -> None:
-        reset = self.resets.get_usable(fingerprint(token))
+        user_id = self.resets.consume(fingerprint(token))
 
-        if reset is None:
+        if user_id is None:
             raise InvalidResetToken()
 
-        user = self.users.get(reset.user_id)
+        user = self.users.get(user_id)
 
         if user is None:
             raise InvalidResetToken()
 
         user.password = hash_password(password)
-        self.resets.mark_used(reset)

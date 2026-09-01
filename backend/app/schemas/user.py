@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class UserCreate(BaseModel):
@@ -38,6 +38,15 @@ class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=100)
     avatar: str | None = None
     bio: str | None = Field(default=None, max_length=500)
+
+    # `users.name` é NOT NULL: sem esta guarda, mandar null viraria 500 no flush.
+    # `avatar` e `bio` podem ser limpos de propósito.
+    @model_validator(mode="after")
+    def name_nao_pode_ser_nulo(self) -> "UserUpdate":
+        if "name" in self.model_fields_set and self.name is None:
+            raise ValueError("O nome não pode ficar vazio")
+
+        return self
 
 
 class ForgotPasswordIn(BaseModel):
