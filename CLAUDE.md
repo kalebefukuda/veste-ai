@@ -67,8 +67,8 @@ O CI roda o mesmo comando de teste acrescido de `--cov-fail-under`. O limiar viv
   (feed, detalhe do look), client-side no editor e no painel.
 - **Backend:** FastAPI + SQLAlchemy 2.0 + Alembic. Camadas:
   `routers` → `services` → `repositories`, com `clients` isolando o externo.
-- **Banco:** PostgreSQL. 5 tabelas: users, looks, pieces, clicks, saved_looks.
-  UUID como PK, `ON DELETE CASCADE`.
+- **Banco:** PostgreSQL. 6 tabelas: users, looks, pieces, clicks, saved_looks e
+  password_resets. UUID como PK, `ON DELETE CASCADE`.
 - **Externos:** Google Gemini (geração de imagem), Stripe (assinatura Pro do creator
   — nunca pagamento de produto), AWS S3 (imagens), lojas de e-commerce (só
   redirecionamento, sem API).

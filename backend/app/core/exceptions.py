@@ -15,6 +15,16 @@ class InvalidCredentials(DomainError):
     detail = "E-mail ou senha incorretos"
 
 
+class InvalidResetToken(DomainError):
+    code = "INVALID_RESET_TOKEN"
+    detail = "Este link expirou ou já foi usado. Peça um novo"
+
+
+class EmailDeliveryFailed(DomainError):
+    code = "EMAIL_DELIVERY_FAILED"
+    detail = "Não foi possível enviar o e-mail agora. Tente de novo em instantes"
+
+
 class DomainHTTPException(Exception):
     """Carrega a exceção de domínio até o handler, que monta o corpo padrão da API."""
 
