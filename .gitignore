@@ -42,3 +42,6 @@ next-env.d.ts
 *.tfvars
 !*.tfvars.example
 .terraform.tfstate.lock.info
+
+# ferramentas locais
+.claude/
