@@ -29,14 +29,17 @@ resource "aws_ecs_task_definition" "api" {
     }]
 
     # Credencial vai em `secrets`; `environment` é texto plano visível no console.
-    environment = [
+    environment = concat([
       { name = "FRONTEND_ORIGIN", value = var.frontend_origin },
       { name = "AWS_S3_BUCKET", value = aws_s3_bucket.images.bucket },
-    ]
+      ], var.frontend_reset_url == "" ? [] : [
+      { name = "FRONTEND_RESET_URL", value = var.frontend_reset_url },
+    ])
 
     secrets = [
       { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.db_url.arn },
       { name = "JWT_SECRET", valueFrom = aws_secretsmanager_secret.jwt.arn },
+      { name = "BREVO_API_KEY", valueFrom = aws_secretsmanager_secret.brevo_api_key.arn },
     ]
 
     logConfiguration = {

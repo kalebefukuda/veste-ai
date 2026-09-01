@@ -91,3 +91,9 @@ variable "final_snapshot_identifier" {
   type        = string
   default     = "vesteai-final"
 }
+
+variable "frontend_reset_url" {
+  description = "URL da tela de redefinição de senha. Vazio mantém o padrão da aplicação."
+  type        = string
+  default     = ""
+}
