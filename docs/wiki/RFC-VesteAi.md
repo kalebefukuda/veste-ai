@@ -345,7 +345,6 @@ que têm gosto por moda mas não têm onde monetizar essa curadoria.
 - Pipeline CI/CD configurado com execução automática de testes e deploy
 - Análise estática de código aprovada no SonarCloud sem issues críticos
 
-
 # 2. Engenharia de Requisitos
 ## 2.1 Personas
 
@@ -400,7 +399,7 @@ Os principais fluxos do sistema estão organizados em dois perfis de acesso: **V
 - Editar e remover looks próprios
 - Visualizar métricas de cliques nos seus looks
 
-![Diagrama de Casos de Uso](../docs/assets/casos-de-uso-vesteai.png)
+![Diagrama de Casos de Uso](https://raw.githubusercontent.com/kalebefukuda/veste-ai/docs/rfc/docs/assets/casos-de-uso-vesteai.png)
 
 ## 2.3 Requisitos Funcionais (RF)
 
@@ -482,12 +481,11 @@ RN04 — Um look só pode ser publicado se tiver ao menos uma peça com link de 
 RN05 — Cada peça de um look deve conter obrigatoriamente nome e link de compra.
 RN06 — O creator é o único responsável pela validade dos links de compra — o VesteAí não valida nem garante os links externos.
 RN07 — Um creator só pode editar ou remover looks criados por ele mesmo.
-RN08 — Todo look deve conter ao menos uma imagem para ser publicado, seja por upload direto ou gerada por IA.
 
 ### Métricas
 
-RN09 — O registro de clique é contabilizado apenas quando o usuário é redirecionado para a loja externa.
-RN10 — As métricas de cliques são visíveis apenas para o creator do look.
+RN08 — O registro de clique é contabilizado apenas quando o usuário é redirecionado para a loja externa.
+RN09 — As métricas de cliques são visíveis apenas para o creator do look.
 
 ## 2.6 Fora do Escopo
 
@@ -527,7 +525,7 @@ de concluir a ação. Se já estiver autenticado, o look é salvo imediatamente.
 Essa é a única ação do consumer que exige autenticação — explorar o feed e
 clicar em links de compra são acessíveis a qualquer visitante.
 
-![Fluxo do Consumer](../docs/assets/fluxo-consumer.png)
+![Fluxo do Consumer](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/fluxo-consumer.png)
 
 ---
 
@@ -553,7 +551,7 @@ o look é revisado e publicado, tornando-se visível no feed da plataforma.
 Após a publicação, o creator pode acompanhar as métricas de cliques no seu
 painel.
 
-![Fluxo do Creator](../docs/assets/fluxo-creator.png)
+![Fluxo do Creator](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/fluxo-creator.png)
 
 ---
 
@@ -660,11 +658,11 @@ tela central e divergem conforme o perfil e a intenção do usuário.
 
 **Jornada do Consumer:**
 
-![Fluxo do Consumidor](assets/jornada-consumidor.png)
+![Fluxo do Consumidor](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/jornada-consumidor.png)
 
 **Jornada do Creator:**
 
-![Fluxo do Criador](assets/jornada-criador.png)
+![Fluxo do Criador](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/jornada-criador.png)
 
 Os diagramas completos, incluindo desvios e fluxos alternativos, estão
 na [Seção 3](#3-fluxos-e-comportamento-do-sistema).
@@ -689,7 +687,7 @@ automaticamente à ação interrompida.
 
 **Requisitos cobertos:** RF01, RF02, RF03, RF04
 
-![Login e Cadastro](assets/fluxo-user/login.png)
+![Login e Cadastro](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/fluxo-user/login.png)
 
 ---
 
@@ -709,7 +707,7 @@ completo. O visitante não precisa estar autenticado para navegar no feed
 
 **Requisitos cobertos:** RF05, RF06
 
-![Feed de Looks](assets/fluxo-user/feed-look.png)
+![Feed de Looks](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/fluxo-user/feed-look.png)
 
 ---
 
@@ -729,7 +727,7 @@ externas (RN06, seção 2.6).
 
 **Requisitos cobertos:** RF06, RF07, RF08
 
-![Detalhes do Look](assets/fluxo-user/detalhes-look.png)
+![Detalhes do Look](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/fluxo-user/detalhes-look.png)
 
 ---
 
@@ -751,7 +749,7 @@ os sites das lojas.
 
 **Requisitos cobertos:** RF07, RF08, RF09
 
-![Carrinho](assets/fluxo-user/carrinho.png)
+![Carrinho](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/fluxo-user/carrinho.png)
 
 ---
 
@@ -771,7 +769,7 @@ com link e uma imagem (RN04, RN08).
 
 **Requisitos cobertos:** RF10, RF11, RF12, RF13, RF14, RF15, RF17
 
-![Editor de Looks](assets/fluxo-user/editor-look.png)
+![Editor de Looks](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/fluxo-user/editor-look.png)
 
 ---
 
@@ -792,7 +790,7 @@ programas de afiliados de cada loja, e é de responsabilidade do creator
 
 **Requisitos cobertos:** RF16
 
-![Painel do Creator](assets/fluxo-user/creator-panel.png)
+![Painel do Creator](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/fluxo-user/creator-panel.png)
 
 ---
 
@@ -888,7 +886,7 @@ e demais) não integram com o VesteAí via API — o sistema apenas redireciona 
 usuário para a URL cadastrada pelo creator, e a transação ocorre inteiramente
 fora da plataforma.
 
-![Diagrama C4 — Nível 1: Contexto](assets/c4-model/level-1-context.png)
+![Diagrama C4 — Nível 1: Contexto](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/c4-model/level-1-context.png)
 
 ---
 
@@ -917,7 +915,7 @@ backend — o frontend nunca se comunica diretamente com esses serviços. Esse
 isolamento centraliza o controle de chaves de API e evita que credenciais
 sensíveis sejam expostas no cliente.
 
-![Diagrama C4 — Nível 2: Containers](assets/c4-model/level-2-containers.png)
+![Diagrama C4 — Nível 2: Containers](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/c4-model/level-2-containers.png)
 
 ---
 
@@ -964,7 +962,7 @@ se a URL está acessível (resposta HTTP válida) e se o domínio de destino nã
 consta em listas de domínios sinalizados como maliciosos. Não garante a validade
 comercial do link — apenas a acessibilidade e a segurança técnica (RF15, RN06).
 
-![Diagrama C4 — Nível 3: Componentes da API](assets/c4-model/level-3-components.png)
+![Diagrama C4 — Nível 3: Componentes da API](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/c4-model/level-3-components.png)
 
 ---
 
@@ -974,7 +972,7 @@ O modelo relacional do VesteAí é composto por cinco entidades principais. O
 diagrama a seguir representa as relações entre elas, seguido pelo esquema
 relacional com os tipos de dados adotados no PostgreSQL.
 
-![DER — Diagrama Entidade-Relacionamento do VesteAí](assets/c4-model/der.png)
+![DER — Diagrama Entidade-Relacionamento do VesteAí](https://raw.githubusercontent.com/kalebefukuda/veste-ai/dev/docs/assets/c4-model/der.png)
 
 ---
 
@@ -1043,6 +1041,7 @@ saved_looks (
   UNIQUE (user_id, look_id)
 )
 ```
+
 O campo `look_id` é mantido diretamente na entidade `clicks` — ainda que derivável via `pieces` — para permitir consultas de métricas agregadas por look sem a necessidade de junções adicionais, o que favorece o desempenho das consultas do painel do creator.
 
 ---
@@ -1303,7 +1302,6 @@ tratamento dos dados pessoais dos usuários em conformidade com a Lei
 Geral de Proteção de Dados (LGPD).
 
 ---
-
 ## 6.1 Autenticação e Autorização
 
 O VesteAí utiliza autenticação baseada em tokens JWT. Após o login com
@@ -1461,7 +1459,7 @@ forem atendidos simultaneamente:
 ## 7.4 Instruções de Deploy
 
 O deploy do VesteAí é realizado automaticamente pelo pipeline CI/CD a
-cada merge na branch `main`.
+cada merge na branch `main`. O processo segue os passos abaixo:
 
 **Pré-requisitos:**
 - Conta na AWS com instância EC2 (t2.micro) e RDS PostgreSQL (db.t3.micro) configurados
@@ -1484,6 +1482,8 @@ cada merge na branch `main`.
 docker compose pull
 docker compose up -d
 ```
+
+> O deploy manual via SSH ou FTP não é utilizado em nenhuma circunstância.
 
 ---
 
@@ -1604,7 +1604,7 @@ interface final.
 **Stack:** Next.js + Tailwind CSS
 **Paleta:** `#8B5CF6` (purple), `#C4A8FF` (purple-light), `#F472B6` (rose), `#1E1B4B` (navy)
 
-![Landing Page VesteAí](assets/lp-veste-ai.png)
+![Landing Page VesteAí](https://raw.githubusercontent.com/kalebefukuda/veste-ai/docs/rfc/docs/assets/lp-veste-ai.png)
 
 > A landing page não representa o design final da aplicação — é uma
 > referência de identidade visual e proposta de valor do produto.
@@ -1613,7 +1613,7 @@ interface final.
 
 ## A3. Resumo das Conversas com Usuários
 
-As conversas informais descritas na Seção 1.2 foram realizadas com
+As conversas informais descritas na Seção 3 foram realizadas com
 5 participantes divididos entre os dois perfis de usuário da plataforma.
 Nenhuma gravação foi realizada — os registros abaixo são sínteses das
 observações coletadas.
@@ -1640,23 +1640,20 @@ imediato na proposta e perguntaram quando a plataforma estaria disponível.
 
 # 10. Parecer do Comitê de Avaliação
 
-(A ser preenchido pelos professores)
 
-**Avaliador 1:** __________________________
-**Status:** [ ] Aprovado  [ ] Ajustar
+**Avaliador 1:** 
+Nome: JANAINA FONTANA BIFFI DUARTE
 
-Observações:
+Assinatura: _____________________
 
----
-
-**Avaliador 2:** __________________________
-**Status:** [ ] Aprovado  [ ] Ajustar
-
-Observações:
 
 ---
 
-**Avaliador 3:** __________________________
-**Status:** [ ] Aprovado  [ ] Ajustar
+**Avaliador 2:**
+Nome: EDICARSIA BARBIERO PILLON
 
-Observações:
+Assinatura: _____________________
+
+
+
+---
