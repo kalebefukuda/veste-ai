@@ -1,0 +1,62 @@
+name: docs
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "docs/wiki/**"
+      - "docs/adr/**"
+      - "docs/assets/**"
+      - "scripts/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+# O GITHUB_TOKEN só escreve no repositório da wiki com esta permissão.
+permissions:
+  contents: write
+
+# Um sync por vez, e nunca cancelado no meio do push.
+concurrency:
+  group: docs-sync
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: publicar a wiki
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Gerar o índice de ADRs
+        run: python scripts/gerar_indice_adr.py
+
+      # Última barreira: link relativo não resolve na wiki, que é outro repositório.
+      - name: Verificar os links
+        run: python scripts/verificar_links_wiki.py --pagina-extra ADRs
+
+      - name: Publicar na wiki
+        env:
+          # O PAT tem precedência; sem ele, tenta o token do próprio run.
+          TOKEN: ${{ secrets.WIKI_TOKEN || secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          git clone --depth 1 "https://x-access-token:$TOKEN@github.com/$REPO.wiki.git" wiki
+          # `git add -A` também remove da wiki a página que saiu de docs/wiki/.
+          rm -f wiki/*.md
+          cp docs/wiki/*.md docs/generated/*.md wiki/
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "A wiki já está igual a docs/wiki/ — nada a publicar." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m "docs: sync from $SHA"
+          git push
+          echo "Wiki publicada a partir de $SHA." >> "$GITHUB_STEP_SUMMARY"

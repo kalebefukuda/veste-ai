@@ -59,8 +59,11 @@ Metas de cobertura: **75% no backend** e **25% no frontend**.
 
 ## Documentação
 
-A RFC está em [`docs/RFC.md`](docs/RFC.md), com os diagramas em
-[`docs/assets/`](docs/assets/).
+A documentação do sistema mora em [`docs/wiki/`](docs/wiki/) e é publicada na
+[wiki](https://github.com/kalebefukuda/veste-ai/wiki) pelo pipeline a cada merge na
+`dev` — editar a wiki pela interface do GitHub não serve, porque o próximo sync
+sobrescreve. A RFC é uma das páginas: [`docs/wiki/RFC-VesteAi.md`](docs/wiki/RFC-VesteAi.md),
+com os diagramas em [`docs/assets/`](docs/assets/).
 
 ## Contribuindo
 
