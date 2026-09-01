@@ -117,3 +117,45 @@ def test_pedido_novo_invalida_o_token_anterior(
     assert client.post(
         "/auth/reset-password", json={"token": segundo, "password": NOVA_SENHA}
     ).status_code == 204
+
+
+# Token que ninguém recebeu não serve a ninguém: deixá-lo válido é só resíduo.
+def test_token_e_invalidado_quando_o_email_nao_sai(
+    client: TestClient, registered: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.core.exceptions import EmailDeliveryFailed
+
+    capturados: list[str] = []
+
+    def falha_ao_enviar(email: str, token: str) -> None:
+        capturados.append(token)
+        raise EmailDeliveryFailed()
+
+    monkeypatch.setattr(
+        "app.services.password_reset_service.send_reset_email", falha_ao_enviar
+    )
+
+    pedido = client.post("/auth/forgot-password", json={"email": registered["email"]})
+
+    # A resposta não muda: revelar a falha diria ao atacante que o e-mail existe.
+    assert pedido.status_code == 202
+
+    resposta = client.post(
+        "/auth/reset-password", json={"token": capturados[0], "password": NOVA_SENHA}
+    )
+    assert resposta.status_code == 400
+
+
+# Consumir o token em duas etapas — ler, depois marcar — deixa duas requisições
+# simultâneas passarem pela mesma janela.
+def test_token_e_consumido_de_forma_atomica(client: TestClient, db: Session, token: str) -> None:
+    from app.repositories.password_reset_repository import PasswordResetRepository
+    from app.services.password_reset_service import fingerprint
+
+    repositorio = PasswordResetRepository(db)
+
+    primeira = repositorio.consume(fingerprint(token))
+    segunda = repositorio.consume(fingerprint(token))
+
+    assert primeira is not None
+    assert segunda is None, "o mesmo token foi consumido duas vezes"
