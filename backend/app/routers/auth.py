@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 
 from app.core.dependencies import get_auth_service, get_password_reset_service
 from app.core.exceptions import (
@@ -49,9 +49,10 @@ def login(
 @router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
 def forgot_password(
     data: ForgotPasswordIn,
+    background: BackgroundTasks,
     service: Annotated[PasswordResetService, Depends(get_password_reset_service)],
 ) -> dict[str, str]:
-    service.request(data.email)
+    service.request(data.email, background)
 
     return {"detail": "Se houver uma conta com este e-mail, enviamos um link de recuperação"}
 

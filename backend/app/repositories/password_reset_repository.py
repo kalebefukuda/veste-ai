@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import update
+from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
 from app.models.password_reset import PasswordReset
@@ -32,6 +32,15 @@ class PasswordResetRepository:
             update(PasswordReset)
             .where(PasswordReset.user_id == user_id, PasswordReset.used_at.is_(None))
             .values(used_at=datetime.now(UTC))
+        )
+
+    # Sem isto a tabela só cresce: token usado ou vencido nunca teria fim.
+    def purge_closed(self, user_id: uuid.UUID) -> None:
+        self.db.execute(
+            delete(PasswordReset).where(
+                PasswordReset.user_id == user_id,
+                PasswordReset.used_at.is_not(None),
+            )
         )
 
     def add(self, reset: PasswordReset) -> PasswordReset:

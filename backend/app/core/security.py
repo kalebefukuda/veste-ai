@@ -23,14 +23,17 @@ def create_access_token(subject: str | uuid.UUID, expires_in: timedelta | None =
     settings = get_settings()
     delta = expires_in or timedelta(minutes=settings.jwt_expiration_minutes)
 
-    payload = {"sub": str(subject), "exp": datetime.now(UTC) + delta}
+    issued_at = datetime.now(UTC)
+    payload = {
+        "sub": str(subject),
+        "iat": issued_at.timestamp(),
+        "exp": issued_at + delta,
+    }
     return jwt.encode(payload, settings.jwt_secret, algorithm=ALGORITHM)
 
 
-def read_subject(token: str) -> str | None:
+def read_claims(token: str) -> dict[str, object] | None:
     try:
-        payload = jwt.decode(token, get_settings().jwt_secret, algorithms=[ALGORITHM])
+        return jwt.decode(token, get_settings().jwt_secret, algorithms=[ALGORITHM])
     except jwt.PyJWTError:
         return None
-
-    return payload.get("sub")

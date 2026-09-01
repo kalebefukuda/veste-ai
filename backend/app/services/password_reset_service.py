@@ -3,10 +3,15 @@ import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 
+from fastapi import BackgroundTasks
+from sqlalchemy import update
+from sqlalchemy.orm import Session
+
 from app.clients.brevo import send_email
 from app.config import get_settings
 from app.core.exceptions import EmailDeliveryFailed, InvalidResetToken
 from app.core.security import hash_password
+from app.database import get_engine
 from app.models.password_reset import PasswordReset
 from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.user_repository import UserRepository
@@ -30,6 +35,23 @@ def send_reset_email(email: str, token: str) -> None:
     )
 
 
+# Roda depois da resposta, então a sessão da requisição já fechou: abre a própria
+# para invalidar o token que ninguém recebeu — deixá-lo válido é só resíduo.
+def deliver(email: str, token: str) -> None:
+    try:
+        send_reset_email(email, token)
+    except EmailDeliveryFailed:
+        with Session(get_engine()) as session:
+            session.execute(
+                update(PasswordReset)
+                .where(PasswordReset.token_hash == fingerprint(token))
+                .values(used_at=datetime.now(UTC))
+            )
+            session.commit()
+
+        logger.error("Recuperação de senha indisponível: o e-mail não foi entregue")
+
+
 class PasswordResetService:
     def __init__(self, users: UserRepository, resets: PasswordResetRepository) -> None:
         self.users = users
@@ -37,13 +59,14 @@ class PasswordResetService:
 
     # Responde igual para e-mail existente e inexistente: contar a diferença
     # transformaria o endpoint num verificador de quais contas existem.
-    def request(self, email: str) -> None:
+    def request(self, email: str, background: BackgroundTasks | None = None) -> None:
         user = self.users.get_by_email(email)
 
         if user is None:
             return
 
         self.resets.invalidate_open(user.id)
+        self.resets.purge_closed(user.id)
 
         token = secrets.token_urlsafe(32)
         self.resets.add(
@@ -55,12 +78,13 @@ class PasswordResetService:
             )
         )
 
-        # Token que ninguém recebeu não serve a ninguém: deixá-lo válido é só resíduo.
-        try:
-            send_reset_email(user.email, token)
-        except EmailDeliveryFailed:
-            self.resets.invalidate_open(user.id)
-            logger.error("Recuperação de senha indisponível: o e-mail não foi entregue")
+        # A chamada de rede é o maior componente do tempo de resposta; fora dela, a
+        # diferença entre e-mail existente e inexistente encolhe para escrita em banco.
+        if background is not None:
+            background.add_task(deliver, user.email, token)
+            return
+
+        deliver(user.email, token)
 
     def reset(self, token: str, password: str) -> None:
         user_id = self.resets.consume(fingerprint(token))
@@ -74,3 +98,5 @@ class PasswordResetService:
             raise InvalidResetToken()
 
         user.password = hash_password(password)
+        # Marca o corte: tudo emitido antes disto deixa de valer.
+        user.password_changed_at = datetime.now(UTC)

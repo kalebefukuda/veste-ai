@@ -6,6 +6,9 @@ from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate
 
+# Hash descartável, comparado quando o e-mail não existe, só para o bcrypt rodar.
+DUMMY_HASH = hash_password("nao-e-a-senha-de-ninguem")
+
 
 class AuthService:
     def __init__(self, users: UserRepository) -> None:
@@ -19,12 +22,13 @@ class AuthService:
             User(name=data.name, email=data.email, password=hash_password(data.password))
         )
 
-    # Falha igual para e-mail inexistente e senha errada: distinguir os dois revela
-    # quais e-mails estão cadastrados.
+    # Falha igual para e-mail inexistente e senha errada, e no mesmo tempo: o bcrypt
+    # é lento de propósito, então pular a verificação revelaria que a conta não existe.
     def login(self, email: str, password: str) -> str:
         user = self.users.get_by_email(email)
+        stored = user.password if user else DUMMY_HASH
 
-        if user is None or not verify_password(password, user.password):
+        if not verify_password(password, stored) or user is None:
             raise InvalidCredentials()
 
         return create_access_token(user.id)

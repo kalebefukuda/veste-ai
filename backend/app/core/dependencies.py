@@ -6,7 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import InvalidCredentials
-from app.core.security import read_subject
+from app.core.security import read_claims
 from app.database import get_db
 from app.models.user import User
 from app.repositories.password_reset_repository import PasswordResetRepository
@@ -40,14 +40,23 @@ def get_current_user(
     if credentials is None:
         raise unauthorized
 
-    subject = read_subject(credentials.credentials)
+    claims = read_claims(credentials.credentials)
 
-    if subject is None:
+    if claims is None or "sub" not in claims:
         raise unauthorized
 
     # Só os erros de autenticação viram 401. Falha de banco ou bug precisa subir
     # como 500, senão o usuário tenta logar de novo enquanto o problema é outro.
     try:
-        return service.get_authenticated(uuid.UUID(subject))
+        user = service.get_authenticated(uuid.UUID(str(claims["sub"])))
     except (ValueError, InvalidCredentials) as error:
         raise unauthorized from error
+
+    # Token emitido antes da última troca de senha morre aqui. A leitura do usuário
+    # já acontecia, então a revogação não custa consulta nova.
+    issued_at = claims.get("iat")
+
+    if issued_at is not None and float(issued_at) < user.password_changed_at.timestamp():
+        raise unauthorized
+
+    return user
