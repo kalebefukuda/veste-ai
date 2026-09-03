@@ -18,6 +18,20 @@ resource "aws_ecs_task_definition" "api" {
   execution_role_arn       = aws_iam_role.task_execution.arn
   task_role_arn            = aws_iam_role.task.arn
 
+  # Padrão de localhost em produção falha calado: o e-mail sai, entrega, e o link
+  # não vai a lugar nenhum. Melhor o apply recusar.
+  lifecycle {
+    precondition {
+      condition     = !var.enable_runtime || !can(regex("localhost", var.frontend_origin))
+      error_message = "frontend_origin ainda aponta para localhost — o CORS recusaria o frontend real."
+    }
+
+    precondition {
+      condition     = !var.enable_runtime || !can(regex("^$|localhost", var.frontend_reset_url))
+      error_message = "frontend_reset_url está vazio ou em localhost — o e-mail de reset não levaria a lugar nenhum."
+    }
+  }
+
   container_definitions = jsonencode([{
     name      = "api"
     image     = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
