@@ -40,7 +40,8 @@ def _html(link: str) -> str:
                      background-color:{PURPLE};height:4px;border-radius:4px 4px 0 0">
         &nbsp;</td></tr>
       <tr><td style="padding:40px 8px 0">
-        <p style="margin:0;font-size:22px;font-weight:700;color:{NAVY}">VesteAí</p>
+        <p style="margin:0;font-size:22px;font-weight:700;color:{NAVY}">Veste<span
+          style="color:{PURPLE}">Aí</span></p>
         <h1 style="margin:24px 0 0;font-size:28px;line-height:1.25;font-weight:700;color:{NAVY}">
           Criar uma senha nova
         </h1>
@@ -61,10 +62,6 @@ def _html(link: str) -> str:
         <p style="margin:0;font-size:14px;line-height:1.6;color:{NAVY}">
           O link vale por 1 hora e só pode ser usado uma vez.
           Se não foi você, ignore este e-mail — sua senha continua a mesma.
-        </p>
-        <p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:{NAVY}">
-          Se o botão não funcionar, copie e cole este endereço no navegador:<br>
-          <span style="word-break:break-all">{link}</span>
         </p>
       </td></tr>
       <tr><td style="padding:32px 8px 0;border-top:1px solid #EEECF9">
