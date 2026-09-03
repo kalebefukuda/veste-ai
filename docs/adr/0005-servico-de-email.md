@@ -66,12 +66,17 @@ nenhum dos dois consome crédito da AWS.
 
   A consequência é séria e não era conhecida quando este ADR foi escrito: quem clicar
   ali **fica bloqueado** de receber o transacional, e portanto **perde o caminho de
-  recuperação da própria conta**. Não há como evitar o bloqueio; há como desfazê-lo,
-  pelo `DELETE /smtp/blockedContacts/{email}`.
+  recuperação da própria conta**.
 
-  Aceito por ora, porque as alternativas são pagar Enterprise ou trocar de provedor —
-  e o volume do TCC torna o cenário improvável. Se acontecer uma vez, vira caminho de
-  suporte; se acontecer duas, este ADR precisa ser revisto.
+  Existe um `DELETE /smtp/blockedContacts/{email}`, mas **ele não pode virar automação**:
+  a própria Brevo diz que desbloquear quem pediu para sair é ilegal e motivo de suspensão
+  da conta. O desbloqueio só é legítimo com pedido explícito do titular — ou seja, é
+  caminho de suporte humano, nunca um `except` no código.
+
+  Aceito por ora, porque as alternativas são pagar Enterprise ou trocar de provedor, e o
+  volume do TCC torna o cenário improvável. Confirmado na prática em 03/09/2026: o
+  próprio autor clicou no link para ver o efeito e ficou bloqueado. Se acontecer com um
+  usuário real, este ADR precisa ser revisto.
 
 ## O que este ADR não decide
 
