@@ -58,6 +58,20 @@ nenhum dos dois consome crédito da AWS.
 - Sair da Brevo depois significa reescrever `clients/brevo.py` e trocar as variáveis de
   ambiente. É barato hoje e fica mais caro quanto mais o projeto depender de recursos
   específicos deles, como os webhooks de entrega.
+- **A Brevo injeta `List-Unsubscribe` em todo e-mail transacional, e não dá para
+  desligar.** Descoberto em 01/09/2026, no primeiro envio real: o Gmail mostra
+  "Cancelar inscrição" ao lado do remetente num e-mail de recuperação de senha. A
+  própria Brevo confirma que o cabeçalho é automático "por compliance" e que trocá-lo
+  por `List-Help` **só existe no plano Enterprise**.
+
+  A consequência é séria e não era conhecida quando este ADR foi escrito: quem clicar
+  ali **fica bloqueado** de receber o transacional, e portanto **perde o caminho de
+  recuperação da própria conta**. Não há como evitar o bloqueio; há como desfazê-lo,
+  pelo `DELETE /smtp/blockedContacts/{email}`.
+
+  Aceito por ora, porque as alternativas são pagar Enterprise ou trocar de provedor —
+  e o volume do TCC torna o cenário improvável. Se acontecer uma vez, vira caminho de
+  suporte; se acontecer duas, este ADR precisa ser revisto.
 
 ## O que este ADR não decide
 
@@ -69,3 +83,11 @@ Ligar de fato depende de comprar o domínio e verificar o remetente. Enquanto is
 acontece, **o RF03 está entregue como fluxo e pendente como entrega** — que é
 exatamente o que a nota da Sprint 2 autoriza, desde que registrado. Este parágrafo é o
 registro.
+
+> **Atualização de 01/09/2026 — ligado e verificado.** `vesteai.site` comprado e
+> autenticado na Brevo (Brevo code, dois DKIM e DMARC), e o primeiro envio real
+> percorreu a cadeia inteira: `Sent → Delivered → Opened`, caixa de entrada do Gmail,
+> remetente `nao-responda@vesteai.site`. O `href` do botão chega **sem reescrita de
+> rastreamento**, apontando direto para o frontend. O RF03 deixa de ser pendente como
+> entrega no ambiente local; em produção depende de `BREVO_API_KEY` no Secrets Manager
+> e de `FRONTEND_RESET_URL` preenchida — as duas agora existem no Terraform.
