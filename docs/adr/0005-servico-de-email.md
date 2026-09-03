@@ -64,19 +64,36 @@ nenhum dos dois consome crédito da AWS.
   própria Brevo confirma que o cabeçalho é automático "por compliance" e que trocá-lo
   por `List-Help` **só existe no plano Enterprise**.
 
-  A consequência é séria e não era conhecida quando este ADR foi escrito: quem clicar
-  ali **fica bloqueado** de receber o transacional, e portanto **perde o caminho de
-  recuperação da própria conta**.
+  Medido em 03/09/2026, clicando no link para ver o efeito. A sequência observada nos
+  logs da Brevo:
+
+  | Horário | Evento |
+  |---|---|
+  | 18:37 | `Unsubscribed` — um clique, um e-mail de reset |
+  | 18:52 | `Sent` seguido de `Blocked` — o envio seguinte nunca entregou |
+
+  **O grave não é o bloqueio; é a aplicação ser cega para ele.** A Brevo responde
+  **2xx** à chamada da API e só depois marca `Blocked`. Então `raise_for_status()`
+  passa, nenhuma `EmailDeliveryFailed` é levantada, `deliver()` **não invalida o
+  token** — e o sistema inteiro acredita que enviou. O usuário fica sem o e-mail, sem
+  mensagem de erro, e com um token válido pendurado por uma hora que ninguém recebeu.
+
+  Detectar isso exigiria os **webhooks de entrega** da Brevo, que precisam de endpoint
+  público — não existe antes do deploy. Até lá, esta falha é invisível.
+
+  Duas armadilhas de diagnóstico, também medidas: a ficha do contato continua exibindo
+  *"Transactional emails — Subscribed"* enquanto o log diz `Blocked`, ou seja **a tela
+  de contato não serve para diagnosticar**; e a única evidência fica no log de
+  transacional.
 
   Existe um `DELETE /smtp/blockedContacts/{email}`, mas **ele não pode virar automação**:
   a própria Brevo diz que desbloquear quem pediu para sair é ilegal e motivo de suspensão
-  da conta. O desbloqueio só é legítimo com pedido explícito do titular — ou seja, é
-  caminho de suporte humano, nunca um `except` no código.
+  da conta. É caminho de suporte humano com pedido do titular, nunca um `except`.
 
-  Aceito por ora, porque as alternativas são pagar Enterprise ou trocar de provedor, e o
-  volume do TCC torna o cenário improvável. Confirmado na prática em 03/09/2026: o
-  próprio autor clicou no link para ver o efeito e ficou bloqueado. Se acontecer com um
-  usuário real, este ADR precisa ser revisto.
+  Aceito por ora — as alternativas são pagar Enterprise ou trocar de provedor. Mas o
+  cenário deixou de ser hipotético: **um clique, e o usuário perde o caminho de
+  recuperação da própria conta, sem que o sistema saiba.** Revisar este ADR quando os
+  webhooks existirem, ou antes disso se um usuário real for afetado.
 
 ## O que este ADR não decide
 
