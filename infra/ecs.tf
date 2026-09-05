@@ -18,17 +18,24 @@ resource "aws_ecs_task_definition" "api" {
   execution_role_arn       = aws_iam_role.task_execution.arn
   task_role_arn            = aws_iam_role.task.arn
 
-  # Padrão de localhost em produção falha calado: o e-mail sai, entrega, e o link
-  # não vai a lugar nenhum. Melhor o apply recusar.
+  # Padrão de desenvolvimento em produção falha calado: o e-mail sai, entrega, e o link
+  # não vai a lugar nenhum. E o token de reset viaja na query string, então sem TLS ele
+  # vai em claro. Melhor o apply recusar nos dois casos.
   lifecycle {
     precondition {
-      condition     = !var.enable_runtime || !can(regex("localhost", var.frontend_origin))
-      error_message = "frontend_origin ainda aponta para localhost — o CORS recusaria o frontend real."
+      condition = !var.enable_runtime || (
+        startswith(var.frontend_origin, "https://") &&
+        !can(regex("localhost", var.frontend_origin))
+      )
+      error_message = "frontend_origin precisa ser uma origem https:// real — não localhost, não http://."
     }
 
     precondition {
-      condition     = !var.enable_runtime || !can(regex("^$|localhost", var.frontend_reset_url))
-      error_message = "frontend_reset_url está vazio ou em localhost — o e-mail de reset não levaria a lugar nenhum."
+      condition = !var.enable_runtime || (
+        startswith(var.frontend_reset_url, "https://") &&
+        !can(regex("localhost", var.frontend_reset_url))
+      )
+      error_message = "frontend_reset_url precisa ser https:// real: o token de reset viaja na query string."
     }
   }
 
