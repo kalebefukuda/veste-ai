@@ -25,6 +25,11 @@ class EmailDeliveryFailed(DomainError):
     detail = "Não foi possível enviar o e-mail agora. Tente de novo em instantes"
 
 
+class TooManyRequests(DomainError):
+    code = "TOO_MANY_REQUESTS"
+    detail = "Muitas tentativas. Espere um pouco e tente de novo"
+
+
 class DomainHTTPException(Exception):
     """Carrega a exceção de domínio até o handler, que monta o corpo padrão da API."""
 
