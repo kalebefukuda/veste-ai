@@ -10,10 +10,10 @@ from app.core.exceptions import (
     InvalidResetToken,
 )
 from app.core.rate_limit import (
-    FORGOT_PASSWORD,
-    LOGIN,
-    REGISTER,
-    RESET_PASSWORD,
+    LIMIT_FORGOT,
+    LIMIT_LOGIN,
+    LIMIT_REGISTER,
+    LIMIT_RESET,
     limiter,
 )
 from app.schemas.user import (
@@ -31,7 +31,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserOut)
-@limiter.limit(REGISTER)
+@limiter.limit(LIMIT_REGISTER)
 def register(
     request: Request,
     data: UserCreate,
@@ -44,7 +44,7 @@ def register(
 
 
 @router.post("/login", response_model=TokenOut)
-@limiter.limit(LOGIN)
+@limiter.limit(LIMIT_LOGIN)
 def login(
     request: Request,
     data: LoginIn,
@@ -58,7 +58,7 @@ def login(
 
 # 202 sempre, sem dizer se o e-mail existe — ver PasswordResetService.request.
 @router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
-@limiter.limit(FORGOT_PASSWORD)
+@limiter.limit(LIMIT_FORGOT)
 def forgot_password(
     request: Request,
     data: ForgotPasswordIn,
@@ -71,7 +71,7 @@ def forgot_password(
 
 
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
-@limiter.limit(RESET_PASSWORD)
+@limiter.limit(LIMIT_RESET)
 def reset_password(
     request: Request,
     data: ResetPasswordIn,

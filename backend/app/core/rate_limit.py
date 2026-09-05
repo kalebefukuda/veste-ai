@@ -8,10 +8,10 @@ from app.config import get_settings
 from app.core.exceptions import TooManyRequests
 
 # `login` gasta CPU; `forgot-password` gasta cota de e-mail, que é finita e diária.
-LOGIN = "10/minute"
-REGISTER = "10/hour"
-FORGOT_PASSWORD = "3/hour"  # noqa: S105 — janela de rate limit, não senha
-RESET_PASSWORD = "10/minute"  # noqa: S105 — idem
+LIMIT_LOGIN = "10/minute"
+LIMIT_REGISTER = "10/hour"
+LIMIT_FORGOT = "3/hour"
+LIMIT_RESET = "10/minute"
 
 
 # Atrás do ALB o peer TCP é sempre o load balancer: sem ler o X-Forwarded-For, todos os
