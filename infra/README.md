@@ -62,7 +62,21 @@ mudanças em `task_definition` — senão o Terraform desfaria o deploy.
 `terraform output acm_validation_records`, crie os registros no seu provedor de DNS, e
 o `apply` conclui sozinho. Sem domínio, o ALB serve HTTP e este passo não existe.
 
-**5. Ligar o runtime.** Com `enable_runtime = true`, sobem ALB, RDS e o service.
+**5. Preencher o segredo da Brevo no console.** O Terraform cria
+`vesteai/brevo-api-key-*` com o placeholder `definir-no-console` e `ignore_changes`, de
+propósito: chave em `.tf` ou `.tfvars` acabaria no arquivo de estado. Abra o Secrets
+Manager e substitua o valor pela chave real.
+
+> **Esquecer este passo falha tarde.** O ECS injeta `definir-no-console` como se fosse
+> chave válida, o container sobe normalmente, e o erro só aparece no primeiro envio —
+> como um 401 da Brevo virando `EmailDeliveryFailed` no log. Não dá para o Terraform
+> barrar isso: validar exigiria **ler** o segredo no plano, e aí ele entraria no estado,
+> que é exatamente o que o placeholder existe para evitar.
+>
+> Verificação: depois do deploy, dispare um `POST /auth/forgot-password` e confira o log
+> de transacional da Brevo. `Sent` seguido de `Delivered` fecha o passo.
+
+**6. Ligar o runtime.** Com `enable_runtime = true`, sobem ALB, RDS e o service.
 
 ## O que este Terraform não faz
 

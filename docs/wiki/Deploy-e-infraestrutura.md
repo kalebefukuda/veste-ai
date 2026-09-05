@@ -60,7 +60,8 @@ O que muda por ambiente é **onde o valor mora**:
 | `JWT_SECRET` | assinatura do token | Secrets Manager → campo `secrets` |
 | `BREVO_API_KEY` | envio de e-mail transacional | Secrets Manager → campo `secrets` |
 | `FRONTEND_ORIGIN` | origem única liberada no CORS | task definition → campo `environment` |
-| `EMAIL_SENDER`, `FRONTEND_RESET_URL` | remetente e link do e-mail de reset | task definition → campo `environment` |
+| `FRONTEND_RESET_URL` | link do e-mail de recuperação de senha | task definition → campo `environment` |
+| `EMAIL_SENDER` | remetente do e-mail | **não é injetada** — o padrão da aplicação já é `nao-responda@vesteai.site` |
 | `NEXT_PUBLIC_API_URL` | endereço da API para o browser | variável da Vercel |
 
 > Na task definition, **`environment` é texto plano** — aparece no console para quem
@@ -71,6 +72,12 @@ O que muda por ambiente é **onde o valor mora**:
 
 Sem `BREVO_API_KEY` o cliente de e-mail registra um aviso e o token de reset é criado
 do mesmo jeito, então o fluxo é testável ponta a ponta sem provedor configurado.
+
+`FRONTEND_ORIGIN` e `FRONTEND_RESET_URL` têm padrão de desenvolvimento (`localhost`), e
+esquecer de preenchê-las falharia **calado** em produção: o e-mail sairia, entregaria, e
+o link não levaria a lugar nenhum. Por isso a task definition tem duas `precondition` —
+com `enable_runtime = true`, o `apply` **recusa** enquanto qualquer uma das duas apontar
+para localhost.
 
 ## Primeiro provisionamento
 

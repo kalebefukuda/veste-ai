@@ -58,6 +58,42 @@ nenhum dos dois consome crédito da AWS.
 - Sair da Brevo depois significa reescrever `clients/brevo.py` e trocar as variáveis de
   ambiente. É barato hoje e fica mais caro quanto mais o projeto depender de recursos
   específicos deles, como os webhooks de entrega.
+- **A Brevo injeta `List-Unsubscribe` em todo e-mail transacional, e não dá para
+  desligar.** Descoberto em 01/09/2026, no primeiro envio real: o Gmail mostra
+  "Cancelar inscrição" ao lado do remetente num e-mail de recuperação de senha. A
+  própria Brevo confirma que o cabeçalho é automático "por compliance" e que trocá-lo
+  por `List-Help` **só existe no plano Enterprise**.
+
+  Medido em 03/09/2026, clicando no link para ver o efeito. A sequência observada nos
+  logs da Brevo:
+
+  | Horário | Evento |
+  |---|---|
+  | 18:37 | `Unsubscribed` — um clique, um e-mail de reset |
+  | 18:52 | `Sent` seguido de `Blocked` — o envio seguinte nunca entregou |
+
+  **O grave não é o bloqueio; é a aplicação ser cega para ele.** A Brevo responde
+  **2xx** à chamada da API e só depois marca `Blocked`. Então `raise_for_status()`
+  passa, nenhuma `EmailDeliveryFailed` é levantada, `deliver()` **não invalida o
+  token** — e o sistema inteiro acredita que enviou. O usuário fica sem o e-mail, sem
+  mensagem de erro, e com um token válido pendurado por uma hora que ninguém recebeu.
+
+  Detectar isso exigiria os **webhooks de entrega** da Brevo, que precisam de endpoint
+  público — não existe antes do deploy. Até lá, esta falha é invisível.
+
+  Duas armadilhas de diagnóstico, também medidas: a ficha do contato continua exibindo
+  *"Transactional emails — Subscribed"* enquanto o log diz `Blocked`, ou seja **a tela
+  de contato não serve para diagnosticar**; e a única evidência fica no log de
+  transacional.
+
+  Existe um `DELETE /smtp/blockedContacts/{email}`, mas **ele não pode virar automação**:
+  a própria Brevo diz que desbloquear quem pediu para sair é ilegal e motivo de suspensão
+  da conta. É caminho de suporte humano com pedido do titular, nunca um `except`.
+
+  Aceito por ora — as alternativas são pagar Enterprise ou trocar de provedor. Mas o
+  cenário deixou de ser hipotético: **um clique, e o usuário perde o caminho de
+  recuperação da própria conta, sem que o sistema saiba.** Revisar este ADR quando os
+  webhooks existirem, ou antes disso se um usuário real for afetado.
 
 ## O que este ADR não decide
 
@@ -69,3 +105,11 @@ Ligar de fato depende de comprar o domínio e verificar o remetente. Enquanto is
 acontece, **o RF03 está entregue como fluxo e pendente como entrega** — que é
 exatamente o que a nota da Sprint 2 autoriza, desde que registrado. Este parágrafo é o
 registro.
+
+> **Atualização de 01/09/2026 — ligado e verificado.** `vesteai.site` comprado e
+> autenticado na Brevo (Brevo code, dois DKIM e DMARC), e o primeiro envio real
+> percorreu a cadeia inteira: `Sent → Delivered → Opened`, caixa de entrada do Gmail,
+> remetente `nao-responda@vesteai.site`. O `href` do botão chega **sem reescrita de
+> rastreamento**, apontando direto para o frontend. O RF03 deixa de ser pendente como
+> entrega no ambiente local; em produção depende de `BREVO_API_KEY` no Secrets Manager
+> e de `FRONTEND_RESET_URL` preenchida — as duas agora existem no Terraform.

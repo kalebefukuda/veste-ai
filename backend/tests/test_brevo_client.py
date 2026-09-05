@@ -21,7 +21,7 @@ def test_envia_com_o_payload_que_a_brevo_espera(monkeypatch: pytest.MonkeyPatch)
 
     monkeypatch.setattr(brevo.httpx, "post", fake_post)
 
-    brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>")
+    brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>", "corpo")
 
     assert capturado["url"] == brevo.ENDPOINT
     assert capturado["headers"]["api-key"] == "chave-de-teste"
@@ -47,7 +47,7 @@ def test_falha_de_rede_vira_excecao_de_dominio(
     monkeypatch.setattr(brevo.httpx, "post", fake_post)
 
     with pytest.raises(EmailDeliveryFailed):
-        brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>")
+        brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>", "corpo")
 
 
 def test_status_de_erro_vira_excecao_de_dominio(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -57,7 +57,7 @@ def test_status_de_erro_vira_excecao_de_dominio(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(brevo.httpx, "post", fake_post)
 
     with pytest.raises(EmailDeliveryFailed):
-        brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>")
+        brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>", "corpo")
 
 
 def test_sem_chave_configurada_falha_sem_chamar_a_brevo(
@@ -72,7 +72,7 @@ def test_sem_chave_configurada_falha_sem_chamar_a_brevo(
     monkeypatch.setattr(brevo.httpx, "post", nao_deveria_chamar)
 
     with pytest.raises(EmailDeliveryFailed):
-        brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>")
+        brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>", "corpo")
 
 
 # Log com e-mail inteiro é dado pessoal em texto claro — o Padrão de logs proíbe.
@@ -84,7 +84,23 @@ def test_o_log_nao_expoe_o_email_inteiro(
     )
 
     with caplog.at_level("WARNING"), pytest.raises(EmailDeliveryFailed):
-        brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>")
+        brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>", "corpo")
 
     assert "mariana@exemplo.com" not in caplog.text
     assert "ma***@exemplo.com" in caplog.text
+
+
+# E-mail sem alternativa em texto entrega pior e é inacessível a leitor de tela.
+def test_manda_texto_puro_junto_do_html(monkeypatch: pytest.MonkeyPatch) -> None:
+    capturado: dict[str, object] = {}
+
+    def fake_post(url: str, **kwargs: object) -> httpx.Response:
+        capturado.update(kwargs)
+        return httpx.Response(201, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(brevo.httpx, "post", fake_post)
+
+    brevo.send_email("mariana@exemplo.com", "Assunto", "<p>corpo</p>", "corpo")
+
+    assert capturado["json"]["htmlContent"] == "<p>corpo</p>"
+    assert capturado["json"]["textContent"] == "corpo"

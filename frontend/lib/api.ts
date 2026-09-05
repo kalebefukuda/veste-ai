@@ -62,3 +62,13 @@ export function register(
 ): Promise<RegisterResult> {
   return post<RegisterResult>("/api/auth/register", { name, email, password });
 }
+
+// A resposta é 202 genérica de propósito: dizer se a conta existe seria enumeração
+// de usuários. Quem chama não recebe nada porque não há nada que possa contar.
+export async function forgotPassword(email: string): Promise<void> {
+  await post<null>("/api/auth/forgot-password", { email });
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  await post<null>("/api/auth/reset-password", { token, password });
+}

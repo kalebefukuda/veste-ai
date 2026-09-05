@@ -5,6 +5,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
+from app.services.password_reset_service import send_reset_email
+
 CREDENTIALS = {"name": "Mariana", "email": "mariana@exemplo.com", "password": "senha-antiga-1"}
 NOVA_SENHA = "senha-nova-bem-longa"
 
@@ -180,3 +183,52 @@ def test_token_e_consumido_de_forma_atomica(client: TestClient, db: Session, tok
 
     assert primeira is not None
     assert segunda is None, "o mesmo token foi consumido duas vezes"
+
+
+# O conteúdo do e-mail nunca foi coberto: os testes acima mockam `send_reset_email`.
+def _captura_envio(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    enviado: dict[str, str] = {}
+
+    def fake_send(to: str, subject: str, html: str, text: str) -> None:
+        enviado.update(to=to, subject=subject, html=html, text=text)
+
+    monkeypatch.setattr("app.services.password_reset_service.send_email", fake_send)
+    return enviado
+
+
+def test_o_link_do_reset_usa_a_url_configurada_e_carrega_o_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("FRONTEND_RESET_URL", "https://vesteai.site/redefinir-senha")
+    get_settings.cache_clear()
+    enviado = _captura_envio(monkeypatch)
+
+    send_reset_email("mariana@exemplo.com", "token-abc")
+
+    esperado = "https://vesteai.site/redefinir-senha?token=token-abc"
+    assert esperado in enviado["html"]
+    get_settings.cache_clear()
+
+
+# Cliente que não renderiza HTML precisa conseguir redefinir a senha do mesmo jeito.
+def test_a_versao_em_texto_puro_carrega_o_mesmo_link(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    enviado = _captura_envio(monkeypatch)
+
+    send_reset_email("mariana@exemplo.com", "token-abc")
+
+    assert "?token=token-abc" in enviado["text"]
+    assert "<" not in enviado["text"]
+
+
+def test_o_email_de_reset_avisa_prazo_e_uso_unico_nas_duas_versoes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    enviado = _captura_envio(monkeypatch)
+
+    send_reset_email("mariana@exemplo.com", "token-abc")
+
+    for versao in (enviado["html"], enviado["text"]):
+        assert "1 hora" in versao
+        assert "uma vez" in versao

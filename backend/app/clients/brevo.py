@@ -11,7 +11,7 @@ ENDPOINT = "https://api.brevo.com/v3/smtp/email"
 TIMEOUT = 10.0
 
 
-def send_email(to: str, subject: str, html: str) -> None:
+def send_email(to: str, subject: str, html: str, text: str) -> None:
     settings = get_settings()
 
     if not settings.brevo_api_key:
@@ -23,6 +23,7 @@ def send_email(to: str, subject: str, html: str) -> None:
         "to": [{"email": to}],
         "subject": subject,
         "htmlContent": html,
+        "textContent": text,
     }
 
     try:

@@ -18,6 +18,27 @@ resource "aws_ecs_task_definition" "api" {
   execution_role_arn       = aws_iam_role.task_execution.arn
   task_role_arn            = aws_iam_role.task.arn
 
+  # Padrão de desenvolvimento em produção falha calado: o e-mail sai, entrega, e o link
+  # não vai a lugar nenhum. E o token de reset viaja na query string, então sem TLS ele
+  # vai em claro. Melhor o apply recusar nos dois casos.
+  lifecycle {
+    precondition {
+      condition = !var.enable_runtime || (
+        startswith(var.frontend_origin, "https://") &&
+        !can(regex("localhost", var.frontend_origin))
+      )
+      error_message = "frontend_origin precisa ser uma origem https:// real — não localhost, não http://."
+    }
+
+    precondition {
+      condition = !var.enable_runtime || (
+        startswith(var.frontend_reset_url, "https://") &&
+        !can(regex("localhost", var.frontend_reset_url))
+      )
+      error_message = "frontend_reset_url precisa ser https:// real: o token de reset viaja na query string."
+    }
+  }
+
   container_definitions = jsonencode([{
     name      = "api"
     image     = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
@@ -29,14 +50,17 @@ resource "aws_ecs_task_definition" "api" {
     }]
 
     # Credencial vai em `secrets`; `environment` é texto plano visível no console.
-    environment = [
+    environment = concat([
       { name = "FRONTEND_ORIGIN", value = var.frontend_origin },
       { name = "AWS_S3_BUCKET", value = aws_s3_bucket.images.bucket },
-    ]
+      ], var.frontend_reset_url == "" ? [] : [
+      { name = "FRONTEND_RESET_URL", value = var.frontend_reset_url },
+    ])
 
     secrets = [
       { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.db_url.arn },
       { name = "JWT_SECRET", valueFrom = aws_secretsmanager_secret.jwt.arn },
+      { name = "BREVO_API_KEY", valueFrom = aws_secretsmanager_secret.brevo_api_key.arn },
     ]
 
     logConfiguration = {

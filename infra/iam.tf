@@ -108,9 +108,13 @@ resource "aws_iam_role_policy_attachment" "task_execution" {
 
 data "aws_iam_policy_document" "task_execution_secrets" {
   statement {
-    effect    = "Allow"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.db_url.arn, aws_secretsmanager_secret.jwt.arn]
+    effect  = "Allow"
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = [
+      aws_secretsmanager_secret.db_url.arn,
+      aws_secretsmanager_secret.jwt.arn,
+      aws_secretsmanager_secret.brevo_api_key.arn,
+    ]
   }
 }
 

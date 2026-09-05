@@ -24,6 +24,17 @@ describe("tela de login", () => {
     expect(screen.getByRole("button", { name: "Entrar" })).toBeInTheDocument();
   });
 
+  // Tela que ninguém alcança é tela que não existe: o login é a única porta de
+  // entrada do fluxo de recuperação.
+  it("oferece o caminho para quem esqueceu a senha", () => {
+    render(<LoginPage />);
+
+    expect(screen.getByRole("link", { name: /esqueci minha senha/i })).toHaveAttribute(
+      "href",
+      "/forgot-password",
+    );
+  });
+
   it("envia as credenciais digitadas e navega ao entrar", async () => {
     const login = vi.spyOn(api, "login").mockResolvedValue({
       id: "1",
