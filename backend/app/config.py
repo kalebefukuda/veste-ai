@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     email_sender: str = "nao-responda@vesteai.site"
     email_sender_name: str = "VesteAí"
     frontend_reset_url: str = "http://localhost:3000/reset-password"
+    rate_limit_storage: str = "memory://"
 
 
 @lru_cache
