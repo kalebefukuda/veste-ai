@@ -44,10 +44,6 @@ function messageFor(status: number, data: ApiError | null): string {
     return "E-mail ou senha incorretos.";
   }
 
-  if (data?.code === "INVALID_RESET_TOKEN") {
-    return "Este link é inválido ou já expirou. Peça um novo.";
-  }
-
   if (status === 422) {
     return "Confira os dados preenchidos e tente de novo.";
   }
