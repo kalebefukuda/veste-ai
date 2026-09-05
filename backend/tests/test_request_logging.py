@@ -22,15 +22,33 @@ def test_cada_requisicao_recebe_um_id_diferente(client: TestClient) -> None:
     assert len(ids) == 5
 
 
-def test_o_log_sai_em_json_com_o_request_id(
+def test_o_log_carrega_o_request_id_da_requisicao(
     client: TestClient, caplog: pytest.LogCaptureFixture
 ) -> None:
     with caplog.at_level(logging.INFO):
         client.get("/health", headers={"X-Request-Id": "id-rastreavel"})
 
-    registros = [json.loads(linha) for linha in caplog.messages if linha.startswith("{")]
+    acessos = [r for r in caplog.records if r.name == "vesteai.access"]
 
-    assert any(r.get("request_id") == "id-rastreavel" for r in registros)
+    assert acessos, "nenhum log de acesso: o request_id não serviria para achar nada"
+    assert acessos[0].request_id == "id-rastreavel"
+    assert "/health" in acessos[0].getMessage()
+
+
+def test_o_formatter_serializa_em_json(caplog: pytest.LogCaptureFixture) -> None:
+    from app.core.logging import JsonFormatter
+
+    registro = logging.LogRecord("teste", logging.INFO, "", 0, "evento_qualquer", None, None)
+    registro.request_id = "id-x"
+
+    saida = json.loads(JsonFormatter().format(registro))
+
+    assert saida == {
+        "level": "INFO",
+        "event": "evento_qualquer",
+        "logger": "teste",
+        "request_id": "id-x",
+    }
 
 
 # LGPD: o Padrão de logs proíbe IP bruto. O slowapi loga o IP ao bloquear — se ele
