@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 
 CREDENCIAIS = {"email": "mariana@exemplo.com", "password": "senha-qualquer-1"}
@@ -62,8 +61,22 @@ def test_health_nao_e_limitado(client: TestClient) -> None:
     assert codigos == {200}
 
 
-@pytest.fixture(autouse=True)
-def _zera_contadores() -> None:
-    from app.core.rate_limit import limiter
 
-    limiter.reset()
+# O ALB **acrescenta** o IP real ao X-Forwarded-For que já veio, em vez de substituir.
+# Logo, o primeiro item da lista é escrito pelo cliente e o último é o que o ALB viu.
+# Ler o primeiro deixaria qualquer um trocar de identidade a cada requisição e furar o
+# limite inteiro — o freio viraria enfeite.
+def test_nao_confia_no_ip_que_o_proprio_cliente_alega(client: TestClient) -> None:
+    real = "203.0.113.50"
+
+    def tentar(alegado: str) -> int:
+        return client.post(
+            "/auth/login",
+            json=CREDENCIAIS,
+            headers={"X-Forwarded-For": f"{alegado}, {real}"},
+        ).status_code
+
+    while tentar("1.1.1.1") != 429:
+        pass
+
+    assert tentar("2.2.2.2") == 429, "trocar o IP alegado furou o rate limit"
