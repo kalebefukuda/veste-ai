@@ -44,6 +44,10 @@ function messageFor(status: number, data: ApiError | null): string {
     return "E-mail ou senha incorretos.";
   }
 
+  if (data?.code === "INVALID_RESET_TOKEN") {
+    return "Este link é inválido ou já expirou. Peça um novo.";
+  }
+
   if (status === 422) {
     return "Confira os dados preenchidos e tente de novo.";
   }
@@ -61,4 +65,14 @@ export function register(
   password: string,
 ): Promise<RegisterResult> {
   return post<RegisterResult>("/api/auth/register", { name, email, password });
+}
+
+// A resposta é 202 genérica de propósito: dizer se a conta existe seria enumeração
+// de usuários. Quem chama não recebe nada porque não há nada que possa contar.
+export async function forgotPassword(email: string): Promise<void> {
+  await post<null>("/api/auth/forgot-password", { email });
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  await post<null>("/api/auth/reset-password", { token, password });
 }

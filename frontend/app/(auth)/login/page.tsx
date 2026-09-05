@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { AFTER_AUTH, REGISTER } from "@/lib/routes";
+import { AFTER_AUTH, FORGOT_PASSWORD, REGISTER } from "@/lib/routes";
 import { login } from "@/lib/api";
 
 export default function LoginPage() {
@@ -55,6 +55,16 @@ export default function LoginPage() {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
+
+        <p className="text-right text-sm">
+          <Link
+            href={FORGOT_PASSWORD}
+            className="rounded text-navy/60 underline-offset-4 hover:text-purple hover:underline
+              focus-visible:ring-2 focus-visible:ring-purple/40"
+          >
+            Esqueci minha senha
+          </Link>
+        </p>
 
         {error && (
           <p role="alert" className="rounded-xl bg-rose/10 px-4 py-3 text-sm text-navy">
