@@ -52,3 +52,12 @@ def client(db: Session) -> Iterator[TestClient]:
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+# O contador do rate limit vive em memória do processo e sobrevive entre testes: sem
+# zerar, um teste que chama a mesma rota várias vezes derruba o seguinte.
+@pytest.fixture(autouse=True)
+def _zera_rate_limit() -> None:
+    from app.core.rate_limit import limiter
+
+    limiter.reset()

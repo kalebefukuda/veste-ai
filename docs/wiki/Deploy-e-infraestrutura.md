@@ -60,6 +60,7 @@ O que muda por ambiente é **onde o valor mora**:
 | `JWT_SECRET` | assinatura do token | Secrets Manager → campo `secrets` |
 | `BREVO_API_KEY` | envio de e-mail transacional | Secrets Manager → campo `secrets` |
 | `FRONTEND_ORIGIN` | origem única liberada no CORS | task definition → campo `environment` |
+| `ENV` | liga o HSTS; fora de produção ele não sai | task definition → `environment`, fixo em `production` |
 | `FRONTEND_RESET_URL` | link do e-mail de recuperação de senha | task definition → campo `environment` |
 | `EMAIL_SENDER` | remetente do e-mail | **não é injetada** — o padrão da aplicação já é `nao-responda@vesteai.site` |
 | `NEXT_PUBLIC_API_URL` | endereço da API para o browser | variável da Vercel |
