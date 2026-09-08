@@ -5,7 +5,7 @@ export default function CtaBanner() {
       <div className="mx-auto max-w-2xl px-6">
         <h2 className="text-3xl font-bold md:text-4xl">Pronto para transformar estilo em renda?</h2>
         <p className="mt-3 text-white/80">
-          Junte-se a milhares de curadores que já estão monetizando seus looks com o VesteAí.
+          Monte o look, linke as peças e publique. O clique de quem gostou vai direto para a loja.
           Comece grátis, sem cartão de crédito.
         </p>
         <div className="mt-8 flex justify-center">

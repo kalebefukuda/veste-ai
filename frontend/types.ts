@@ -3,12 +3,6 @@ export interface NavLink {
   href: string;
 }
 
-export interface Feature {
-  icon: string;
-  title: string;
-  description: string;
-}
-
 export interface OnboardingStep {
   number: string;
   title: string;
@@ -23,13 +17,6 @@ export interface PricingPlan {
   badge?: string;
   features: string[];
   cta: string;
-}
-
-export interface Testimonial {
-  name: string;
-  handle: string;
-  quote: string;
-  avatarUrl: string;
 }
 
 export interface FaqItem {

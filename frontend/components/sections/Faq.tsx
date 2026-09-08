@@ -8,7 +8,7 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     question: "O que é o VesteAí e para quem ele serve?",
     answer:
-      "É uma plataforma para montar e compartilhar looks completos com links de compra centralizados, feita para consumidores que descobrem moda em redes sociais e criadores que querem monetizar curadoria de moda.",
+      "É uma plataforma para montar looks completos e linkar cada peça na loja onde ela está, feita para quem descobre moda em redes sociais e para quem monta looks e quer ganhar por indicação.",
   },
   {
     question: "Como funciona a IA que gera as imagens?",
@@ -23,7 +23,7 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     question: "Como eu recebo minhas comissões?",
     answer:
-      "As comissões são pagas diretamente pelos programas de afiliado das lojas que você linkou (Shopee, Awin, etc.) — o VesteAí centraliza a curadoria, não o pagamento.",
+      "As comissões são pagas diretamente pelos programas de afiliado das lojas que você linkou (Shopee, Awin, etc.) — o VesteAí reúne os looks e os links, não o pagamento.",
   },
   {
     question: "Posso usar peças de qualquer loja?",
