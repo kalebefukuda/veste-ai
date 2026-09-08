@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -12,6 +13,17 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 HEADER = "X-Request-Id"
+
+# O valor entra no log e volta na resposta. Sem restringir, uma quebra de linha permite
+# forjar um evento inteiro no log (CWE-117), e um valor gigante incha o armazenamento.
+ACEITAVEL = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+
+
+def sanitize(recebido: str | None) -> str:
+    if recebido and ACEITAVEL.fullmatch(recebido):
+        return recebido
+
+    return uuid.uuid4().hex
 
 # ContextVar e não parâmetro: o id precisa alcançar qualquer log de qualquer camada
 # sem que services e repositories tenham de carregá-lo na assinatura.
@@ -51,8 +63,9 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        # Respeitar o id que já veio permite seguir uma requisição do frontend até aqui.
-        identificador = request.headers.get(HEADER) or uuid.uuid4().hex
+        # Respeitar o id que já veio permite seguir uma requisição do frontend até aqui —
+        # desde que ele passe pelo formato aceito; senão vale um id novo.
+        identificador = sanitize(request.headers.get(HEADER))
         token = _request_id.set(identificador)
 
         inicio = time.perf_counter()

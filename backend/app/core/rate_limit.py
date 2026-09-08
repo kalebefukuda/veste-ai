@@ -5,7 +5,6 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.config import get_settings
-from app.core.exceptions import TooManyRequests
 
 # `login` gasta CPU; `forgot-password` gasta cota de e-mail, que é finita e diária.
 LIMIT_LOGIN = "10/minute"
@@ -35,7 +34,3 @@ limiter = Limiter(
     strategy="fixed-window",
 )
 
-
-# O formato de erro do projeto é um só; o handler padrão do slowapi devolve outro.
-def handle_rate_limit(request: Request, exc: Exception) -> None:
-    raise TooManyRequests()

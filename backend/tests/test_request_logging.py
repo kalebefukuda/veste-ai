@@ -59,15 +59,19 @@ def test_o_bloqueio_por_rate_limit_nao_registra_o_ip_bruto(
     ip = "198.51.100.77"
 
     with caplog.at_level(logging.WARNING):
-        while (
-            client.post(
-                "/auth/login",
-                json={"email": "a@exemplo.com", "password": "x"},
-                headers={"X-Forwarded-For": ip},
-            ).status_code
-            != 429
-        ):
-            pass
+        for _ in range(100):
+            bloqueado = (
+                client.post(
+                    "/auth/login",
+                    json={"email": "a@exemplo.com", "password": "x"},
+                    headers={"X-Forwarded-For": ip},
+                ).status_code
+                == 429
+            )
+            if bloqueado:
+                break
+        else:
+            raise AssertionError("não bloqueou: sem 429 não há o que conferir no log")
 
     assert ip not in caplog.text
 

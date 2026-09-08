@@ -1,12 +1,27 @@
+from collections.abc import Callable
+
 from fastapi.testclient import TestClient
 
 CREDENCIAIS = {"email": "mariana@exemplo.com", "password": "senha-qualquer-1"}
+
+
+# Teto em todo laço: se o rate limit parar de funcionar, o teste falha em segundos em
+# vez de pendurar o job do CI até o timeout.
+TETO = 100
 
 
 def _login(client: TestClient, ip: str) -> int:
     return client.post(
         "/auth/login", json=CREDENCIAIS, headers={"X-Forwarded-For": ip}
     ).status_code
+
+
+def _ate_bloquear(tentar: Callable[[], int]) -> None:
+    for _ in range(TETO):
+        if tentar() == 429:
+            return
+
+    raise AssertionError(f"não bloqueou em {TETO} tentativas: o rate limit não está freando")
 
 
 def test_login_bloqueia_depois_do_limite_de_tentativas(client: TestClient) -> None:
@@ -18,8 +33,7 @@ def test_login_bloqueia_depois_do_limite_de_tentativas(client: TestClient) -> No
 # Sem isto, atrás do ALB todo mundo cai no mesmo balde: o IP visto seria o do load
 # balancer, e um único atacante derrubaria o login para todos os usuários.
 def test_o_limite_e_por_ip_e_nao_global(client: TestClient) -> None:
-    while _login(client, "203.0.113.20") != 429:
-        pass
+    _ate_bloquear(lambda: _login(client, "203.0.113.20"))
 
     assert _login(client, "203.0.113.21") != 429
 
@@ -28,11 +42,11 @@ def test_o_limite_e_por_ip_e_nao_global(client: TestClient) -> None:
 # limite mais apertado que o login, que só gasta CPU.
 def test_forgot_password_e_mais_restrito_que_o_login(client: TestClient) -> None:
     def tentativas_ate_bloquear(rota: str, corpo: dict, ip: str) -> int:
-        for tentativa in range(1, 60):
+        for tentativa in range(1, TETO):
             resposta = client.post(rota, json=corpo, headers={"X-Forwarded-For": ip})
             if resposta.status_code == 429:
                 return tentativa
-        return 60
+        return TETO
 
     forgot = tentativas_ate_bloquear(
         "/auth/forgot-password", {"email": "a@exemplo.com"}, "203.0.113.30"
@@ -43,8 +57,7 @@ def test_forgot_password_e_mais_restrito_que_o_login(client: TestClient) -> None
 
 
 def test_resposta_de_bloqueio_segue_o_formato_de_erro_do_projeto(client: TestClient) -> None:
-    while _login(client, "203.0.113.40") != 429:
-        pass
+    _ate_bloquear(lambda: _login(client, "203.0.113.40"))
 
     corpo = client.post(
         "/auth/login", json=CREDENCIAIS, headers={"X-Forwarded-For": "203.0.113.40"}
@@ -76,7 +89,6 @@ def test_nao_confia_no_ip_que_o_proprio_cliente_alega(client: TestClient) -> Non
             headers={"X-Forwarded-For": f"{alegado}, {real}"},
         ).status_code
 
-    while tentar("1.1.1.1") != 429:
-        pass
+    _ate_bloquear(lambda: tentar("1.1.1.1"))
 
     assert tentar("2.2.2.2") == 429, "trocar o IP alegado furou o rate limit"

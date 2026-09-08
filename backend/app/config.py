@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     email_sender_name: str = "VesteAí"
     frontend_reset_url: str = "http://localhost:3000/reset-password"
     rate_limit_storage: str = "memory://"
+    env: str = "development"
 
 
 @lru_cache

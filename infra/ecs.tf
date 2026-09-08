@@ -53,6 +53,9 @@ resource "aws_ecs_task_definition" "api" {
     environment = concat([
       { name = "FRONTEND_ORIGIN", value = var.frontend_origin },
       { name = "AWS_S3_BUCKET", value = aws_s3_bucket.images.bucket },
+      # Fixo, não variável: esta task definition *é* produção. Uma variável aqui seria
+      # uma chance de esquecer, e esquecer significa a API sem HSTS sem ninguém notar.
+      { name = "ENV", value = "production" },
       ], var.frontend_reset_url == "" ? [] : [
       { name = "FRONTEND_RESET_URL", value = var.frontend_reset_url },
     ])
