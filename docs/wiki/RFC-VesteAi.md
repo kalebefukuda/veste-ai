@@ -1596,6 +1596,15 @@ rebuild e sem acesso a servidor.
 > característica do desenho, não uma recomendação: não existe instância à qual se
 > conectar.
 
+**Estado de implementação em 08/09/2026.** Os passos 1 a 3 estão implementados e rodam a
+cada pull request. Os passos 4 a 6 — publicação da imagem no ECR, deployment ao ECS e
+*smoke test* — **ainda não existem**: dependem da role de OIDC, que por sua vez depende
+do primeiro provisionamento da infraestrutura. Toda a infraestrutura está descrita em
+Terraform e validada no pipeline, mas nada foi aplicado, porque `apply` cria recurso que
+gera custo sobre um crédito finito. Até que esses passos existam, não há ambiente de
+produção — e este parágrafo é o registro disso, para que o documento não afirme uma
+automação que ainda não roda.
+
 ---
 
 # 8. Referências
