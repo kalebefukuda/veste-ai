@@ -66,7 +66,7 @@ def _html(link: str) -> str:
       </td></tr>
       <tr><td style="padding:32px 8px 0;border-top:1px solid #EEECF9">
         <p style="margin:24px 0 0;font-size:12px;color:{NAVY}">
-          VesteAí — curadoria de looks com links de compra.
+          VesteAí — looks completos, com cada peça linkada na loja.
         </p>
       </td></tr>
     </table>
