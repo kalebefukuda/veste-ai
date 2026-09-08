@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Faq from "@/components/sections/Faq";
 
@@ -54,4 +54,24 @@ describe("carrossel do FAQ", () => {
     expect(screen.getByRole("button", { name: /pergunta anterior/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /próxima pergunta/i })).toBeEnabled();
   });
+
+  // O card ativo tem de continuar à vista quando a fila passa da largura do trilho;
+  // sem isso a seta avança para um card fora da tela.
+  it("reposiciona o trilho depois que a largura do card assenta", () => {
+    vi.useFakeTimers();
+    const rolar = vi.spyOn(Element.prototype, "scrollTo");
+    render(<Faq />);
+    rolar.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: /posso usar peças/i }));
+    expect(rolar).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(400);
+    expect(rolar).toHaveBeenCalledOnce();
+  });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
