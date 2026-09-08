@@ -3,24 +3,24 @@ import Link from "next/link";
 
 import { REGISTER } from "@/lib/routes";
 
-// Nomeiam a peça e mostram a mecânica, sem citar loja: a foto não confirma marca
-// nenhuma, e rótulo que a imagem desmente é o mesmo problema de dado inventado.
-// Só flutuam a partir do `sm`: num hero de viewport cheia o texto ocupa quase toda
-// a altura do celular, e não sobra espaço para posicioná-los sem colidir.
+// Nomeiam o que a foto realmente mostra e a mecânica, sem citar loja: rótulo que a
+// imagem desmente é o mesmo problema de dado inventado. A loja real aparece no editor.
+// Só flutuam a partir do `sm`: num hero de viewport cheia o texto ocupa quase toda a
+// altura do celular, e não sobra espaço para posicioná-los sem colidir.
 const PIECES = [
-  { name: "Sapato de couro", at: "sm:left-[52%] sm:top-[16%]" },
-  { name: "Calça de veludo", at: "sm:left-[70%] sm:top-[30%]" },
-  { name: "Chapéu de feltro", at: "sm:left-[58%] sm:top-[44%]" },
+  { name: "Sobretudo bordô", at: "sm:left-[52%] sm:top-[16%]" },
+  { name: "Gola alta", at: "sm:left-[70%] sm:top-[30%]" },
+  { name: "Óculos de sol", at: "sm:left-[58%] sm:top-[44%]" },
 ];
 
 export default function Hero() {
   return (
     <section className="relative isolate flex min-h-svh flex-col justify-end overflow-hidden">
       <Image
-        src="https://images.unsplash.com/photo-1632469188022-b5db09a70fbc?w=2000&h=1200&fit=crop&crop=bottom&q=85"
-        alt="Look montado: sapato de couro marrom, calça de veludo cotelê laranja e chapéu de feltro preto"
+        src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=2000&h=1400&fit=crop&q=85"
+        alt="Look montado: sobretudo bordô sobre gola alta clara, com óculos de sol"
         fill
-        className="-z-10 object-cover object-[62%_82%]"
+        className="-z-10 object-cover object-[60%_center]"
         sizes="100vw"
         priority
       />
