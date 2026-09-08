@@ -32,16 +32,12 @@ export default function Hero() {
           sm:bg-gradient-to-r sm:from-navy/93 sm:via-navy/70 sm:to-navy/25"
       />
 
-      {/* Halo da marca por cima do véu: sem ele a foto fica só escurecida, sem cor. */}
+      {/* Halo da marca só do lado do texto, onde o véu já é opaco. Do lado direito ele
+          lavaria justamente a parte em que a foto precisa aparecer. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-40 -left-40 -z-10 h-[46rem] w-[46rem]
-          rounded-full bg-purple/40 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-32 -top-40 -z-10 h-[34rem] w-[34rem]
-          rounded-full bg-purple/25 blur-3xl"
+        className="pointer-events-none absolute -bottom-48 -left-48 -z-10 h-[44rem] w-[44rem]
+          rounded-full bg-purple/35 blur-3xl"
       />
 
       <div className="px-6 pb-12 pt-32 sm:px-10 sm:pb-16 lg:px-16 lg:pb-24">
