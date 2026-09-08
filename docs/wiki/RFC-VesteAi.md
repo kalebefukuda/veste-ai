@@ -1581,10 +1581,11 @@ gerenciado, sem instância a administrar.
    que substitui as tarefas de forma gradual
 6. Executa *smoke test* na URL pública
 
-**Pipeline do frontend:** o deploy automático da Vercel por integração Git está
-desativado de forma versionada em `frontend/vercel.json`; a promoção para produção também
-parte do pipeline. Cada pull request recebe um **Preview Deployment**, que funciona como
-ambiente de validação do frontend.
+**Pipeline do frontend:** o deploy automático da Vercel para produção está desativado de
+forma versionada em `frontend/vercel.json` — a decisão fica no repositório e aparece no
+diff, em vez de num interruptor de painel. Cada pull request recebe um **Preview
+Deployment**, que já funciona e serve como ambiente de validação do frontend. A promoção
+para produção passará a partir do pipeline quando o job de deploy existir.
 
 **Rollback:** como cada imagem é marcada com o SHA do commit e cada deployment gera uma
 revisão da task definition, voltar atrás é solicitar deployment da revisão anterior — sem
