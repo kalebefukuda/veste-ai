@@ -19,7 +19,48 @@ Católica SC — Engenharia de Software — 8º Semestre
   08/04/2026
 
 - **Versão:**  
-  1.0
+  1.1 — 08/09/2026 (v1.0 em 08/04/2026)
+
+---
+
+# Changelog
+
+## v1.1 — 08/09/2026
+
+Sincronização com o que foi construído. **Nenhuma alteração de escopo, de objetivo ou de
+requisito**: apenas afirmações factuais que deixaram de ser verdade, mais as decisões que
+a v1.0 não podia conhecer. A Seção 10 não foi tocada.
+
+**O que deixou de ser verdade e foi corrigido**
+
+| Onde | A v1.0 dizia | Agora |
+|---|---|---|
+| §5.2 Modelo de Dados | cinco entidades | **seis** — entrou `password_resets`, com esquema e relacionamento descritos |
+| §5.4 Infraestrutura | frontend e backend numa instância EC2 `t2.micro`; RDS `db.t3.micro`; *free tier* de 12 meses | frontend na **Vercel**; backend em **ECS Fargate** atrás de ALB; RDS **`db.t4g.micro`** em sub-rede privada; operação custeada por crédito finito, pois o *free tier* de 12 meses foi encerrado para contas novas em julho de 2025 |
+| §5.4 Observabilidade | Prometheus e Grafana como containers na instância EC2 | serviços auxiliares no ECS |
+| §5.4 Resumo da Stack | uma linha de infraestrutura | cinco linhas, com hospedagem, banco, provisionamento e e-mail, cada uma apontando para o ADR correspondente |
+| §7.3 Critérios | *"acessível na AWS EC2"* | HTTPS em domínio próprio, servido por ECS Fargate atrás de ALB |
+| **§7.4 Instruções de Deploy** | *"conecta via **SSH** na instância EC2 e executa `docker compose up -d`"* | reescrita: publicação no ECR e deployment ao ECS por **role assumida via OIDC**. **Não há acesso interativo a servidor em nenhum ponto** — não porque foi proibido, mas porque não existe instância à qual se conectar. Inclui rollback por revisão de task definition |
+| §7.2 Marco M14 | *"Deploy na AWS EC2"* | Deploy em produção na AWS (ECS Fargate) |
+
+> A v1.0 continha, no mesmo trecho, o passo de deploy por SSH **e** uma nota afirmando
+> que SSH nunca era utilizado. A contradição foi eliminada com a reescrita da seção.
+
+**O que a v1.0 não podia conhecer, agora registrado**
+
+| Assunto | Onde a decisão vive |
+|---|---|
+| Hospedagem gerenciada em vez de instância administrada à mão; Railway descartada | ADR-0002 |
+| JWT sem sessão em banco, e transporte em cookie `httpOnly` | ADR-0004, ADR-0011b |
+| Bibliotecas de autenticação sem camadas intermediárias | ADR-0015 |
+| Provedor de e-mail transacional (Brevo) | ADR-0005 |
+| Task em sub-rede pública sem NAT Gateway | ADR-0017 |
+| Armazenamento do contador de limite de requisições | ADR-0018 |
+| Limite de requisições nas rotas de autenticação e cabeçalhos de segurança | §6.2 |
+
+**Deliberadamente não alterado:** objetivo do produto, justificativa das escolhas de
+negócio, escopo, requisitos funcionais e não funcionais, a meta de 200 usuários
+simultâneos — que segue sendo alvo e não resultado medido — e a **Seção 10**.
 
 ---
 
@@ -968,7 +1009,7 @@ comercial do link — apenas a acessibilidade e a segurança técnica (RF15, RN0
 
 ## 5.2 Modelo de Dados
 
-O modelo relacional do VesteAí é composto por cinco entidades principais. O
+O modelo relacional do VesteAí é composto por **seis** entidades principais. O
 diagrama a seguir representa as relações entre elas, seguido pelo esquema
 relacional com os tipos de dados adotados no PostgreSQL.
 
@@ -987,6 +1028,9 @@ relacional com os tipos de dados adotados no PostgreSQL.
   exatamente uma peça.
 - `users` **N:M** `looks` via `saved_looks` — um usuário pode salvar múltiplos
   looks e um mesmo look pode ser salvo por múltiplos usuários.
+- `users` **1:N** `password_resets` — cada pedido de recuperação de senha gera um
+  registro próprio, de uso único e com prazo de validade; um usuário pode ter vários
+  ao longo do tempo, mas apenas o mais recente permanece válido.
 
 ---
 
@@ -1040,7 +1084,21 @@ saved_looks (
   created_at   TIMESTAMP    NOT NULL DEFAULT now(),
   UNIQUE (user_id, look_id)
 )
+
+password_resets (
+  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash   TEXT         NOT NULL UNIQUE,
+  expires_at   TIMESTAMP    NOT NULL,
+  used_at      TIMESTAMP,
+  created_at   TIMESTAMP    NOT NULL DEFAULT now()
+)
 ```
+
+Na entidade `password_resets` persiste-se apenas o **hash** do token, nunca o token em
+si: um vazamento do banco não permitiria redefinir senha alguma. O campo `used_at`
+garante o uso único, e o consumo é feito em operação atômica para que duas requisições
+simultâneas não possam aproveitar o mesmo token.
 
 O campo `look_id` é mantido diretamente na entidade `clicks` — ainda que derivável via `pieces` — para permitir consultas de métricas agregadas por look sem a necessidade de junções adicionais, o que favorece o desempenho das consultas do painel do creator.
 
@@ -1061,7 +1119,10 @@ nenhuma senha em texto claro é armazenada no banco. No login, as credenciais
 são verificadas e um token JWT é gerado com prazo de expiração configurável.
 Esse token é enviado pelo frontend em todas as requisições que exigem
 autenticação e validado pelo middleware da API antes de acionar qualquer
-serviço protegido. O módulo cobre os requisitos RF01, RF02, RF03 e os
+serviço protegido. A recuperação de senha (RF03) gera um token de uso único, com prazo
+de validade e persistido apenas como hash, entregue por e-mail transacional através da
+**Brevo** — provedor escolhido em **ADR-0005** por não exigir liberação de sandbox nem
+consumir o crédito da AWS. O módulo cobre os requisitos RF01, RF02, RF03 e os
 requisitos não funcionais RNF04, RNF05 e RNF07.
 
 ---
@@ -1266,13 +1327,19 @@ com issues de severidade crítica.
 
 ### Prometheus + Grafana (Observabilidade)
 
-O monitoramento de infraestrutura é realizado com Prometheus para coleta de métricas e Grafana para visualização, ambos executados como containers Docker na própria instância EC2. São monitorados: latência das rotas da API, taxa de erros HTTP, uso de CPU e memória dos serviços e disponibilidade da aplicação. Alertas são configurados para disponibilidade abaixo de 99% (RNF08) e latência acima dos limites definidos em RNF01–RNF03.
+O monitoramento de infraestrutura é realizado com Prometheus para coleta de métricas e Grafana para visualização, executados como serviços auxiliares ao lado da API no ECS. São monitorados: latência das rotas da API, taxa de erros HTTP, uso de CPU e memória dos serviços e disponibilidade da aplicação. Alertas são configurados para disponibilidade abaixo de 99% (RNF08) e latência acima dos limites definidos em RNF01–RNF03.
 
 ---
 
 ### Amazon Web Services (Infraestrutura e Deploy)
 
-A aplicação é hospedada na Amazon Web Services. O backend FastAPI e o frontend Next.js são implantados em uma instância EC2 (t2.micro) via containers Docker, e o banco de dados PostgreSQL é provisionado no Amazon RDS (db.t3.micro). A escolha pela AWS é motivada pelo free tier de 12 meses — que cobre EC2 e RDS dentro do volume esperado de um MVP — e pelo controle total sobre a infraestrutura que a combinação EC2 + Docker proporciona, demonstrando domínio técnico sobre o ambiente de execução.
+O frontend Next.js é hospedado na **Vercel**, e o backend FastAPI na **Amazon Web Services**. Essa separação foi autorizada em orientação: a Vercel entrega SSR e Preview Deployments por pull request sem infraestrutura a manter, e a AWS concentra o que exige controle de arquitetura.
+
+O backend roda em **ECS Fargate** (`sa-east-1`), atrás de um **Application Load Balancer** com certificado do **ACM**. O banco PostgreSQL é provisionado no **Amazon RDS** (`db.t4g.micro`), em sub-rede privada e sem endereço público, acessível apenas pelo security group da aplicação. As imagens de look ficam em um bucket **S3** privado, servidas por URL pré-assinada. Segredos vivem no **AWS Secrets Manager** e são resolvidos em tempo de execução pela task definition — nunca em variável de ambiente em texto plano.
+
+Toda essa infraestrutura é descrita em **Terraform**, versionada no repositório em `infra/`: mudança de infraestrutura é mudança de código e entra por pull request, com `terraform validate` no pipeline. O `apply` é sempre manual e com aval, porque cria recurso que gera custo.
+
+A escolha por serviços gerenciados em vez de uma instância administrada à mão está registrada em **ADR-0002**, e a decisão de manter a task em sub-rede pública sem NAT Gateway em **ADR-0017**. O *free tier* de 12 meses da AWS foi encerrado para contas novas em julho de 2025 e não se aplica a este projeto: a operação é custeada por **crédito promocional finito**, o que torna o dimensionamento uma restrição de projeto e não um detalhe operacional.
 
 ---
 
@@ -1282,7 +1349,7 @@ A aplicação é hospedada na Amazon Web Services. O backend FastAPI e o fronten
 |--------|-----------|------------------------|-----------------|
 | Frontend | Next.js (React) | React + Vite (SPA) | SSR para feed público e indexabilidade |
 | Backend | FastAPI (Python) | Flask (Python) | Tipagem nativa, async, validação integrada |
-| Banco de dados | PostgreSQL (Cloud SQL) | MongoDB | Esquema relacional estável, integridade referencial |
+| Banco de dados | PostgreSQL (Amazon RDS) | MongoDB | Esquema relacional estável, integridade referencial |
 | IA | Google Gemini API | DALL-E (OpenAI) | Ecossistema Python, custo operacional do MVP |
 | Pagamentos | Stripe | PagSeguro / Mercado Pago | Suporte maduro a assinaturas recorrentes |
 | Autenticação | JWT + bcrypt | Sessões em banco | Stateless, sem necessidade de serviço de sessão |
@@ -1291,7 +1358,11 @@ A aplicação é hospedada na Amazon Web Services. O backend FastAPI e o fronten
 | Qualidade | SonarCloud | SonarQube (self-hosted) | Análise automática integrada ao PR sem setup de servidor |
 | Product Analytics | ClickTracker customizado | Rastreamento de eventos sem construir infraestrutura própria |
 | Monitoramento | Prometheus + Grafana | Google Cloud Monitoring | Open-source, sem custo adicional, demonstra domínio técnico |
-| Infraestrutura | AWS EC2 + RDS | GCP App Engine + Cloud SQL | Free tier de 12 meses, controle total sobre infraestrutura |
+| Hospedagem do frontend | Vercel | Servir pelo backend | SSR e Preview por PR sem infraestrutura a manter |
+| Hospedagem do backend | AWS ECS Fargate + ALB | EC2 administrada à mão · Railway | Sem servidor para administrar, e controle de arquitetura preservado (ADR-0002) |
+| Banco em produção | AWS RDS `db.t4g.micro` | Postgres em container na própria instância | Backup e recuperação gerenciados, em sub-rede privada |
+| Provisionamento | Terraform versionado | Console da AWS à mão | Infraestrutura revisável por PR e reproduzível |
+| E-mail transacional | Brevo | AWS SES · servidor próprio | Sem sandbox a liberar e sem consumir o crédito AWS (ADR-0005) |
 
 ---
 
@@ -1333,9 +1404,36 @@ medidas adotadas para mitigá-las:
 | Cryptographic Failures | Senhas armazenadas com bcrypt; comunicação exclusivamente via HTTPS|
 | Injection | Queries executadas via SQLAlchemy com parâmetros — sem concatenação de SQL; validação de entrada via Pydantic no FastAPI |
 | Insecure Design | Separação entre frontend e backend; credenciais de API externas (Gemini, Stripe) acessadas exclusivamente pelo backend |
-| Security Misconfiguration | Variáveis sensíveis (chaves de API, secret JWT, credenciais do banco) gerenciadas via variáveis de ambiente, nunca em código |
-| Vulnerable Components | Dependências gerenciadas via `requirements.txt` e `package.json` com versões fixas |
-| Server-Side Request Forgery (SSRF) | LinkValidator valida e restringe domínios de destino antes de aceitar links de compra |
+| Security Misconfiguration | Segredos no AWS Secrets Manager, resolvidos em tempo de execução e nunca em código nem em variável de ambiente em texto plano; RDS em sub-rede privada sem endereço público; bucket S3 privado; CORS restrito a uma única origem; cabeçalhos de resposta descritos abaixo |
+| Vulnerable Components | Dependências com versões fixas em `requirements.txt` e `package-lock.json`, com atualizações propostas automaticamente e análise estática bloqueante no pipeline |
+| Server-Side Request Forgery (SSRF) | LinkValidator recusa esquema não-HTTP, `localhost`, endereços de metadados de nuvem e faixas de IP privadas antes de qualquer requisição a link de compra |
+| Identification and Authentication Failures | Limite de requisições nas rotas de autenticação (ver abaixo); token de recuperação de senha de uso único, com prazo e persistido apenas como hash; mensagem de erro idêntica para e-mail inexistente e senha incorreta, evitando enumeração de usuários; tokens anteriores invalidados quando a senha muda |
+| Security Logging and Monitoring Failures | Log estruturado em JSON com identificador de requisição propagável, sem senha, token, endereço IP ou e-mail completo |
+
+### Limite de requisições nas rotas de autenticação
+
+As rotas de autenticação são as únicas expostas sem credencial, e por isso recebem um
+limite de requisições por endereço de origem. Os limites são calibrados pelo recurso que
+cada rota consome: `login` e `reset-password` aceitam 10 requisições por minuto, pois
+consomem processamento; `register` aceita 10 por hora; e `forgot-password` aceita apenas
+**3 por hora**, por ser a única que consome uma cota diária e finita de envio de e-mail —
+sem esse limite, um laço automatizado esgotaria a cota do dia e deixaria usuários
+legítimos sem recuperação de conta.
+
+O contador é mantido em memória do processo, decisão registrada em **ADR-0018** junto com
+a condição que a invalidaria. A identificação da origem considera que o balanceador
+acrescenta o endereço observado ao cabeçalho de encaminhamento, e não o substitui —
+por isso o valor lido é o último da lista, o único que o balanceador escreveu. Ler o
+primeiro permitiria ao cliente escolher a própria identidade e anular o limite.
+
+### Cabeçalhos de segurança
+
+Toda resposta da API carrega `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: strict-origin-when-cross-origin` e uma política de conteúdo
+`default-src 'none'` — a mais restritiva possível, adequada a uma API que devolve apenas
+JSON e da qual nada deve poder ser carregado ou embutido. O `Strict-Transport-Security`
+é enviado somente em produção, determinado pelo ambiente da aplicação e não por cabeçalho
+recebido na requisição, que seria falsificável.
 
 ---
 
@@ -1435,7 +1533,7 @@ segundo semestre de 2026, com entrega e apresentação no Demo Day.
 | M11 | Frontend: editor de looks, painel do creator e autenticação | Outubro 2026 |
 | M12 | Integração Stripe (assinatura Pro) e testes de integração | Outubro 2026 |
 | M13 | Testes unitários (75% backend, 25% frontend), Prometheus + Grafana | Novembro 2026 |
-| M14 | Deploy na AWS EC2, validação com usuários reais e ajustes finais | Novembro 2026 |
+| M14 | Deploy em produção na AWS (ECS Fargate), validação com usuários reais e ajustes finais | Novembro 2026 |
 | M15 | Demo Day — apresentação do produto funcional | Dezembro 2026 |
 
 ---
@@ -1452,38 +1550,61 @@ forem atendidos simultaneamente:
 - Pipeline CI/CD ativo com execução automática de testes a cada push
 - SonarCloud sem issues críticos de segurança ou qualidade
 - Monitoramento configurado (Prometheus + Grafana) em produção
-- Aplicação acessível publicamente na AWS EC2 via URL estável
+- Aplicação acessível publicamente por HTTPS em domínio próprio, servida por ECS Fargate atrás de ALB
 - Pelo menos 5 looks publicados por criadores reais antes do Demo Day
 - Pelo menos 1 clique em link de compra registrado por look publicado
 
 ## 7.4 Instruções de Deploy
 
-O deploy do VesteAí é realizado automaticamente pelo pipeline CI/CD a
-cada merge na branch `main`. O processo segue os passos abaixo:
+O deploy é realizado exclusivamente pelo pipeline de CI/CD. **Não há acesso
+interativo a servidor em nenhum ponto do processo** — nem por SSH, nem por FTP, nem por
+console: o pipeline não possui credencial de sessão, e a aplicação roda em contêiner
+gerenciado, sem instância a administrar.
 
-**Pré-requisitos:**
-- Conta na AWS com instância EC2 (t2.micro) e RDS PostgreSQL (db.t3.micro) configurados
-- Docker e Docker Compose instalados na instância EC2
-- Variáveis de ambiente configuradas via AWS Secrets Manager ou `.env` na instância:
-  `DATABASE_URL`, `JWT_SECRET`, `GEMINI_API_KEY`, `STRIPE_SECRET_KEY`,
-  `STRIPE_WEBHOOK_SECRET`
+**Pré-requisitos, todos provisionados por Terraform (`infra/`):**
+- Repositório no **Amazon ECR** para a imagem da API
+- Cluster **ECS** e task definition apontando para essa imagem
+- **ALB** com certificado do **ACM** e redirecionamento de HTTP para HTTPS
+- **RDS PostgreSQL** (`db.t4g.micro`) em sub-rede privada
+- Segredos no **AWS Secrets Manager** (`DATABASE_URL`, `JWT_SECRET`, `BREVO_API_KEY`),
+  referenciados no campo `secrets` da task definition e resolvidos em tempo de execução
+- **Role de IAM assumida por OIDC**, que autoriza o GitHub Actions a publicar no ECR e a
+  solicitar deployment ao ECS. Nenhuma chave estática da AWS existe no repositório: a
+  credencial é temporária e expira em minutos
 
-**Pipeline automatizado (GitHub Actions):**
-1. Executa testes unitários (backend e frontend)
-2. Executa análise estática via SonarCloud
-3. Realiza build das imagens Docker
-4. Envia as imagens para o Amazon ECR
-5. Conecta via SSH na instância EC2 e executa `docker compose up -d`
-6. Executa smoke test na URL pública
+**Pipeline do backend (GitHub Actions, a cada merge na branch de produção):**
+1. Executa lint e a suíte de testes contra um PostgreSQL real, com limiar de cobertura
+2. Executa análise estática no SonarCloud, com Quality Gate bloqueante
+3. Valida a infraestrutura (`terraform fmt` e `terraform validate`)
+4. Constrói a imagem Docker da API e a publica no ECR, marcada com o SHA do commit
+5. Registra uma nova revisão da task definition e **solicita um novo deployment ao ECS**,
+   que substitui as tarefas de forma gradual
+6. Executa *smoke test* na URL pública
 
-**Deploy manual (emergencial):**
-```bash
-# Na instância EC2
-docker compose pull
-docker compose up -d
-```
+**Pipeline do frontend:** o deploy automático da Vercel para produção está desativado de
+forma versionada em `frontend/vercel.json` — a decisão fica no repositório e aparece no
+diff, em vez de num interruptor de painel. Cada pull request recebe um **Preview
+Deployment**, que já funciona e serve como ambiente de validação do frontend. A promoção
+para produção passará a partir do pipeline quando o job de deploy existir.
 
-> O deploy manual via SSH ou FTP não é utilizado em nenhuma circunstância.
+**Rollback:** como cada imagem é marcada com o SHA do commit e cada deployment gera uma
+revisão da task definition, voltar atrás é solicitar deployment da revisão anterior — sem
+rebuild e sem acesso a servidor.
+
+**Migrações de banco** são executadas como passo do pipeline, nunca à mão.
+
+> Nenhuma etapa deste processo envolve conectar-se a uma máquina. Essa é uma
+> característica do desenho, não uma recomendação: não existe instância à qual se
+> conectar.
+
+**Estado de implementação em 08/09/2026.** Os passos 1 a 3 estão implementados e rodam a
+cada pull request. Os passos 4 a 6 — publicação da imagem no ECR, deployment ao ECS e
+*smoke test* — **ainda não existem**: dependem da role de OIDC, que por sua vez depende
+do primeiro provisionamento da infraestrutura. Toda a infraestrutura está descrita em
+Terraform e validada no pipeline, mas nada foi aplicado, porque `apply` cria recurso que
+gera custo sobre um crédito finito. Até que esses passos existam, não há ambiente de
+produção — e este parágrafo é o registro disso, para que o documento não afirme uma
+automação que ainda não roda.
 
 ---
 
