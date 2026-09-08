@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import type { FaqItem } from "@/types";
 
@@ -37,75 +39,142 @@ const FAQ_ITEMS: FaqItem[] = [
   },
 ];
 
+const DURACAO_MS = 320;
+
+const suave = () => !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 export default function Faq() {
   const headerRef = useScrollReveal<HTMLDivElement>();
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const trilhoRef = useRef<HTMLUListElement>(null);
+  const cardsRef = useRef<Array<HTMLLIElement | null>>([]);
+  const [ativo, setAtivo] = useState(0);
 
-  const toggleItem = (index: number) => {
-    setOpenIndex((current) => (current === index ? null : index));
-  };
+  useEffect(() => {
+    // Medir antes do fim da transição daria a posição do card ainda encolhido.
+    const id = window.setTimeout(() => {
+      const trilho = trilhoRef.current;
+      const card = cardsRef.current[ativo];
+      if (!trilho || !card) return;
+
+      const inicio = card.offsetLeft;
+      const fim = inicio + card.offsetWidth;
+      const janela = trilho.clientWidth;
+
+      let alvo = trilho.scrollLeft;
+      if (fim > trilho.scrollLeft + janela) alvo = fim - janela + 24;
+      else if (inicio < trilho.scrollLeft + 24) alvo = inicio - 24;
+
+      // `behavior: "smooth"` ignora a preferência do sistema em vários navegadores.
+      trilho.scrollTo({ left: Math.max(alvo, 0), behavior: suave() ? "smooth" : "instant" });
+    }, DURACAO_MS + 20);
+
+    return () => window.clearTimeout(id);
+  }, [ativo]);
 
   return (
-    <section id="faq" className="bg-navy/[0.02] py-20">
-      <div className="mx-auto max-w-3xl px-6">
-        <h2 ref={headerRef} className="reveal text-center text-3xl font-bold md:text-4xl">
-          Dúvidas? A gente responde.
-        </h2>
-        <div className="mt-10 flex flex-col gap-3">
-          {FAQ_ITEMS.map((item, index) => (
-            <FaqAccordionItem
-              key={item.question}
-              item={item}
-              isOpen={openIndex === index}
-              onToggle={() => toggleItem(index)}
-            />
-          ))}
+    <section id="faq" className="overflow-hidden bg-navy/[0.02] py-24 lg:py-32">
+      <div ref={headerRef} className="reveal mx-auto max-w-6xl px-6">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+          <h2 className="max-w-[14ch] text-3xl font-bold leading-[1.1] tracking-[-0.03em] text-navy sm:text-5xl">
+            Dúvidas? <span className="text-purple">A gente responde.</span>
+          </h2>
+          <p className="max-w-[42ch] text-sm leading-relaxed text-navy/65">
+            O que costumam perguntar antes de criar a conta — como a comissão chega até você,
+            o que a IA faz e onde a compra realmente acontece.
+          </p>
         </div>
+      </div>
+
+      <div className="relative mx-auto mt-14 max-w-6xl">
+        <Seta
+          direcao="anterior"
+          onClick={() => setAtivo((i) => i - 1)}
+          disabled={ativo === 0}
+        />
+
+        {/* Rola de verdade em vez de só transbordar: no toque o dedo arrasta, e o
+            `scrollTo` das setas usa o mesmo eixo. */}
+        <ul
+          ref={trilhoRef}
+          className="relative flex w-full flex-col gap-4 overflow-x-auto px-6
+            [scrollbar-width:none] lg:h-[27rem] lg:flex-row
+            [&::-webkit-scrollbar]:hidden"
+        >
+          {FAQ_ITEMS.map((item, index) => (
+            <li
+              key={item.question}
+              ref={(el) => {
+                cardsRef.current[index] = el;
+              }}
+              className={`relative flex shrink-0 flex-col overflow-hidden rounded-3xl p-7
+                transition-[width,background-color] duration-300 ease-out lg:h-full lg:p-8 ${
+                  index === ativo
+                    ? "bg-navy lg:w-[27rem] lg:justify-start"
+                    : "bg-navy/[0.05] lg:justify-end lg:w-[13.5rem]"
+                }`}
+            >
+              {/* O conteúdo já nasce na largura final: só o card cresce por cima dele,
+                  senão o texto rewrapa a cada quadro da animação. */}
+              <div className={`shrink-0 ${index === ativo ? "lg:w-[23rem]" : "lg:w-[9.5rem]"}`}>
+                <button
+                  type="button"
+                  onClick={() => setAtivo(index)}
+                  aria-expanded={index === ativo}
+                  className={`text-left font-bold leading-tight tracking-[-0.02em]
+                    after:absolute after:inset-0 after:rounded-3xl
+                    focus-visible:outline-none focus-visible:after:ring-2
+                    focus-visible:after:ring-inset focus-visible:after:ring-purple ${
+                      index === ativo ? "text-2xl text-white lg:text-3xl" : "text-xl text-navy/75"
+                    }`}
+                >
+                  {item.question}
+                </button>
+
+                {index === ativo && (
+                  <p className="mt-5 text-sm leading-relaxed text-white/75 motion-safe:animate-fade-up">
+                    {item.answer}
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <Seta
+          direcao="proxima"
+          onClick={() => setAtivo((i) => i + 1)}
+          disabled={ativo === FAQ_ITEMS.length - 1}
+        />
       </div>
     </section>
   );
 }
 
-function FaqAccordionItem({
-  item,
-  isOpen,
-  onToggle,
+function Seta({
+  direcao,
+  onClick,
+  disabled,
 }: {
-  item: FaqItem;
-  isOpen: boolean;
-  onToggle: () => void;
+  direcao: "anterior" | "proxima";
+  onClick: () => void;
+  disabled: boolean;
 }) {
-  return (
-    <div className="rounded-2xl border border-navy/10 bg-white overflow-hidden">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left font-medium hover:text-purple transition-colors"
-      >
-        {item.question}
-        <span className="relative w-5 h-5 shrink-0 text-purple">
-          <span
-            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-[2px] rounded bg-current transition-transform duration-300 ${
-              isOpen ? "rotate-180" : ""
-            }`}
-          />
-          <span
-            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-3 rounded bg-current transition-all duration-300 ${
-              isOpen ? "rotate-90 opacity-0" : ""
-            }`}
-          />
-        </span>
-      </button>
+  const anterior = direcao === "anterior";
 
-      <div
-        className="grid transition-[grid-template-rows] duration-300 ease-out"
-        style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
-      >
-        <div className="overflow-hidden">
-          <p className="px-6 pb-5 text-sm text-navy/60 leading-relaxed">{item.answer}</p>
-        </div>
-      </div>
-    </div>
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={anterior ? "Pergunta anterior" : "Próxima pergunta"}
+      className={`absolute top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 place-items-center
+        rounded-full border border-navy/10 bg-white text-navy shadow-lg shadow-navy/15
+        transition hover:bg-navy hover:text-white focus-visible:ring-2
+        focus-visible:ring-purple focus-visible:ring-offset-2
+        disabled:pointer-events-none disabled:opacity-30 motion-safe:active:scale-95
+        lg:grid ${anterior ? "left-3" : "right-3"}`}
+    >
+      {anterior ? <ArrowLeft size={18} aria-hidden /> : <ArrowRight size={18} aria-hidden />}
+    </button>
   );
 }
