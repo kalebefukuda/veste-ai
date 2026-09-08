@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 # Ausência destes cabeçalhos é "Security Misconfiguration" na tabela OWASP do projeto,
@@ -31,12 +32,21 @@ def test_existe_politica_de_conteudo(client: TestClient) -> None:
     assert "frame-ancestors 'none'" in csp
 
 
-# HSTS só faz sentido sob TLS, e em HTTP local ele atrapalharia o desenvolvimento.
-def test_hsts_nao_vai_em_conexao_sem_tls(client: TestClient) -> None:
+# HSTS instrui o navegador a nunca mais usar HTTP no domínio, por um ano. Mandar isso
+# em desenvolvimento deixaria localhost inacessível.
+def test_hsts_nao_vai_fora_de_producao(client: TestClient) -> None:
     assert "strict-transport-security" not in client.get("/health").headers
 
 
-def test_hsts_vai_quando_o_alb_indica_https(client: TestClient) -> None:
+# A decisão de mandar HSTS não pode depender de um cabeçalho que o cliente escreve: o
+# ALB termina o TLS, então quem decide é o ambiente, não a requisição.
+def test_cliente_nao_liga_o_hsts_forjando_o_cabecalho_do_proxy(client: TestClient) -> None:
     headers = client.get("/health", headers={"X-Forwarded-Proto": "https"}).headers
 
-    assert "max-age=" in headers.get("strict-transport-security", "")
+    assert "strict-transport-security" not in headers
+
+
+def test_hsts_vai_em_producao(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.core.security_headers.em_producao", lambda: True)
+
+    assert "max-age=" in client.get("/health").headers.get("strict-transport-security", "")

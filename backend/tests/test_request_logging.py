@@ -70,3 +70,26 @@ def test_o_bloqueio_por_rate_limit_nao_registra_o_ip_bruto(
             pass
 
     assert ip not in caplog.text
+
+
+# O valor vai para o log e volta no cabeçalho da resposta. Aceitar qualquer coisa abre
+# forjamento de log (CWE-117): uma quebra de linha permitiria inventar um evento novo.
+def test_descarta_um_request_id_com_caractere_de_controle(client: TestClient) -> None:
+    forjado = 'abc\n{"level": "INFO", "event": "login_do_admin"}'
+
+    devolvido = client.get("/health", headers={"X-Request-Id": forjado}).headers["X-Request-Id"]
+
+    assert devolvido != forjado
+    assert "\n" not in devolvido
+
+
+def test_descarta_um_request_id_absurdamente_longo(client: TestClient) -> None:
+    devolvido = client.get("/health", headers={"X-Request-Id": "a" * 500}).headers["X-Request-Id"]
+
+    assert len(devolvido) < 100
+
+
+def test_preserva_um_request_id_bem_formado(client: TestClient) -> None:
+    bom = "7f3c1a9b-2d4e-4f60-9a8b-1c2d3e4f5061"
+
+    assert client.get("/health", headers={"X-Request-Id": bom}).headers["X-Request-Id"] == bom
