@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 import { CONTATO_LGPD } from "@/lib/contato";
@@ -39,137 +40,154 @@ const DADOS = [
 
 export default function PrivacidadePage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-20 lg:py-28">
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple">
-        Privacidade
-      </p>
-      <h1 className="mt-5 text-3xl font-bold leading-[1.1] tracking-[-0.03em] text-navy sm:text-5xl">
-        Política de Privacidade
-      </h1>
-      <p className="mt-5 leading-relaxed text-navy/65">
-        Esta página descreve quais dados pessoais o VesteAí trata, com que
-        finalidade e sob qual base legal da Lei Geral de Proteção de Dados (Lei
-        nº 13.709/2018).
-      </p>
+    <>
+      <header className="border-b border-navy/10">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-5">
+          <Link
+            href="/"
+            aria-label="VesteAí — voltar para a página inicial"
+            className="rounded-full text-lg font-bold tracking-[-0.02em] focus-visible:ring-2 focus-visible:ring-purple/40"
+          >
+            <span className="text-navy">Veste</span>
+            <span className="text-purple">Aí</span>
+          </Link>
 
-      <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
-        Dados que coletamos
-      </h2>
-      <p className="mt-4 leading-relaxed text-navy/65">
-        Apenas o necessário para a plataforma funcionar:
-      </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold text-navy transition hover:border-purple hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40"
+          >
+            <ArrowLeft size={16} aria-hidden />
+            Voltar
+          </Link>
+        </div>
+      </header>
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-navy/15">
-              <th scope="col" className="py-3 pr-4 font-semibold text-navy">
-                Dado
-              </th>
-              <th scope="col" className="py-3 pr-4 font-semibold text-navy">
-                Finalidade
-              </th>
-              <th scope="col" className="py-3 font-semibold text-navy">
-                Base legal
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {DADOS.map((linha) => (
-              <tr
-                key={linha.dado}
-                className="border-b border-navy/10 align-top"
-              >
-                <td className="py-3 pr-4 text-navy">{linha.dado}</td>
-                <td className="py-3 pr-4 text-navy/65">{linha.finalidade}</td>
-                <td className="py-3 text-navy/65">{linha.base}</td>
+      <main className="mx-auto max-w-3xl px-6 py-16 lg:py-24">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple">
+          Privacidade
+        </p>
+        <h1 className="mt-5 text-3xl font-bold leading-[1.1] tracking-[-0.03em] text-navy sm:text-5xl">
+          Política de Privacidade
+        </h1>
+        <p className="mt-5 leading-relaxed text-navy/65">
+          Esta página descreve quais dados pessoais o VesteAí trata, com que
+          finalidade e sob qual base legal da Lei Geral de Proteção de Dados
+          (Lei nº 13.709/2018).
+        </p>
+
+        <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
+          Dados que coletamos
+        </h2>
+        <p className="mt-4 leading-relaxed text-navy/65">
+          Apenas o necessário para a plataforma funcionar:
+        </p>
+
+        <div className="mt-6 overflow-x-auto">
+          <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-navy/15">
+                <th scope="col" className="py-3 pr-4 font-semibold text-navy">
+                  Dado
+                </th>
+                <th scope="col" className="py-3 pr-4 font-semibold text-navy">
+                  Finalidade
+                </th>
+                <th scope="col" className="py-3 font-semibold text-navy">
+                  Base legal
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {DADOS.map((linha) => (
+                <tr
+                  key={linha.dado}
+                  className="border-b border-navy/10 align-top"
+                >
+                  <td className="py-3 pr-4 text-navy">{linha.dado}</td>
+                  <td className="py-3 pr-4 text-navy/65">{linha.finalidade}</td>
+                  <td className="py-3 text-navy/65">{linha.base}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      <p className="mt-6 rounded-2xl bg-purple-light/15 px-5 py-4 text-sm leading-relaxed text-navy">
-        O VesteAí <strong>não coleta</strong> dados de cartão de crédito, dados
-        bancários nem informações de compra. A transação acontece na loja
-        externa, e a plataforma não participa dela.
-      </p>
+        <p className="mt-6 rounded-2xl bg-purple-light/15 px-5 py-4 text-sm leading-relaxed text-navy">
+          O VesteAí <strong>não coleta</strong> dados de cartão de crédito,
+          dados bancários nem informações de compra. A transação acontece na
+          loja externa, e a plataforma não participa dela.
+        </p>
 
-      <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
-        Como os dados são guardados
-      </h2>
-      <p className="mt-4 leading-relaxed text-navy/65">
-        Os dados ficam em banco PostgreSQL com acesso restrito ao serviço da
-        aplicação. O endereço IP de quem clica em um link de compra é gravado{" "}
-        <strong>apenas como hash SHA-256</strong> — o IP original nunca é
-        armazenado, o que reduz a retenção de dado pessoal identificável. As
-        senhas são guardadas como hash bcrypt e nunca em texto legível.
-      </p>
+        <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
+          Como os dados são guardados
+        </h2>
+        <p className="mt-4 leading-relaxed text-navy/65">
+          Os dados ficam em banco PostgreSQL com acesso restrito ao serviço da
+          aplicação. O endereço IP de quem clica em um link de compra é gravado{" "}
+          <strong>apenas como hash SHA-256</strong> — o IP original nunca é
+          armazenado, o que reduz a retenção de dado pessoal identificável. As
+          senhas são guardadas como hash bcrypt e nunca em texto legível.
+        </p>
 
-      <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
-        Seus direitos
-      </h2>
-      <p className="mt-4 leading-relaxed text-navy/65">
-        A LGPD garante a você, a qualquer momento, o direito de acessar,
-        corrigir e excluir seus dados, além de revogar consentimento e solicitar
-        a portabilidade.
-      </p>
-      <ul className="mt-5 space-y-3 leading-relaxed text-navy/65">
-        <li>
-          <strong className="text-navy">Corrigir</strong> nome, avatar e bio:
-          direto nas configurações do seu perfil.
-        </li>
-        <li>
-          <strong className="text-navy">Acessar, exportar ou excluir</strong>{" "}
-          seus dados: por solicitação no e-mail abaixo. Ainda não há botão de
-          autoatendimento para isso — o pedido é atendido manualmente, no prazo
-          legal.
-        </li>
-      </ul>
-      <p className="mt-5 leading-relaxed text-navy/65">
-        Pedidos devem ser enviados para{" "}
-        <a
-          href={`mailto:${CONTATO_LGPD}`}
-          className="rounded font-semibold text-purple underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-purple/40"
-        >
-          {CONTATO_LGPD}
-        </a>{" "}
-        e são respondidos em até{" "}
-        <strong className="text-navy">15 dias corridos</strong>, conforme a
-        LGPD. A exclusão da conta remove os dados pessoais e os looks
-        publicados.
-      </p>
+        <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
+          Seus direitos
+        </h2>
+        <p className="mt-4 leading-relaxed text-navy/65">
+          A LGPD garante a você, a qualquer momento, o direito de acessar,
+          corrigir e excluir seus dados, além de revogar consentimento e
+          solicitar a portabilidade.
+        </p>
+        <ul className="mt-5 space-y-3 leading-relaxed text-navy/65">
+          <li>
+            <strong className="text-navy">Corrigir</strong> nome, avatar e bio:
+            direto nas configurações do seu perfil.
+          </li>
+          <li>
+            <strong className="text-navy">Acessar, exportar ou excluir</strong>{" "}
+            seus dados: por solicitação no e-mail abaixo. Ainda não há botão de
+            autoatendimento para isso — o pedido é atendido manualmente, no
+            prazo legal.
+          </li>
+        </ul>
+        <p className="mt-5 leading-relaxed text-navy/65">
+          Pedidos devem ser enviados para{" "}
+          <a
+            href={`mailto:${CONTATO_LGPD}`}
+            className="rounded font-semibold text-purple underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-purple/40"
+          >
+            {CONTATO_LGPD}
+          </a>{" "}
+          e são respondidos em até{" "}
+          <strong className="text-navy">15 dias corridos</strong>, conforme a
+          LGPD. A exclusão da conta remove os dados pessoais e os looks
+          publicados.
+        </p>
 
-      <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
-        Retenção
-      </h2>
-      <p className="mt-4 leading-relaxed text-navy/65">
-        Os dados são mantidos enquanto a conta existir. Depois da exclusão, os
-        dados pessoais são removidos. Registros de clique já anonimizados, sem
-        vínculo com pessoa identificável, podem ser mantidos de forma agregada
-        para estatística.
-      </p>
+        <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
+          Retenção
+        </h2>
+        <p className="mt-4 leading-relaxed text-navy/65">
+          Os dados são mantidos enquanto a conta existir. Depois da exclusão, os
+          dados pessoais são removidos. Registros de clique já anonimizados, sem
+          vínculo com pessoa identificável, podem ser mantidos de forma agregada
+          para estatística.
+        </p>
 
-      <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
-        Cookies
-      </h2>
-      <p className="mt-4 leading-relaxed text-navy/65">
-        O VesteAí usa um único cookie, estritamente necessário para manter você
-        autenticado depois do login. Não há cookie de publicidade, de
-        rastreamento de terceiros nem de analytics — por isso não existe banner
-        de consentimento: cookie estritamente necessário não depende de
-        consentimento prévio.
-      </p>
+        <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
+          Cookies
+        </h2>
+        <p className="mt-4 leading-relaxed text-navy/65">
+          O VesteAí usa um único cookie, estritamente necessário para manter
+          você autenticado depois do login. Não há cookie de publicidade, de
+          rastreamento de terceiros nem de analytics — por isso não existe
+          banner de consentimento: cookie estritamente necessário não depende de
+          consentimento prévio.
+        </p>
 
-      <p className="mt-16 border-t border-navy/10 pt-8 text-sm text-navy/50">
-        Projeto acadêmico de Engenharia de Software — Católica SC.{" "}
-        <Link
-          href="/"
-          className="rounded font-medium text-purple underline-offset-4 hover:underline"
-        >
-          Voltar para a página inicial
-        </Link>
-      </p>
-    </main>
+        <p className="mt-16 border-t border-navy/10 pt-8 text-sm text-navy/50">
+          Última atualização em setembro de 2026.
+        </p>
+      </main>
+    </>
   );
 }

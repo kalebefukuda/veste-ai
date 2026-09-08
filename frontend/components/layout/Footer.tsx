@@ -41,8 +41,8 @@ export default function Footer() {
 
       <div className="mx-auto mt-10 max-w-6xl border-t border-navy/10 px-6 pt-6">
         <p className="text-sm text-navy/50">
-          &copy; {new Date().getFullYear()} VesteAí. Projeto acadêmico de
-          Engenharia de Software — Católica SC.
+          &copy; {new Date().getFullYear()} VesteAí. Todos os direitos
+          reservados.
         </p>
       </div>
     </footer>
