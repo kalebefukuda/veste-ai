@@ -32,6 +32,18 @@ export default function Hero() {
           sm:bg-gradient-to-r sm:from-navy/93 sm:via-navy/70 sm:to-navy/25"
       />
 
+      {/* Halo da marca por cima do véu: sem ele a foto fica só escurecida, sem cor. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-40 -left-40 -z-10 h-[46rem] w-[46rem]
+          rounded-full bg-purple/40 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-32 -top-40 -z-10 h-[34rem] w-[34rem]
+          rounded-full bg-purple/25 blur-3xl"
+      />
+
       <div className="px-6 pb-12 pt-32 sm:px-10 sm:pb-16 lg:px-16 lg:pb-24">
         <h1 className="max-w-[18ch] text-[2.5rem] font-bold leading-[0.98] tracking-[-0.045em] text-white sm:text-6xl lg:text-7xl">
           Vista ideias.
@@ -40,8 +52,9 @@ export default function Hero() {
         </h1>
 
         <p className="mt-6 max-w-[48ch] text-base leading-relaxed text-white/80 sm:text-lg">
-          Monte o look inteiro, linke cada peça na loja onde ela está e publique. Quem gostou
-          clica e compra direto — e a comissão do afiliado é sua.
+          Monte o look inteiro, linke cada peça na loja onde ela está e
+          publique. Quem gostou clica e compra direto — e a comissão do afiliado
+          é sua.
         </p>
 
         <div className="mt-9 flex w-fit flex-wrap items-center gap-3 sm:gap-4">
