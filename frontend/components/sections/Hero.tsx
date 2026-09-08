@@ -28,8 +28,8 @@ export default function Hero() {
       {/* Véu escuro: sem ele o texto sobre foto não alcança 4,5:1 (RNF13). */}
       <div
         aria-hidden
-        className="absolute inset-0 -z-10 bg-gradient-to-t from-navy/92 via-navy/72 to-navy/35
-          sm:bg-gradient-to-r sm:from-navy/93 sm:via-navy/70 sm:to-navy/25"
+        className="absolute inset-0 -z-10 bg-gradient-to-t from-navy/90 via-navy/70 to-navy/35
+          sm:bg-gradient-to-r sm:from-navy/90 sm:via-navy/70 sm:to-navy/25"
       />
 
       {/* Halo da marca só do lado do texto, onde o véu já é opaco. Do lado direito ele
