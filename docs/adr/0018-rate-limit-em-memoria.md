@@ -83,6 +83,18 @@ Ler o cabeçalho só é seguro porque o security group da task aceita entrada
 **exclusivamente do ALB** (`infra/network.tf`). Se essa regra for afrouxada, esta
 decisão também cai.
 
+### A dependência ficou restrita a este arquivo
+
+Na revisão do PR #34 apareceu a pergunta certa: o HSTS dependia do `X-Forwarded-Proto`
+pelo mesmo motivo, e valeria registrar ou validar. Em vez de registrar mais uma
+dependência, ela foi **removida**: o HSTS passou a ser decidido pelo `ENV` da task
+definition, que só nós escrevemos.
+
+Sobrou **um** ponto que confia em cabeçalho de proxy — o `client_ip` deste arquivo — e
+ele confia porque não tem alternativa: sem ler o `X-Forwarded-For`, todos os usuários
+compartilhariam um balde. Quanto menos lugares dependem dessa garantia de rede, menos
+coisas quebram junto se a topologia mudar.
+
 ## Ver também
 
 - `docs/adr/0017-subrede-publica.md` — por que a task fica em sub-rede pública
