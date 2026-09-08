@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import Navbar from "@/components/layout/Navbar";
+import Acesso from "@/components/sections/Acesso";
 import CtaBanner from "@/components/sections/CtaBanner";
 
 // Regressão do defeito de link morto: estes href já foram `#`, o que conta como
@@ -24,6 +25,15 @@ describe("navegação da landing", () => {
     render(<Navbar />);
 
     expect(screen.getByRole("link", { name: /vesteaí/i })).toHaveAttribute("href", "/");
+  });
+
+  it("leva o CTA de sem conta × com conta para a rota de cadastro", () => {
+    render(<Acesso />);
+
+    expect(screen.getByRole("link", { name: /criar conta grátis/i })).toHaveAttribute(
+      "href",
+      "/register",
+    );
   });
 
   it("leva o CTA final para a rota de cadastro", () => {
