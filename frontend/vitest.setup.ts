@@ -20,3 +20,19 @@ vi.stubGlobal(
     }
   },
 );
+
+// O jsdom não implementa scrollTo em elemento; o carrossel do FAQ o chama para
+// manter o card ativo à vista.
+Element.prototype.scrollTo = () => {};
+
+// Nem matchMedia, consultado para não animar quando o sistema pede menos movimento.
+vi.stubGlobal("matchMedia", (query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  addListener: () => {},
+  removeListener: () => {},
+  dispatchEvent: () => false,
+}));
