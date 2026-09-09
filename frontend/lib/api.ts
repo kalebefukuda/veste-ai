@@ -82,3 +82,15 @@ export async function resetPassword(token: string, password: string): Promise<vo
 export function updateMe(dados: PerfilPatch): Promise<User> {
   return send<User>("PATCH", "/api/users/me", dados);
 }
+
+export async function deleteMe(password: string): Promise<void> {
+  const response = await fetch("/api/users/me", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok) {
+    throw new Error(messageFor(response.status, await response.json().catch(() => null)));
+  }
+}
