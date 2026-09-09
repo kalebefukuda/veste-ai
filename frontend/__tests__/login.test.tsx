@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import LoginPage from "@/app/(auth)/login/page";
 import * as api from "@/lib/api";
+import { AFTER_AUTH } from "@/lib/routes";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -49,7 +50,7 @@ describe("tela de login", () => {
     await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
     expect(login).toHaveBeenCalledWith("teste@exemplo.com", "senha-longa-1");
-    expect(push).toHaveBeenCalledWith("/");
+    expect(push).toHaveBeenCalledWith(AFTER_AUTH);
   });
 
   it("mostra a mensagem de erro e não navega quando o login falha", async () => {

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import RegisterPage from "@/app/(auth)/register/page";
 import * as api from "@/lib/api";
+import { AFTER_AUTH } from "@/lib/routes";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -38,7 +39,7 @@ describe("tela de cadastro", () => {
     await userEvent.click(screen.getByRole("button", { name: "Criar conta" }));
 
     expect(register).toHaveBeenCalledWith("Mariana", "mariana@exemplo.com", "senha-longa-1");
-    expect(push).toHaveBeenCalledWith("/");
+    expect(push).toHaveBeenCalledWith(AFTER_AUTH);
   });
   it("manda para o login quando a conta é criada sem sessão", async () => {
     vi.spyOn(api, "register").mockResolvedValue({
