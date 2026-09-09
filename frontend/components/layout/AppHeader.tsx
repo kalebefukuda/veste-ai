@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { LOGIN } from "@/lib/routes";
+import { CONFIGURACOES, INICIO, LOGIN } from "@/lib/routes";
 
 export default function AppHeader() {
   const router = useRouter();
@@ -30,17 +30,36 @@ export default function AppHeader() {
           <span className="text-purple">Aí</span>
         </Link>
 
-        <button
-          type="button"
-          onClick={sair}
-          disabled={saindo}
-          className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-4 py-2
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* Configurações só era alcançável pelo destino do login: sair da página
+              significava não conseguir voltar sem digitar a URL. */}
+          <Link
+            href={INICIO}
+            className="rounded-full px-3 py-2 text-sm font-medium text-navy transition
+              hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40"
+          >
+            Início
+          </Link>
+          <Link
+            href={CONFIGURACOES}
+            className="rounded-full px-3 py-2 text-sm font-medium text-navy transition
+              hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40"
+          >
+            Configurações
+          </Link>
+
+          <button
+            type="button"
+            onClick={sair}
+            disabled={saindo}
+            className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-4 py-2
             text-sm font-semibold text-navy transition hover:border-purple hover:text-purple
             focus-visible:ring-2 focus-visible:ring-purple/40 disabled:opacity-60"
-        >
-          <LogOut size={16} aria-hidden />
-          {saindo ? "Saindo…" : "Sair"}
-        </button>
+          >
+            <LogOut size={16} aria-hidden />
+            {saindo ? "Saindo…" : "Sair"}
+          </button>
+        </div>
       </div>
     </header>
   );
