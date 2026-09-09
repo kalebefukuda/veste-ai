@@ -27,6 +27,12 @@ class UserExport(UserOut):
     created_at: datetime
 
 
+# A senha vai no corpo do DELETE em vez de num endpoint separado de conferência:
+# rota cuja única função é dizer se a senha está certa é um oráculo de senha.
+class DeleteMeIn(BaseModel):
+    password: str
+
+
 class LoginIn(BaseModel):
     email: EmailStr
     password: str

@@ -11,6 +11,8 @@ LIMIT_LOGIN = "10/minute"
 LIMIT_REGISTER = "10/hour"
 LIMIT_FORGOT = "3/hour"
 LIMIT_RESET = "10/minute"
+# Confere senha, então é força bruta em potencial mesmo exigindo sessão válida.
+LIMIT_DELETE_ACCOUNT = "5/minute"
 
 
 # Atrás do ALB o peer TCP é sempre o load balancer: sem ler o X-Forwarded-For, todos os
