@@ -63,17 +63,33 @@ def test_patch_users_me_permite_limpar_bio(auth_client: TestClient) -> None:
     assert resposta.json()["bio"] is None
 
 
+SENHA = {"password": CREDENTIALS["password"]}
+
+
 # LGPD art. 18, VI: a eliminação é direito do titular. Atender por e-mail seria
 # legal, mas obriga alguém a executar à mão o que o sistema faz sozinho.
 def test_delete_users_me_apaga_a_conta(auth_client: TestClient) -> None:
-    resposta = auth_client.delete("/users/me")
+    resposta = auth_client.request("DELETE", "/users/me", json=SENHA)
 
     assert resposta.status_code == 204
     assert auth_client.get("/users/me").status_code == 401
 
 
+# A sessão dura 24h e pode ficar aberta em máquina compartilhada. Sem a senha, um
+# clique de quem passou na frente do teclado apaga a conta sem volta.
+def test_delete_users_me_recusa_senha_errada(auth_client: TestClient) -> None:
+    resposta = auth_client.request("DELETE", "/users/me", json={"password": "outra-senha-1"})
+
+    assert resposta.status_code == 403
+    assert auth_client.get("/users/me").status_code == 200
+
+
+def test_delete_users_me_exige_a_senha_no_corpo(auth_client: TestClient) -> None:
+    assert auth_client.request("DELETE", "/users/me", json={}).status_code == 422
+
+
 def test_delete_users_me_sem_token_retorna_401(client: TestClient) -> None:
-    assert client.delete("/users/me").status_code == 401
+    assert client.request("DELETE", "/users/me", json=SENHA).status_code == 401
 
 
 # Apagar só a linha de `users` deixaria o token de recuperação apontando para um
@@ -88,7 +104,7 @@ def test_delete_users_me_leva_junto_os_tokens_de_recuperacao(
     auth_client.post("/auth/forgot-password", json={"email": CREDENTIALS["email"]})
 
     antes = db.execute(text("SELECT count(*) FROM password_resets")).scalar_one()
-    auth_client.delete("/users/me")
+    auth_client.request("DELETE", "/users/me", json=SENHA)
     depois = db.execute(text("SELECT count(*) FROM password_resets")).scalar_one()
 
     assert antes == 1
