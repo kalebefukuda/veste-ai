@@ -28,3 +28,9 @@ export interface FooterLinkGroup {
   title: string;
   links: NavLink[];
 }
+
+export type PassoDoFluxo = {
+  numero: string;
+  titulo: string;
+  descricao: string;
+};
