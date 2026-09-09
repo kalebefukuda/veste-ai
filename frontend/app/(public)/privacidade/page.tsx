@@ -26,16 +26,6 @@ const DADOS = [
     finalidade: "Personalização do perfil público",
     base: "Consentimento — art. 7º, I",
   },
-  {
-    dado: "Looks e peças publicados",
-    finalidade: "Conteúdo da plataforma",
-    base: "Execução de contrato — art. 7º, V",
-  },
-  {
-    dado: "Cliques em links (IP apenas como hash)",
-    finalidade: "Métricas de desempenho para quem publicou",
-    base: "Legítimo interesse — art. 7º, IX",
-  },
 ];
 
 export default function PrivacidadePage() {
@@ -79,7 +69,7 @@ export default function PrivacidadePage() {
           Dados que coletamos
         </h2>
         <p className="mt-4 leading-relaxed text-navy/65">
-          Apenas o necessário para a plataforma funcionar:
+          Hoje a plataforma trata apenas o que a conta exige para existir:
         </p>
 
         <div className="mt-6 overflow-x-auto">
@@ -123,10 +113,9 @@ export default function PrivacidadePage() {
         </h2>
         <p className="mt-4 leading-relaxed text-navy/65">
           Os dados ficam em banco PostgreSQL com acesso restrito ao serviço da
-          aplicação. O endereço IP de quem clica em um link de compra é gravado{" "}
-          <strong>apenas como hash SHA-256</strong> — o IP original nunca é
-          armazenado, o que reduz a retenção de dado pessoal identificável. As
-          senhas são guardadas como hash bcrypt e nunca em texto legível.
+          aplicação. As senhas são guardadas como{" "}
+          <strong>hash bcrypt</strong> e nunca em texto legível — nem quem opera a
+          plataforma consegue lê-las.
         </p>
 
         <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
@@ -139,14 +128,10 @@ export default function PrivacidadePage() {
         </p>
         <ul className="mt-5 space-y-3 leading-relaxed text-navy/65">
           <li>
-            <strong className="text-navy">Corrigir</strong> nome, avatar e bio:
-            direto nas configurações do seu perfil.
-          </li>
-          <li>
-            <strong className="text-navy">Acessar, exportar ou excluir</strong>{" "}
-            seus dados: por solicitação no e-mail abaixo. Ainda não há botão de
-            autoatendimento para isso — o pedido é atendido manualmente, no
-            prazo legal.
+            <strong className="text-navy">Corrigir, acessar, exportar ou excluir</strong>{" "}
+            seus dados: por solicitação no e-mail abaixo. A plataforma ainda não
+            tem tela de autoatendimento para nenhuma dessas operações — todo
+            pedido é atendido manualmente, dentro do prazo legal.
           </li>
         </ul>
         <p className="mt-5 leading-relaxed text-navy/65">
@@ -168,9 +153,9 @@ export default function PrivacidadePage() {
         </h2>
         <p className="mt-4 leading-relaxed text-navy/65">
           Os dados são mantidos enquanto a conta existir. Depois da exclusão, os
-          dados pessoais são removidos. Registros de clique já anonimizados, sem
-          vínculo com pessoa identificável, podem ser mantidos de forma agregada
-          para estatística.
+          dados pessoais são removidos. Esta página descreve o tratamento que a
+          plataforma faz hoje; qualquer coleta nova — métricas de clique, por
+          exemplo — só entra aqui quando passar a existir de fato.
         </p>
 
         <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
