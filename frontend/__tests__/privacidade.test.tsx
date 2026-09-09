@@ -4,16 +4,38 @@ import { describe, expect, it } from "vitest";
 import PrivacidadePage from "@/app/(public)/privacidade/page";
 import { CONTATO_LGPD } from "@/lib/contato";
 
+const textoDaPagina = () => document.body.textContent ?? "";
+
 describe("política de privacidade", () => {
   it("declara a base legal de cada dado tratado", () => {
     render(<PrivacidadePage />);
 
-    const linhas = screen.getAllByRole("row");
-    const textos = linhas.map((l) => l.textContent ?? "");
+    const textos = screen.getAllByRole("row").map((l) => l.textContent ?? "");
 
     expect(textos.some((t) => /nome e e-mail/i.test(t) && /art\. 7º, V/.test(t))).toBe(true);
     expect(textos.some((t) => /avatar e bio/i.test(t) && /art\. 7º, I/.test(t))).toBe(true);
-    expect(textos.some((t) => /cliques em links/i.test(t) && /art\. 7º, IX/.test(t))).toBe(true);
+  });
+
+  // A página nasceu descrevendo a RFC, não o código: declarava coleta de cliques,
+  // hash de IP e guarda de looks, tratamentos que o backend não faz. Política que
+  // anuncia coleta inexistente é declaração falsa ao titular, não adiantamento.
+  it("não declara tratamento que a plataforma ainda não faz", () => {
+    render(<PrivacidadePage />);
+
+    const linhas = screen.getAllByRole("row").map((l) => l.textContent ?? "");
+
+    expect(linhas.some((t) => /clique/i.test(t))).toBe(false);
+    expect(linhas.some((t) => /look|peça/i.test(t))).toBe(false);
+    expect(textoDaPagina()).not.toMatch(/SHA-256|endereço IP/i);
+  });
+
+  // Não existe tela de perfil: prometer autoatendimento manda o titular a um
+  // lugar que não existe e queima o prazo legal.
+  it("encaminha todo direito do titular ao canal manual", () => {
+    render(<PrivacidadePage />);
+
+    expect(textoDaPagina()).toMatch(/ainda não tem tela de autoatendimento/i);
+    expect(textoDaPagina()).not.toMatch(/configurações do seu perfil/i);
   });
 
   // Canal do titular que não é clicável vira canal que ninguém usa.
