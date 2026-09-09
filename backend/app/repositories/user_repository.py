@@ -16,6 +16,10 @@ class UserRepository:
     def get(self, user_id: uuid.UUID) -> User | None:
         return self.db.get(User, user_id)
 
+    def delete(self, user: User) -> None:
+        self.db.delete(user)
+        self.db.flush()
+
     def add(self, user: User) -> User:
         self.db.add(user)
         self.db.flush()

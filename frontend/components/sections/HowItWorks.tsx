@@ -1,67 +1,103 @@
 "use client";
 
-import { useScrollReveal } from "@/hooks/useScrollReveal";
-import type { OnboardingStep } from "@/types";
+import Image from "next/image";
 
-const STEPS: OnboardingStep[] = [
-  {
-    number: "01",
-    title: "Crie seu look",
-    description: "Selecione peças de qualquer loja online e monte uma composição visual completa.",
-  },
+import { useScrollReveal } from "@/hooks/useScrollReveal";
+
+const SECONDARY = [
   {
     number: "02",
-    title: "IA aprimora a imagem",
-    description: "Nossa inteligência artificial gera modelo virtual vestindo todas as peças do look.",
+    title: "A IA veste o look",
+    description:
+      "A composição ganha uma imagem realista a partir das peças escolhidas, sem produção de foto.",
   },
   {
     number: "03",
-    title: "Compartilhe e venda",
-    description: "Publique o card com links diretos de compra. Cada clique é registrado automaticamente.",
+    title: "Publica e acompanha",
+    description:
+      "O look entra no feed público. Cada clique em link de compra é registrado para você.",
   },
 ];
 
 export default function HowItWorks() {
   const headerRef = useScrollReveal<HTMLDivElement>();
+  const firstRef = useScrollReveal<HTMLDivElement>();
 
   return (
-    <section id="como-funciona" className="bg-navy/[0.02] py-20">
+    <section id="como-funciona" className="bg-navy/[0.03] py-24 lg:py-32">
       <div className="mx-auto max-w-6xl px-6">
-        <div ref={headerRef} className="reveal">
-          <h2 className="max-w-lg text-3xl font-bold md:text-4xl">
-            Três passos para monetizar seu estilo pessoal.
-          </h2>
-          <p className="mt-3 max-w-xl text-navy/60">
-            Do conceito à comissão em minutos. Sem estoque, sem logística — apenas sua
-            criatividade e nossa tecnologia.
+        <div ref={headerRef} className="reveal max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple">
+            Como funciona
           </p>
+          <h2 className="mt-5 text-3xl font-bold leading-[1.1] tracking-[-0.03em] text-navy sm:text-5xl">
+            Do look pronto ao clique na loja.
+          </h2>
         </div>
 
-        <div className="mt-12 grid gap-8 md:grid-cols-3">
-          {STEPS.map((step, index) => (
-            <StepItem key={step.number} step={step} revealDelayMs={index * 100} />
+        {/* O passo 1 é o que importa: ele ocupa o dobro e leva a imagem. */}
+        <div
+          ref={firstRef}
+          className="reveal mt-14 grid items-center gap-10 lg:grid-cols-2 lg:gap-16"
+        >
+          <div>
+            <span className="block text-6xl font-bold leading-none tracking-[-0.04em] text-purple/25 lg:text-8xl">
+              01
+            </span>
+            <h3 className="mt-5 text-2xl font-bold tracking-[-0.02em] text-navy lg:text-3xl">
+              Monta o look e linka as peças
+            </h3>
+            <p className="mt-4 max-w-[46ch] leading-relaxed text-navy/65">
+              Escolhe as peças em qualquer loja online, cola o link de cada uma
+              e escreve o nome. É o passo que faz o resto funcionar — sem link,
+              o look não publica.
+            </p>
+          </div>
+
+          {/* Este slot recebe o vídeo do fluxo de criação quando o editor existir. */}
+          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl">
+            <Image
+              src="https://images.unsplash.com/photo-1445205170230-053b83016050?w=900&h=675&fit=crop&q=80"
+              alt="Peças de roupa organizadas para compor um look"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 45vw"
+            />
+          </div>
+        </div>
+
+        <div className="mt-16 grid gap-10 border-t border-navy/10 pt-12 sm:grid-cols-2 sm:gap-14">
+          {SECONDARY.map((step) => (
+            <Step key={step.number} {...step} />
           ))}
         </div>
-
-        <a
-          href="#cta-final"
-          className="mt-12 inline-block rounded-full bg-veste-gradient px-7 py-3 font-medium text-white shadow-lg shadow-purple/30 transition hover:opacity-90"
-        >
-          Criar meu primeiro look →
-        </a>
       </div>
     </section>
   );
 }
 
-function StepItem({ step, revealDelayMs }: { step: OnboardingStep; revealDelayMs: number }) {
+function Step({
+  number,
+  title,
+  description,
+}: {
+  number: string;
+  title: string;
+  description: string;
+}) {
   const ref = useScrollReveal<HTMLDivElement>();
 
   return (
-    <div ref={ref} className="reveal" style={{ transitionDelay: `${revealDelayMs}ms` }}>
-      <span className="text-sm font-semibold text-purple">{step.number}</span>
-      <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
-      <p className="mt-2 text-sm text-navy/60">{step.description}</p>
+    <div ref={ref} className="reveal">
+      <span className="block text-3xl font-bold leading-none tracking-[-0.03em] text-purple/25">
+        {number}
+      </span>
+      <h3 className="mt-4 text-lg font-bold tracking-[-0.01em] text-navy">
+        {title}
+      </h3>
+      <p className="mt-3 max-w-[44ch] text-sm leading-relaxed text-navy/60">
+        {description}
+      </p>
     </div>
   );
 }

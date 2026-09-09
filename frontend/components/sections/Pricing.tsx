@@ -1,3 +1,7 @@
+import { Check } from "lucide-react";
+import Link from "next/link";
+
+import { REGISTER } from "@/lib/routes";
 import type { PricingPlan } from "@/types";
 
 const PLANS: PricingPlan[] = [
@@ -28,20 +32,27 @@ const PLANS: PricingPlan[] = [
 
 export default function Pricing() {
   return (
-    <section id="precos" className="bg-navy py-20 text-white">
+    <section id="precos" className="relative isolate overflow-hidden bg-navy py-20 text-white lg:py-24">
+      {/* Mesmo halo do card grande de recursos: uma cor só, difusa, sem gradiente de duas. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-32 top-0 h-[26rem] w-[26rem] rounded-full bg-purple/30 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 bottom-0 h-[20rem] w-[20rem] rounded-full bg-purple/20 blur-3xl"
+      />
+
       <div className="mx-auto max-w-6xl px-6 text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-rose">Preços</p>
-        <h2 className="mt-2 text-3xl font-bold md:text-4xl">
-          Monetize seu estilo.{" "}
-          <span className="bg-veste-gradient bg-clip-text text-transparent">
-            Escolha seu plano.
-          </span>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-light">Preços</p>
+        <h2 className="mx-auto mt-4 max-w-xl text-3xl font-bold leading-[1.1] tracking-[-0.03em] sm:text-4xl">
+          Monetize seu estilo. <span className="text-purple-light">Escolha seu plano.</span>
         </h2>
-        <p className="mx-auto mt-3 max-w-lg text-white/60">
+        <p className="mx-auto mt-4 max-w-[46ch] leading-relaxed text-white/65">
           Comece de graça e evolua conforme seus resultados crescem.
         </p>
 
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 max-w-2xl mx-auto">
+        <div className="mx-auto mt-12 grid max-w-2xl items-start gap-5 sm:grid-cols-2">
           {PLANS.map((plan) => (
             <PlanCard key={plan.name} plan={plan} />
           ))}
@@ -54,39 +65,44 @@ export default function Pricing() {
 function PlanCard({ plan }: { plan: PricingPlan }) {
   return (
     <div
-      className={`relative flex flex-col rounded-2xl border p-8 text-left ${
-        plan.highlight
-          ? "border-purple-light bg-gradient-to-b from-purple/20 to-transparent"
-          : "border-white/10 bg-white/[0.03]"
+      className={`relative flex flex-col rounded-3xl border p-7 text-left backdrop-blur-sm ${
+        plan.highlight ? "border-purple-light/40 bg-white/[0.07]" : "border-white/10 bg-white/[0.03]"
       }`}
     >
       {plan.badge && (
-        <span className="absolute -top-3 left-8 rounded-full bg-veste-gradient px-3 py-1 text-xs font-semibold">
+        <span className="absolute -top-3 left-8 rounded-full bg-purple px-3 py-1 text-xs font-semibold text-white">
           {plan.badge}
         </span>
       )}
+
       <p className="text-sm text-white/60">{plan.name}</p>
-      <p className="mt-2 text-3xl font-bold">
+      <p className="mt-1.5 text-3xl font-bold tracking-[-0.03em]">
         {plan.price}
         <span className="text-base font-normal text-white/50">{plan.period}</span>
       </p>
-      <ul className="mt-6 flex-1 space-y-2.5 text-sm text-white/70">
+
+      <ul className="mt-6 space-y-2.5 text-sm text-white/75">
         {plan.features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2">
-            <span className="text-rose">✓</span> {feature}
+          <li key={feature} className="flex items-start gap-2.5">
+            <Check size={16} className="mt-0.5 shrink-0 text-purple-light" aria-hidden />
+            {feature}
           </li>
         ))}
       </ul>
-      <a
-        href="#cta-final"
-        className={`mt-8 rounded-full px-5 py-2.5 text-center text-sm font-medium transition ${
-          plan.highlight
-            ? "bg-veste-gradient text-white hover:opacity-90"
-            : "border border-white/20 text-white hover:border-white/40"
-        }`}
+
+      {/* Os dois levam ao cadastro: a assinatura só existe a partir da conta criada. */}
+      <Link
+        href={REGISTER}
+        className={`mt-7 rounded-2xl px-5 py-3.5 text-center text-sm font-semibold transition
+          focus-visible:ring-2 focus-visible:ring-purple-light/60 focus-visible:ring-offset-2
+          focus-visible:ring-offset-navy motion-safe:active:scale-[0.99] ${
+            plan.highlight
+              ? "bg-white text-navy hover:bg-white/90"
+              : "border border-white/25 text-white hover:border-white/50"
+          }`}
       >
         {plan.cta}
-      </a>
+      </Link>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -18,6 +19,12 @@ class UserOut(BaseModel):
     plan: str
     avatar: str | None = None
     bio: str | None = None
+
+
+# Devolve tudo que a conta guarda sobre o titular, menos a senha: credencial não é
+# dado a entregar, e exportá-la viraria vazamento com carimbo de conformidade.
+class UserExport(UserOut):
+    created_at: datetime
 
 
 class LoginIn(BaseModel):
