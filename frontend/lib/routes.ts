@@ -3,6 +3,8 @@ export const REGISTER = "/register";
 export const FORGOT_PASSWORD = "/forgot-password";
 export const RESET_PASSWORD = "/reset-password";
 
-// Destino depois de autenticar. Aponta para a landing enquanto a área logada não
-// existe — quando o feed entrar, muda só aqui.
-export const AFTER_AUTH = "/";
+export const CONFIGURACOES = "/configuracoes";
+
+// Destino depois de autenticar. Aponta para as configurações enquanto o feed não
+// existe — quando ele entrar, muda só aqui.
+export const AFTER_AUTH = CONFIGURACOES;
