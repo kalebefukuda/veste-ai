@@ -1,8 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import PerfilForm from "@/components/configuracoes/PerfilForm";
+import ExcluirConta from "@/components/configuracoes/ExcluirConta";
 import AppHeader from "@/components/layout/AppHeader";
 
 const replace = vi.fn();
@@ -10,6 +11,11 @@ const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh }) }));
 
 const USUARIO = { id: "1", name: "Mariana", email: "mari@exemplo.com", plan: "free", bio: "Antiga" };
+
+beforeEach(() => {
+  replace.mockClear();
+  refresh.mockClear();
+});
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -87,5 +93,64 @@ describe("sair da conta", () => {
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
     expect(chamou).toHaveBeenCalledWith("/api/auth/logout", { method: "POST" });
+  });
+});
+
+// Exclusão é irreversível: o caminho tem dois passos de propósito, e o segundo pede
+// a senha porque a sessão dura 24h e pode estar aberta em máquina compartilhada.
+describe("excluir a conta", () => {
+  it("não mostra o campo de senha antes de pedir para excluir", () => {
+    render(<ExcluirConta />);
+
+    expect(screen.queryByLabelText(/senha/i)).not.toBeInTheDocument();
+  });
+
+  it("pede a senha depois do primeiro clique", async () => {
+    const user = userEvent.setup();
+    render(<ExcluirConta />);
+
+    await user.click(screen.getByRole("button", { name: /excluir minha conta/i }));
+
+    expect(screen.getByLabelText(/senha/i)).toBeInTheDocument();
+  });
+
+  it("manda a senha e leva para a raiz quando a conta é apagada", async () => {
+    const user = userEvent.setup();
+    const chamou = vi.fn().mockResolvedValue({ ok: true, status: 204, json: async () => null });
+    vi.stubGlobal("fetch", chamou);
+    render(<ExcluirConta />);
+
+    await user.click(screen.getByRole("button", { name: /excluir minha conta/i }));
+    await user.type(screen.getByLabelText(/senha/i), "senha-bem-longa");
+    await user.click(screen.getByRole("button", { name: /^excluir$/i }));
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toEqual({ password: "senha-bem-longa" });
+  });
+
+  it("mostra o erro e mantém a conta quando a senha está errada", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({ detail: "Senha incorreta" }) }),
+    );
+    render(<ExcluirConta />);
+
+    await user.click(screen.getByRole("button", { name: /excluir minha conta/i }));
+    await user.type(screen.getByLabelText(/senha/i), "errada");
+    await user.click(screen.getByRole("button", { name: /^excluir$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/senha incorreta/i);
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("deixa desistir sem apagar nada", async () => {
+    const user = userEvent.setup();
+    render(<ExcluirConta />);
+
+    await user.click(screen.getByRole("button", { name: /excluir minha conta/i }));
+    await user.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    expect(screen.queryByLabelText(/senha/i)).not.toBeInTheDocument();
   });
 });

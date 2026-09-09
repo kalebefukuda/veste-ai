@@ -18,7 +18,12 @@ vi.mock("next/navigation", () => ({
 import ConfiguracoesPage from "@/app/(app)/configuracoes/page";
 import AppLayout from "@/app/(app)/layout";
 import { POST as logout } from "@/app/api/auth/logout/route";
-import { GET as lerPerfil, PATCH as salvarPerfil } from "@/app/api/users/me/route";
+import { GET as baixarDados } from "@/app/api/users/me/export/route";
+import {
+  DELETE as excluirConta,
+  GET as lerPerfil,
+  PATCH as salvarPerfil,
+} from "@/app/api/users/me/route";
 import { clearSession, readSession } from "@/lib/session";
 
 beforeEach(() => {
@@ -136,5 +141,73 @@ describe("página de configurações", () => {
 
     await expect(ConfiguracoesPage()).rejects.toThrow("NEXT_REDIRECT");
     expect(redirecionou).toHaveBeenCalledWith("/login");
+  });
+});
+
+const pedidoComSenha = (senha: string) =>
+  new Request("http://localhost/api/users/me", {
+    method: "DELETE",
+    body: JSON.stringify({ password: senha }),
+  });
+
+describe("exclusão da conta", () => {
+  it("recusa sem sessão", async () => {
+    cookieStore.get.mockReturnValue(undefined);
+
+    expect((await excluirConta(pedidoComSenha("x"))).status).toBe(401);
+  });
+
+  it("encerra a sessão quando a conta é apagada", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 204 }));
+
+    expect((await excluirConta(pedidoComSenha("certa"))).status).toBe(204);
+    expect(cookieStore.delete).toHaveBeenCalledWith("vesteai_session");
+  });
+
+  // Senha errada não pode deslogar: seria punir quem só errou de digitar, e a conta
+  // continua existindo do outro lado.
+  it("mantém a sessão quando a senha está errada", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ status: 403, json: async () => ({ detail: "Senha incorreta" }) }),
+    );
+
+    expect((await excluirConta(pedidoComSenha("errada"))).status).toBe(403);
+    expect(cookieStore.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe("download dos dados", () => {
+  it("recusa sem sessão", async () => {
+    cookieStore.get.mockReturnValue(undefined);
+
+    expect((await baixarDados()).status).toBe(401);
+  });
+
+  // Sem Content-Disposition o navegador abre o JSON na aba: o titular vê o dado, mas
+  // não recebe o arquivo que a portabilidade pressupõe.
+  it("entrega como arquivo para download", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ email: "m@e.com" }) }),
+    );
+
+    const resposta = await baixarDados();
+
+    expect(resposta.headers.get("Content-Disposition")).toContain("attachment");
+    expect(await resposta.text()).toContain("m@e.com");
+  });
+
+  it("repassa a recusa do backend", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({ detail: "expirou" }) }),
+    );
+
+    expect((await baixarDados()).status).toBe(401);
   });
 });
