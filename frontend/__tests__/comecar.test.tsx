@@ -71,6 +71,46 @@ describe("configuração inicial", () => {
     expect(screen.getByRole("radio", { name: /descobrir looks/i })).toBeInTheDocument();
   });
 
+  // O handle é o endereço público da pessoa: é a única coisa do funil que precisa
+  // ser escolhida antes de existir perfil, porque muda de dono se outro pegar antes.
+  it("pede o nome de usuário", () => {
+    render(<ComecarForm usuario={NOVO} />);
+
+    expect(screen.getByLabelText(/nome de usuário/i)).toBeInTheDocument();
+  });
+
+  it("salva o handle junto com a intenção", async () => {
+    const user = userEvent.setup();
+    const chamou = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => NOVO });
+    vi.stubGlobal("fetch", chamou);
+    render(<ComecarForm usuario={NOVO} />);
+
+    await user.type(screen.getByLabelText(/nome de usuário/i), "mariana");
+    await user.click(screen.getByRole("button", { name: /continuar/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/inicio"));
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toMatchObject({ username: "mariana" });
+  });
+
+  it("mostra o recado do servidor quando o handle já foi tomado", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        json: async () => ({ detail: "tomado", code: "USERNAME_ALREADY_TAKEN" }),
+      }),
+    );
+    render(<ComecarForm usuario={NOVO} />);
+
+    await user.type(screen.getByLabelText(/nome de usuário/i), "mariana");
+    await user.click(screen.getByRole("button", { name: /continuar/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/já está em uso/i);
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("salva a intenção e a bio, e segue para as boas-vindas", async () => {
     const user = userEvent.setup();
     const chamou = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => NOVO });

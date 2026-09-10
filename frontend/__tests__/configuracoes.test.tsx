@@ -29,7 +29,7 @@ describe("formulário de perfil", () => {
   it("abre com os valores atuais da conta", () => {
     render(<PerfilForm usuario={USUARIO} />);
 
-    expect(screen.getByLabelText(/nome/i)).toHaveValue("Mariana");
+    expect(screen.getByLabelText("Nome")).toHaveValue("Mariana");
     expect(screen.getByLabelText(/bio/i)).toHaveValue("Antiga");
   });
 
@@ -40,6 +40,23 @@ describe("formulário de perfil", () => {
 
     expect(screen.getByText(USUARIO.email)).toBeInTheDocument();
     expect(screen.queryByLabelText(/e-mail/i)).not.toBeInTheDocument();
+  });
+
+  // Trocar o handle depois é a outra metade da liberdade: quem escolheu às pressas
+  // no funil precisa poder corrigir sem falar com ninguém.
+  it("deixa trocar o nome de usuário depois", async () => {
+    const user = userEvent.setup();
+    const chamou = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => USUARIO });
+    vi.stubGlobal("fetch", chamou);
+    render(<PerfilForm usuario={{ ...USUARIO, username: "antigo" }} />);
+
+    const campo = screen.getByLabelText(/nome de usuário/i);
+    await user.clear(campo);
+    await user.type(campo, "novo_handle");
+    await user.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toMatchObject({ username: "novo_handle" });
   });
 
   it("salva e confirma na tela", async () => {
