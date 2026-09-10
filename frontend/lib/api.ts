@@ -9,11 +9,17 @@ export type User = {
   plan: string;
   avatar?: string | null;
   bio?: string | null;
+  username?: string | null;
   onboarded_at?: string | null;
   intent?: Intent | null;
 };
 
-export type PerfilPatch = { name?: string; bio?: string | null; intent?: Intent };
+export type PerfilPatch = {
+  name?: string;
+  bio?: string | null;
+  intent?: Intent;
+  username?: string;
+};
 
 // O cadastro pode criar a conta e ainda assim não abrir sessão; quem chama precisa
 // saber disso para mandar o usuário ao login em vez da área logada.
@@ -52,6 +58,10 @@ function messageFor(status: number, data: ApiError | null): string {
 
   if (data?.code === "INVALID_CREDENTIALS") {
     return "E-mail ou senha incorretos.";
+  }
+
+  if (data?.code === "USERNAME_ALREADY_TAKEN") {
+    return "Este nome de usuário já está em uso. Escolha outro.";
   }
 
   if (status === 422) {
