@@ -1,6 +1,7 @@
 """E-mail de boas-vindas. Ao contrário do reset, falhar aqui não invalida nada: a
 conta já existe, e o cadastro não pode virar erro porque o Brevo caiu."""
 
+import html
 import logging
 
 from fastapi import BackgroundTasks
@@ -17,6 +18,11 @@ NAVY = "#1E1B4B"
 
 # Tabela e estilo inline porque cliente de e-mail não tem flexbox nem <style> confiável.
 def _html(nome: str) -> str:
+    # O nome vem do cadastro sem restrição de caractere, e o e-mail sai antes de
+    # qualquer prova de posse do endereço: sem escapar, dá para cadastrar o e-mail
+    # de outra pessoa e mandar HTML escolhido pelo atacante numa mensagem oficial.
+    nome = html.escape(nome)
+
     return f"""\
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
        style="background:#ffffff;padding:32px 16px">
@@ -45,7 +51,8 @@ def _html(nome: str) -> str:
           <strong>1.</strong> Você monta o look e cola o link de cada peça na loja
           onde ela está.<br>
           <strong>2.</strong> A IA gera a imagem da composição.<br>
-          <strong>3.</strong> O look entra no feed, e cada clique em link de compra é registrado.
+          <strong>3.</strong> O look vai para o feed, e cada clique em link de compra
+          passará a ser registrado.
         </p>
       </td></tr>
       <tr><td style="padding:24px 8px 0">
@@ -72,7 +79,7 @@ def _texto(nome: str) -> str:
         "Como vai funcionar:\n"
         "1. Você monta o look e cola o link de cada peça na loja onde ela está.\n"
         "2. A IA gera a imagem da composição.\n"
-        "3. O look entra no feed, e cada clique em link de compra é registrado.\n\n"
+        "3. O look vai para o feed, e cada clique em link de compra passará a ser registrado.\n\n"
         "O editor de looks está em desenvolvimento. Avisamos por aqui quando entrar no ar.\n"
     )
 
