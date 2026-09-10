@@ -14,6 +14,24 @@ class UsernameAlreadyTaken(DomainError):
     code = "USERNAME_ALREADY_TAKEN"
 
 
+class LookNotFound(DomainError):
+    code = "LOOK_NOT_FOUND"
+
+
+class LookWithoutPiece(DomainError):
+    code = "LOOK_WITHOUT_PIECE"
+    rule = "RN04"
+
+
+class LookWithoutImage(DomainError):
+    code = "LOOK_WITHOUT_IMAGE"
+
+
+class NotTheOwner(DomainError):
+    code = "NOT_THE_OWNER"
+    rule = "RN07"
+
+
 class InvalidCredentials(DomainError):
     code = "INVALID_CREDENTIALS"
     detail = "E-mail ou senha incorretos"
