@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
+from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_auth_service, get_password_reset_service
 from app.core.exceptions import (
@@ -16,6 +17,7 @@ from app.core.rate_limit import (
     LIMIT_RESET,
     limiter,
 )
+from app.database import get_db
 from app.schemas.user import (
     ForgotPasswordIn,
     LoginIn,
@@ -37,6 +39,7 @@ def register(
     request: Request,
     data: UserCreate,
     background: BackgroundTasks,
+    db: Annotated[Session, Depends(get_db)],
     service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> UserOut:
     try:
@@ -44,10 +47,17 @@ def register(
     except EmailAlreadyRegistered as error:
         raise DomainHTTPException(status.HTTP_409_CONFLICT, error) from error
 
-    # Depois da resposta: o envio tem timeout de 10s, e ninguém deve esperar por ele.
+    saida = UserOut.model_validate(usuario)
+
+    # O commit do `get_db` só roda depois das tarefas de fundo, e o envio tem timeout
+    # de 10s: sem comitar aqui, a conta fica invisível durante todo o envio, e o
+    # login automático que o frontend faz em seguida falha com a conta já criada.
+    db.commit()
+
+    # Depois da resposta: ninguém deve esperar pelo e-mail.
     welcome_service.schedule(usuario.email, usuario.name, background)
 
-    return UserOut.model_validate(usuario)
+    return saida
 
 
 @router.post("/login", response_model=TokenOut)
