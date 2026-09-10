@@ -26,7 +26,8 @@ const PASSOS: PassoDoFluxo[] = [
   {
     numero: "03",
     titulo: "Publica e acompanha",
-    descricao: "O look entra no feed público, e cada clique em link de compra é registrado.",
+    descricao:
+      "O look vai para o feed público, e cada clique em link de compra passará a ser registrado.",
   },
 ];
 
@@ -62,7 +63,7 @@ export default async function InicioPage() {
           uma tela vazia, que é pior que dizer que ainda não dá. */}
       <p className="mt-8 max-w-[60ch] leading-relaxed text-navy/65">
         O editor de looks está <strong className="font-semibold text-navy">em desenvolvimento</strong>.
-        Enquanto isso, você já pode navegar pelo feed público e ajustar seu perfil.
+        Enquanto isso, você já pode ajustar seu perfil e os dados da conta.
       </p>
 
       {/* Só uma ação, e ela leva adiante. "Ver o site" saiu porque era ação para

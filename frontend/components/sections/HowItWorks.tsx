@@ -15,7 +15,7 @@ const SECONDARY = [
     number: "03",
     title: "Publica e acompanha",
     description:
-      "O look entra no feed público. Cada clique em link de compra é registrado para você.",
+      "O look vai para o feed público. Cada clique em link de compra passará a ser registrado para você.",
   },
 ];
 
