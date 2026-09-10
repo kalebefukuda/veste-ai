@@ -46,10 +46,21 @@ describe("página inicial da conta", () => {
   it("leva para as configurações da conta", async () => {
     render(await InicioPage());
 
-    expect(screen.getByRole("link", { name: /configurações/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /completar meu perfil/i })).toHaveAttribute(
       "href",
       "/configuracoes",
     );
+  });
+
+  // A tela tinha um "Ver o site" apontando para a raiz no lugar da ação principal:
+  // ação para trás vestida de ação para frente, num funil que deveria seguir adiante.
+  // Voltar ao site é a marca no header, não botão de boas-vindas.
+  it("não oferece caminho para trás como ação principal", async () => {
+    render(await InicioPage());
+
+    const paraTras = screen.queryAllByRole("link").filter((l) => l.getAttribute("href") === "/");
+
+    expect(paraTras).toHaveLength(0);
   });
 
   it("manda ao login quando o backend recusa o token", async () => {
