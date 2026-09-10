@@ -24,6 +24,7 @@ from app.schemas.user import (
     UserCreate,
     UserOut,
 )
+from app.services import welcome_service
 from app.services.auth_service import AuthService
 from app.services.password_reset_service import PasswordResetService
 
@@ -35,12 +36,18 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def register(
     request: Request,
     data: UserCreate,
+    background: BackgroundTasks,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> UserOut:
     try:
-        return UserOut.model_validate(service.register(data))
+        usuario = service.register(data)
     except EmailAlreadyRegistered as error:
         raise DomainHTTPException(status.HTTP_409_CONFLICT, error) from error
+
+    # Depois da resposta: o envio tem timeout de 10s, e ninguém deve esperar por ele.
+    welcome_service.schedule(usuario.email, usuario.name, background)
+
+    return UserOut.model_validate(usuario)
 
 
 @router.post("/login", response_model=TokenOut)
