@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AuthPanelTransition } from "@/components/AuthPanelTransition";
+import LookMockup from "@/components/auth/LookMockup";
 
 const Wordmark = ({ tone = "navy" }: { tone?: "navy" | "white" }) => (
   <span
@@ -13,7 +14,8 @@ const Wordmark = ({ tone = "navy" }: { tone?: "navy" | "white" }) => (
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="grid min-h-dvh lg:grid-cols-2">
-      {/* Só a marca e a promessa: sem métrica de engajamento, que não existe ainda. */}
+      {/* O mockup é o artefato que a plataforma gera — não métrica de engajamento
+          nem depoimento, que seriam dado inventado num trabalho avaliado. */}
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-navy p-14 lg:flex">
         <div
           aria-hidden
@@ -25,11 +27,20 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Wordmark tone="white" />
         </Link>
 
-        <p className="relative max-w-md text-5xl font-bold leading-[1.05] tracking-[-0.04em] text-white">
-          Vista ideias.
-          <br />
-          Venda looks.
-        </p>
+        <div className="relative my-10 flex flex-1 items-center justify-center">
+          <LookMockup />
+        </div>
+
+        <div className="relative">
+          <p className="max-w-md text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-white xl:text-5xl">
+            Vista ideias.
+            <br />
+            Venda looks.
+          </p>
+          <p className="mt-5 max-w-[34ch] leading-relaxed text-white/60">
+            Um look, cada peça com o caminho até a loja onde ela está.
+          </p>
+        </div>
       </aside>
 
       <section className="flex items-center justify-center px-6 py-16 sm:px-12">
