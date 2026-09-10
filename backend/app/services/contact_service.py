@@ -2,9 +2,13 @@
 chegar a quem preencheu: dizer "enviado" sem nada ter saído é pior que dar erro."""
 
 import html
+import logging
 
 from app.clients.brevo import send_email
 from app.config import get_settings
+from app.core.exceptions import EmailDeliveryFailed
+
+logger = logging.getLogger(__name__)
 
 NAVY = "#1E1B4B"
 PURPLE = "#8B5CF6"
@@ -43,12 +47,20 @@ def _corpo(remetente: str, mensagem: str) -> tuple[str, str]:
 
 
 def send(remetente: str, mensagem: str) -> None:
+    destino = get_settings().contact_destination
+
+    if not destino:
+        # Sem destino o pedido não chega a ninguém, e o prazo legal corre. Falhar
+        # alto é a única saída honesta: aceitar e descartar seria pior.
+        logger.error("CONTACT_DESTINATION ausente: pedido do titular não foi entregue")
+        raise EmailDeliveryFailed()
+
     html_corpo, texto = _corpo(remetente, mensagem)
 
     # O destino sai de variável de ambiente e nunca da entrada: assunto e
     # destinatário montados com dado de terceiro é como se injeta cabeçalho.
     send_email(
-        get_settings().contact_destination,
+        destino,
         "VesteAí — pedido pelo canal de privacidade",
         html_corpo,
         texto,
