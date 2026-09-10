@@ -91,5 +91,8 @@ describe("campo de senha", () => {
 
     expect(screen.getByLabelText("Senha")).toHaveAttribute("type", "text");
     expect(screen.getByRole("button", { name: "Ocultar senha" })).toBeInTheDocument();
+    // O ícone é decorativo: quem anuncia o botão é o aria-label, e um emoji lido
+    // em voz alta ("macaco que não vê") não descreve a ação.
+    expect(screen.getByRole("button", { name: "Ocultar senha" }).textContent).toBe("");
   });
 });
