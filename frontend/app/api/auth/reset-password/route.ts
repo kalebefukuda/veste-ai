@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 
+import { cabecalhoDeIp } from "@/lib/client-ip";
 import { apiUrl } from "@/lib/session";
 
 export async function POST(request: Request) {
   const response = await fetch(apiUrl("/auth/reset-password"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...cabecalhoDeIp(request) },
     body: JSON.stringify(await request.json()),
   });
 

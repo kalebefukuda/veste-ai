@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { cabecalhoDeIp } from "@/lib/client-ip";
 import { apiUrl, storeSession } from "@/lib/session";
 
 export async function POST(request: Request) {
@@ -7,7 +8,7 @@ export async function POST(request: Request) {
 
   const response = await fetch(apiUrl("/auth/register"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...cabecalhoDeIp(request) },
     body: JSON.stringify(body),
   });
 
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   // Cadastro já entra logado: repetir as credenciais é atrito sem função.
   const session = await fetch(apiUrl("/auth/login"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...cabecalhoDeIp(request) },
     body: JSON.stringify({ email: body.email, password: body.password }),
   });
 
