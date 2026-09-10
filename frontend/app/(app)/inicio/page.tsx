@@ -3,8 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import Passos from "@/components/inicio/Passos";
+import MeusLooks from "@/components/looks/MeusLooks";
 import { COMECAR, CONFIGURACOES } from "@/lib/routes";
 import { carregarUsuarioLogado } from "@/lib/usuario";
+import { carregarMeusLooks } from "@/lib/looks";
 import type { PassoDoFluxo } from "@/types";
 
 export const metadata: Metadata = {
@@ -32,7 +34,7 @@ const PASSOS: PassoDoFluxo[] = [
 ];
 
 export default async function InicioPage() {
-  const usuario = await carregarUsuarioLogado();
+  const [usuario, looks] = await Promise.all([carregarUsuarioLogado(), carregarMeusLooks()]);
 
   // Conta nova passa pela configuração antes das boas-vindas. Complemento exato da
   // guarda em /comecar, então as duas não se empurram em laço.
@@ -53,33 +55,20 @@ export default async function InicioPage() {
         editor entrar no ar.
       </p>
 
-      <p className="mt-16 text-xs font-bold uppercase tracking-[0.2em] text-navy/70">
-        Como vai funcionar
-      </p>
+      {/* O bloco de "como vai funcionar" é estado de conta nova, não decoração fixa:
+          quem já montou um look não precisa da explicação toda vez que entra. */}
+      {looks.length === 0 && (
+        <>
+          <p className="mt-16 text-xs font-bold uppercase tracking-[0.2em] text-navy/70">
+            Como vai funcionar
+          </p>
 
-      <Passos passos={PASSOS} />
+          <Passos passos={PASSOS} />
+        </>
+      )}
 
-      {/* Sem botão para o que não existe: passo anunciado como disponível levaria a
-          uma tela vazia, que é pior que dizer que ainda não dá. */}
-      <p className="mt-8 max-w-[60ch] leading-relaxed text-navy/65">
-        O editor de looks está <strong className="font-semibold text-navy">em desenvolvimento</strong>.
-        Enquanto isso, você já pode ajustar seu perfil e os dados da conta.
-      </p>
-
-      {/* Só uma ação, e ela leva adiante. "Ver o site" saiu porque era ação para
-          trás no lugar da principal; voltar ao site é a marca no header. O botão de
-          entrar no feed nasce quando o feed existir — hoje esta página já é a
-          plataforma, e apontar para ela mesma é pior que não ter botão. */}
-      <div className="mt-12 border-t border-navy/10 pt-10">
-        <Link
-          href={CONFIGURACOES}
-          className="inline-block rounded-2xl bg-purple px-6 py-3.5 text-sm font-semibold
-            text-white transition hover:bg-purple/90 focus-visible:ring-2
-            focus-visible:ring-purple/40 focus-visible:ring-offset-2
-            motion-safe:active:scale-[0.99]"
-        >
-          Completar meu perfil
-        </Link>
+      <div className="mt-16 border-t border-navy/10 pt-12">
+        <MeusLooks looks={looks} />
       </div>
     </main>
   );
