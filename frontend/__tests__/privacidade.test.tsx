@@ -12,7 +12,7 @@ describe("política de privacidade", () => {
     const textos = screen.getAllByRole("row").map((l) => l.textContent ?? "");
 
     expect(textos.some((t) => /nome e e-mail/i.test(t) && /art\. 7º, V/.test(t))).toBe(true);
-    expect(textos.some((t) => /avatar e bio/i.test(t) && /art\. 7º, I/.test(t))).toBe(true);
+    expect(textos.some((t) => /avatar, bio e nome de usuário/i.test(t))).toBe(true);
   });
 
   // A página nasceu descrevendo a RFC, não o código: declarava coleta de cliques,
@@ -36,6 +36,20 @@ describe("política de privacidade", () => {
     expect(textoDaPagina()).toMatch(/nas configurações da sua conta/i);
     expect(textoDaPagina()).toMatch(/perdeu acesso/i);
     expect(textoDaPagina()).not.toMatch(/atendido manualmente/i);
+  });
+
+  // O formulário desta mesma página coleta e-mail e texto livre. Fazer coleta sem
+  // declarar é o espelho do defeito anterior, em que a página declarava coleta que
+  // não acontecia — e é igualmente falso para o titular.
+  it("declara os dados que o próprio formulário coleta", () => {
+    render(<PrivacidadePage />);
+
+    const linhas = screen.getAllByRole("row").map((l) => l.textContent ?? "");
+
+    expect(linhas.some((t) => /formulário desta página/i.test(t) && /art\. 7º, II/.test(t))).toBe(
+      true,
+    );
+    expect(textoDaPagina()).toMatch(/não entra no banco da plataforma/i);
   });
 
   it("nega coletar dado de pagamento", () => {
