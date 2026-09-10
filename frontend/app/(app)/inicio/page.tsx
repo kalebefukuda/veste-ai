@@ -60,21 +60,19 @@ export default async function InicioPage() {
         Enquanto isso, você já pode navegar pelo feed público e ajustar seu perfil.
       </p>
 
-      <div className="mt-12 flex flex-wrap gap-4 border-t border-navy/10 pt-10">
+      {/* Só uma ação, e ela leva adiante. "Ver o site" saiu porque era ação para
+          trás no lugar da principal; voltar ao site é a marca no header. O botão de
+          entrar no feed nasce quando o feed existir — hoje esta página já é a
+          plataforma, e apontar para ela mesma é pior que não ter botão. */}
+      <div className="mt-12 border-t border-navy/10 pt-10">
         <Link
           href={CONFIGURACOES}
-          className="rounded-2xl border border-navy/15 px-5 py-3 text-sm font-semibold text-navy
-            transition hover:border-purple hover:text-purple focus-visible:ring-2
-            focus-visible:ring-purple/40 focus-visible:ring-offset-2"
+          className="inline-block rounded-2xl bg-purple px-6 py-3.5 text-sm font-semibold
+            text-white transition hover:bg-purple/90 focus-visible:ring-2
+            focus-visible:ring-purple/40 focus-visible:ring-offset-2
+            motion-safe:active:scale-[0.99]"
         >
-          Configurações da conta
-        </Link>
-        <Link
-          href="/"
-          className="rounded-2xl px-5 py-3 text-sm font-semibold text-navy/70 transition
-            hover:text-navy focus-visible:ring-2 focus-visible:ring-purple/40"
-        >
-          Ver o site
+          Completar meu perfil
         </Link>
       </div>
     </main>
