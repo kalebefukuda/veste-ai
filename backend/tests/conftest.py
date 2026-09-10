@@ -7,6 +7,12 @@ os.environ.setdefault(
 )
 os.environ.setdefault("JWT_SECRET", "test-only-secret")
 
+# Sem chave o cliente do Brevo devolve EmailDeliveryFailed antes de tocar a rede.
+# Não é `setdefault`: precisa vencer o backend/.env, que tem uma chave real — senão
+# a suíte dispara e-mail de verdade para endereços @exemplo.com, e bounce em massa
+# é o que derruba reputação de remetente.
+os.environ["BREVO_API_KEY"] = ""
+
 import subprocess  # noqa: E402
 import sys  # noqa: E402
 from collections.abc import Iterator  # noqa: E402
