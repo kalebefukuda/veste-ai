@@ -12,6 +12,7 @@ os.environ.setdefault("JWT_SECRET", "test-only-secret")
 # a suíte dispara e-mail de verdade para endereços @exemplo.com, e bounce em massa
 # é o que derruba reputação de remetente.
 os.environ["BREVO_API_KEY"] = ""
+os.environ.setdefault("CONTACT_DESTINATION", "destino-de-teste@exemplo.com")
 
 import subprocess  # noqa: E402
 import sys  # noqa: E402

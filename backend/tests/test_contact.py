@@ -87,6 +87,19 @@ def test_tem_freio_de_requisicao(client: TestClient, enviados: list) -> None:
     assert ultimo == 429, "não bloqueou em 100 tentativas: o formulário está sem freio"
 
 
+# Um padrão plausível como `privacidade@vesteai.site` faria o formulário aceitar o
+# pedido e mandar para um endereço sem MX: o pedido some e o prazo legal corre.
+def test_sem_destino_configurado_falha_alto(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, enviados: list
+) -> None:
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "contact_destination", "")
+
+    assert client.post("/contact", json=PEDIDO).status_code == 502
+    assert enviados == []
+
+
 # Quem preencheu não tem o que fazer com falha de infraestrutura de e-mail, mas
 # também não pode receber "enviado" quando nada saiu.
 def test_falha_no_envio_vira_erro_visivel(
