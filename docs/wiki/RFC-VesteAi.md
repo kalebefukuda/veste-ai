@@ -1053,7 +1053,7 @@ looks (
   user_id      UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title        VARCHAR(200) NOT NULL,
   description  TEXT,
-  image_url    TEXT         NOT NULL,
+  image_url    TEXT,                                -- ver ADR-0019
   ai_generated BOOLEAN      NOT NULL DEFAULT false,
   status       VARCHAR(20)  NOT NULL DEFAULT 'draft',  -- 'draft' | 'published'
   created_at   TIMESTAMP    NOT NULL DEFAULT now()
