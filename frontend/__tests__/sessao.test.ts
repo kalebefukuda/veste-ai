@@ -20,6 +20,10 @@ import AppLayout from "@/app/(app)/layout";
 import { POST as logout } from "@/app/api/auth/logout/route";
 import { GET as baixarDados } from "@/app/api/users/me/export/route";
 import {
+  DELETE as limparOnboarding,
+  POST as marcarOnboarding,
+} from "@/app/api/users/me/onboarding/route";
+import {
   DELETE as excluirConta,
   GET as lerPerfil,
   PATCH as salvarPerfil,
@@ -209,5 +213,41 @@ describe("download dos dados", () => {
     );
 
     expect((await baixarDados()).status).toBe(401);
+  });
+});
+
+describe("proxy do onboarding", () => {
+  it("recusa sem sessão nas duas direções", async () => {
+    cookieStore.get.mockReturnValue(undefined);
+
+    expect((await marcarOnboarding()).status).toBe(401);
+    expect((await limparOnboarding()).status).toBe(401);
+  });
+
+  it("encaminha o token e o método que o backend espera", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    const chamou = vi
+      .fn()
+      .mockResolvedValue({ status: 200, json: async () => ({ onboarded_at: null }) });
+    vi.stubGlobal("fetch", chamou);
+
+    await marcarOnboarding();
+    await limparOnboarding();
+
+    expect(chamou.mock.calls[0][1]).toMatchObject({
+      method: "POST",
+      headers: { Authorization: "Bearer tok" },
+    });
+    expect(chamou.mock.calls[1][1]).toMatchObject({ method: "DELETE" });
+  });
+
+  it("repassa a recusa do backend", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ status: 401, json: async () => ({ detail: "expirou" }) }),
+    );
+
+    expect((await marcarOnboarding()).status).toBe(401);
   });
 });

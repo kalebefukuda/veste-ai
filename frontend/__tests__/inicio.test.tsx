@@ -16,7 +16,15 @@ vi.mock("next/navigation", () => ({
 import InicioPage from "@/app/(app)/inicio/page";
 import AppHeader from "@/components/layout/AppHeader";
 
-const USUARIO = { id: "1", name: "Mariana", email: "mari@exemplo.com", plan: "free" };
+// Já concluiu o funil: estes testes são sobre o conteúdo das boas-vindas, e a
+// guarda que desvia a conta nova para /comecar é coberta em comecar.test.tsx.
+const USUARIO = {
+  id: "1",
+  name: "Mariana",
+  email: "mari@exemplo.com",
+  plan: "free",
+  onboarded_at: "2026-09-01T10:00:00Z",
+};
 
 beforeEach(() => {
   cookieStore.get.mockReset();

@@ -4,17 +4,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import PerfilForm from "@/components/configuracoes/PerfilForm";
 import ExcluirConta from "@/components/configuracoes/ExcluirConta";
+import ReverOnboarding from "@/components/configuracoes/ReverOnboarding";
 import AppHeader from "@/components/layout/AppHeader";
 
 const replace = vi.fn();
 const refresh = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh }) }));
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh, push }) }));
 
 const USUARIO = { id: "1", name: "Mariana", email: "mari@exemplo.com", plan: "free", bio: "Antiga" };
 
 beforeEach(() => {
   replace.mockClear();
   refresh.mockClear();
+  push.mockClear();
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -152,5 +155,22 @@ describe("excluir a conta", () => {
     await user.click(screen.getByRole("button", { name: /cancelar/i }));
 
     expect(screen.queryByLabelText(/senha/i)).not.toBeInTheDocument();
+  });
+});
+
+// A segunda metade da liberdade que o funil promete: poder voltar e refazer. Sem
+// isto, "pular por agora" seria uma porta que fecha para sempre.
+describe("refazer a configuração inicial", () => {
+  it("limpa o onboarding e reabre o funil", async () => {
+    const user = userEvent.setup();
+    const chamou = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
+    vi.stubGlobal("fetch", chamou);
+    render(<ReverOnboarding />);
+
+    await user.click(screen.getByRole("button", { name: /refazer a configuração inicial/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/comecar"));
+    expect(chamou.mock.calls[0][0]).toBe("/api/users/me/onboarding");
+    expect(chamou.mock.calls[0][1].method).toBe("DELETE");
   });
 });
