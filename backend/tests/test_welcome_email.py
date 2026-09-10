@@ -57,3 +57,19 @@ def test_falha_no_envio_nao_derruba_o_cadastro(
         "/auth/login",
         json={"email": CREDENCIAIS["email"], "password": CREDENCIAIS["password"]},
     ).status_code == 200
+
+
+# O e-mail sai antes de qualquer prova de posse do endereço: dá para cadastrar o
+# e-mail de outra pessoa com um nome cheio de markup e mandar HTML escolhido pelo
+# atacante dentro de uma mensagem oficial da plataforma.
+def test_o_nome_nao_injeta_html_no_email(client: TestClient, enviados: list) -> None:
+    nome = '<a href="https://phishing.exemplo">clique aqui</a>'
+    client.post(
+        "/auth/register",
+        json={"name": nome, "email": "alvo@exemplo.com", "password": "senha-bem-longa"},
+    )
+
+    html = enviados[0][2]
+
+    assert "<a href=" not in html.replace('<a href="https://vesteai.site"', "")
+    assert "&lt;a href=" in html
