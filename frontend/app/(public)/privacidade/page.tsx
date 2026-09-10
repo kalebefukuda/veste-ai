@@ -22,9 +22,14 @@ const DADOS = [
     base: "Execução de contrato — art. 7º, V",
   },
   {
-    dado: "Avatar e bio",
+    dado: "Avatar, bio e nome de usuário",
     finalidade: "Personalização do perfil público",
     base: "Consentimento — art. 7º, I",
+  },
+  {
+    dado: "E-mail e texto enviados no formulário desta página",
+    finalidade: "Atender ao seu pedido e responder no prazo",
+    base: "Cumprimento de obrigação legal — art. 7º, II",
   },
 ];
 
@@ -152,9 +157,12 @@ export default function PrivacidadePage() {
           Retenção
         </h2>
         <p className="mt-4 leading-relaxed text-navy/65">
-          Os dados são mantidos enquanto a conta existir. Depois da exclusão, os
-          dados pessoais são removidos. Esta página descreve o tratamento que a
-          plataforma faz hoje; qualquer coleta nova — métricas de clique, por
+          Os dados da conta são mantidos enquanto ela existir; depois da exclusão, são
+          removidos. O que você envia pelo formulário desta página fica guardado
+          apenas na caixa de quem responde, pelo tempo necessário para atender ao
+          pedido e comprovar que ele foi atendido — não entra no banco da
+          plataforma nem se liga à sua conta. Esta página descreve o tratamento que
+          a plataforma faz hoje; qualquer coleta nova — métricas de clique, por
           exemplo — só entra aqui quando passar a existir de fato.
         </p>
 
