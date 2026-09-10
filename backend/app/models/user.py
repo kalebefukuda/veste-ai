@@ -18,6 +18,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True)
     password: Mapped[str] = mapped_column(Text)
     plan: Mapped[str] = mapped_column(String(20), server_default="free")
+    # Endereço público da pessoa. Guardado sempre em minúscula: `Mariana` e `mariana`
+    # convivendo seriam dois perfis e ninguém saberia qual digitar.
+    username: Mapped[str | None] = mapped_column(String(30), unique=True, index=True)
     avatar: Mapped[str | None] = mapped_column(Text)
     bio: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(server_default=text("now()"))

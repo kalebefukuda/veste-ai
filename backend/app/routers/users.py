@@ -2,9 +2,11 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user
+from app.core.exceptions import DomainHTTPException, UsernameAlreadyTaken
 from app.core.rate_limit import LIMIT_DELETE_ACCOUNT, limiter
 from app.core.security import verify_password
 from app.database import get_db
@@ -29,7 +31,14 @@ def update_me(
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
 
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError as error:
+        # Só o handle tem unicidade neste PATCH; o e-mail não passa por aqui.
+        db.rollback()
+        raise DomainHTTPException(
+            status.HTTP_409_CONFLICT, UsernameAlreadyTaken()
+        ) from error
 
     return UserOut.model_validate(user)
 

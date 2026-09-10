@@ -10,6 +10,10 @@ class EmailAlreadyRegistered(DomainError):
     detail = "Este e-mail já está cadastrado"
 
 
+class UsernameAlreadyTaken(DomainError):
+    code = "USERNAME_ALREADY_TAKEN"
+
+
 class InvalidCredentials(DomainError):
     code = "INVALID_CREDENTIALS"
     detail = "E-mail ou senha incorretos"
