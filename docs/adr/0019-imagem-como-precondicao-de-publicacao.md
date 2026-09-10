@@ -1,8 +1,6 @@
 # ADR-0019 — Imagem do look é pré-condição de publicação, não coluna obrigatória
 
-## Status
-
-Aceita — 10/09/2026.
+Data: 10/09/2026 · Status: aceita
 
 ## Contexto
 
