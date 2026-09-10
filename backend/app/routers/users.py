@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -58,3 +59,30 @@ def delete_me(
     UserRepository(db).delete(user)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# Pular e concluir marcam a mesma coisa: quem pulou não pode levar o funil de novo
+# em cada login, senão "pular por agora" vira "pular até recarregar".
+@router.post("/me/onboarding")
+def marcar_onboarding(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> UserOut:
+    if user.onboarded_at is None:
+        user.onboarded_at = datetime.now(UTC)
+        db.flush()
+
+    return UserOut.model_validate(user)
+
+
+# A outra metade da liberdade: rever depois. Volta a coluna para nulo, e o funil
+# reaparece por escolha de quem pediu.
+@router.delete("/me/onboarding")
+def limpar_onboarding(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> UserOut:
+    user.onboarded_at = None
+    db.flush()
+
+    return UserOut.model_validate(user)

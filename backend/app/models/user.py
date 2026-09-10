@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Text, text
+from sqlalchemy import DateTime, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,6 +21,10 @@ class User(Base):
     avatar: Mapped[str | None] = mapped_column(Text)
     bio: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(server_default=text("now()"))
+    # Nulo é "ainda não passou pelo funil". Limpar de volta para nulo é o que
+    # permite rever o onboarding depois, por escolha da pessoa.
+    onboarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    intent: Mapped[str | None] = mapped_column(String(20))
     # Token emitido antes desta marca é recusado: é o que permite invalidar sessão
     # antiga na troca de senha sem abandonar o JWT stateless.
     password_changed_at: Mapped[datetime] = mapped_column(server_default=text("now()"))

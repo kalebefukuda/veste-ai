@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -19,6 +20,8 @@ class UserOut(BaseModel):
     plan: str
     avatar: str | None = None
     bio: str | None = None
+    onboarded_at: datetime | None = None
+    intent: str | None = None
 
 
 # Devolve tudo que a conta guarda sobre o titular, menos a senha: credencial não é
@@ -51,6 +54,9 @@ class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=100)
     avatar: str | None = None
     bio: str | None = Field(default=None, max_length=500)
+    # Literal e não str: valor livre viraria lixo no banco e quebraria a
+    # ramificação do tour, que decide o que mostrar com base nesta coluna.
+    intent: Literal["creator", "shopper"] | None = None
 
     # `users.name` é NOT NULL: sem esta guarda, mandar null viraria 500 no flush.
     # `avatar` e `bio` podem ser limpos de propósito.
