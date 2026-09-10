@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import PrivacidadePage from "@/app/(public)/privacidade/page";
-import { CONTATO_LGPD } from "@/lib/contato";
 
 const textoDaPagina = () => document.body.textContent ?? "";
 
@@ -37,16 +36,6 @@ describe("política de privacidade", () => {
     expect(textoDaPagina()).toMatch(/nas configurações da sua conta/i);
     expect(textoDaPagina()).toMatch(/perdeu acesso/i);
     expect(textoDaPagina()).not.toMatch(/atendido manualmente/i);
-  });
-
-  // Canal do titular que não é clicável vira canal que ninguém usa.
-  it("publica o canal do titular como mailto", () => {
-    render(<PrivacidadePage />);
-
-    expect(screen.getByRole("link", { name: CONTATO_LGPD })).toHaveAttribute(
-      "href",
-      `mailto:${CONTATO_LGPD}`,
-    );
   });
 
   it("nega coletar dado de pagamento", () => {

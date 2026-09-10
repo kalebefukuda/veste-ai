@@ -18,6 +18,7 @@ vi.mock("next/navigation", () => ({
 import ConfiguracoesPage from "@/app/(app)/configuracoes/page";
 import AppLayout from "@/app/(app)/layout";
 import { POST as logout } from "@/app/api/auth/logout/route";
+import { POST as contato } from "@/app/api/contact/route";
 import { GET as baixarDados } from "@/app/api/users/me/export/route";
 import {
   DELETE as limparOnboarding,
@@ -249,5 +250,36 @@ describe("proxy do onboarding", () => {
     );
 
     expect((await marcarOnboarding()).status).toBe(401);
+  });
+});
+
+// Rota pública, mas o navegador continua sem falar com a API direto: quem tem a
+// URL do backend é o servidor do Next, aqui como em toda rota da aplicação.
+describe("proxy do contato", () => {
+  const pedido = () =>
+    new Request("http://localhost/api/contact", {
+      method: "POST",
+      body: JSON.stringify({ email: "a@exemplo.com", message: "um pedido qualquer" }),
+    });
+
+  it("encaminha o corpo e repassa o 202", async () => {
+    const chamou = vi
+      .fn()
+      .mockResolvedValue({ status: 202, json: async () => ({ detail: "recebido" }) });
+    vi.stubGlobal("fetch", chamou);
+
+    const resposta = await contato(pedido());
+
+    expect(resposta.status).toBe(202);
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toMatchObject({ email: "a@exemplo.com" });
+  });
+
+  it("repassa o freio do backend em vez de fingir sucesso", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ status: 429, json: async () => ({ detail: "devagar" }) }),
+    );
+
+    expect((await contato(pedido())).status).toBe(429);
   });
 });
