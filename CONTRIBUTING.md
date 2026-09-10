@@ -16,13 +16,15 @@ instalar Python ou Node na máquina.
 ## Fluxo de branches
 
 ```
-feat/nome-da-feature ──PR──▶ dev ──PR de release──▶ main
-                             (staging)              (produção)
+feat/nome-em-ingles ──PR──▶ dev ──PR de release──▶ main
+                            (staging)              (produção)
 ```
 
 - `dev` é o ambiente de staging, `main` é produção. **Nunca commite direto em
   nenhuma das duas** — as duas são protegidas e exigem PR.
 - Prefixos: `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `test/`.
+- O nome depois do prefixo é **em inglês**, como os commits, com palavras separadas
+  por hífen: `feat/account-settings`, `fix/email-configuration`.
 
 ## Commits
 

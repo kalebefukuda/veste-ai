@@ -1,5 +1,6 @@
 "use client";
 
+import { Eye, EyeOff } from "lucide-react";
 import { forwardRef, useId, useState } from "react";
 
 type Props = React.InputHTMLAttributes<HTMLInputElement> & {
@@ -42,7 +43,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(function Input(
             className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-2xl
               text-navy/45 transition hover:text-navy focus-visible:ring-2 focus-visible:ring-purple/40"
           >
-            {visible ? "🙈" : "👁"}
+            {visible ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
           </button>
         )}
       </div>

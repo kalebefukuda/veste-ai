@@ -23,3 +23,14 @@ body {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Sem isto o conteúdo continua deslizando para quem pediu menos movimento no
+   sistema — e quem pede costuma pedir por enjoo, não por preferência estética. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.reveal-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

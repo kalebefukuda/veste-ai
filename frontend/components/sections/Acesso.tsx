@@ -16,7 +16,7 @@ const COM_CONTA = [
   },
   {
     title: "Publicar os seus",
-    description: "Monte looks e acompanhe quantos cliques cada um levou às lojas.",
+    description: "Monte looks e, quando as métricas entrarem, acompanhe quantos cliques cada um levou às lojas.",
   },
 ];
 

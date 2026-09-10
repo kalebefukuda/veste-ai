@@ -3,6 +3,10 @@ export const REGISTER = "/register";
 export const FORGOT_PASSWORD = "/forgot-password";
 export const RESET_PASSWORD = "/reset-password";
 
-// Destino depois de autenticar. Aponta para a landing enquanto a área logada não
-// existe — quando o feed entrar, muda só aqui.
-export const AFTER_AUTH = "/";
+export const COMECAR = "/comecar";
+export const INICIO = "/inicio";
+export const CONFIGURACOES = "/configuracoes";
+
+// Quem acabou de criar conta não pode cair numa tela cujo rodapé é "Excluir minha
+// conta". O onboarding de verdade entra quando o editor de look existir.
+export const AFTER_AUTH = INICIO;

@@ -128,10 +128,14 @@ export default function PrivacidadePage() {
         </p>
         <ul className="mt-5 space-y-3 leading-relaxed text-navy/65">
           <li>
-            <strong className="text-navy">Corrigir, acessar, exportar ou excluir</strong>{" "}
-            seus dados: por solicitação no e-mail abaixo. A plataforma ainda não
-            tem tela de autoatendimento para nenhuma dessas operações — todo
-            pedido é atendido manualmente, dentro do prazo legal.
+            <strong className="text-navy">Corrigir</strong> nome e bio,{" "}
+            <strong className="text-navy">baixar</strong> uma cópia dos seus dados ou{" "}
+            <strong className="text-navy">excluir</strong> a conta: nas configurações da
+            sua conta, sem depender de ninguém e sem prazo de espera.
+          </li>
+          <li>
+            Se você <strong className="text-navy">perdeu acesso</strong> à conta e ainda
+            assim quer exercer esses direitos, use o contato abaixo.
           </li>
         </ul>
         <p className="mt-5 leading-relaxed text-navy/65">

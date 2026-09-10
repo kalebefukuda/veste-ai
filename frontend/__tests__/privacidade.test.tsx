@@ -29,13 +29,14 @@ describe("política de privacidade", () => {
     expect(textoDaPagina()).not.toMatch(/SHA-256|endereço IP/i);
   });
 
-  // Não existe tela de perfil: prometer autoatendimento manda o titular a um
-  // lugar que não existe e queima o prazo legal.
-  it("encaminha todo direito do titular ao canal manual", () => {
+  // A tela existe agora, então a página pode prometer autoatendimento. O canal por
+  // e-mail continua declarado para quem perdeu acesso e não consegue clicar em nada.
+  it("aponta os direitos para as configurações da conta", () => {
     render(<PrivacidadePage />);
 
-    expect(textoDaPagina()).toMatch(/ainda não tem tela de autoatendimento/i);
-    expect(textoDaPagina()).not.toMatch(/configurações do seu perfil/i);
+    expect(textoDaPagina()).toMatch(/nas configurações da sua conta/i);
+    expect(textoDaPagina()).toMatch(/perdeu acesso/i);
+    expect(textoDaPagina()).not.toMatch(/atendido manualmente/i);
   });
 
   // Canal do titular que não é clicável vira canal que ninguém usa.
