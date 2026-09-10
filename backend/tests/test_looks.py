@@ -56,7 +56,9 @@ def test_rn07_nao_edita_look_de_outra_pessoa(client: TestClient) -> None:
 
     invasor = {"Authorization": f"Bearer {token(client, OUTRA)}"}
 
-    assert client.patch(f"/looks/{look}", json={"title": "Roubado"}, headers=invasor).status_code == 403
+    edicao = client.patch(f"/looks/{look}", json={"title": "Roubado"}, headers=invasor)
+
+    assert edicao.status_code == 403
     assert client.delete(f"/looks/{look}", headers=invasor).status_code == 403
 
 
