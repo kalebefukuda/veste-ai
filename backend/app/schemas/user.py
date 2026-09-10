@@ -116,3 +116,12 @@ class ForgotPasswordIn(BaseModel):
 class ResetPasswordIn(BaseModel):
     token: str
     password: str = Field(min_length=8, max_length=128)
+
+
+class ContactIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    # Teto de tamanho porque o corpo vai inteiro para dentro de um e-mail: sem
+    # limite, uma requisição só estoura o payload aceito pelo provedor.
+    message: str = Field(min_length=10, max_length=5000)
