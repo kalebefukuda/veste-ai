@@ -51,6 +51,24 @@ describe("página inicial da conta", () => {
     expect(screen.queryByRole("link", { name: /criar.*look/i })).not.toBeInTheDocument();
   });
 
+  // O rastreio de clique não existe: não há modelo nem rota. Afirmar em presente
+  // que cada clique é registrado é declarar coleta que não acontece — a mesma
+  // correção que a política de privacidade já levou nesta branch.
+  it("fala do rastreio de clique no futuro, porque ele ainda não existe", async () => {
+    render(await InicioPage());
+
+    expect(document.body.textContent).not.toMatch(/clique em link de compra é registrado/i);
+    expect(document.body.textContent).toMatch(/passará a ser registrado/i);
+  });
+
+  // Não existe rota de feed. Dizer que a pessoa já pode navegar por ele cria uma
+  // expectativa que ela não consegue cumprir.
+  it("não promete um feed que ainda não tem rota", async () => {
+    render(await InicioPage());
+
+    expect(document.body.textContent).not.toMatch(/navegar pelo feed/i);
+  });
+
   it("leva para as configurações da conta", async () => {
     render(await InicioPage());
 
