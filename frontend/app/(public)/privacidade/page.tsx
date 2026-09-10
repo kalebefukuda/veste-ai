@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-import { CONTATO_LGPD } from "@/lib/contato";
+import ContatoForm from "@/components/privacidade/ContatoForm";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade — VesteAí",
@@ -22,9 +22,14 @@ const DADOS = [
     base: "Execução de contrato — art. 7º, V",
   },
   {
-    dado: "Avatar e bio",
+    dado: "Avatar, bio e nome de usuário",
     finalidade: "Personalização do perfil público",
     base: "Consentimento — art. 7º, I",
+  },
+  {
+    dado: "E-mail e texto enviados no formulário desta página",
+    finalidade: "Atender ao seu pedido e responder no prazo",
+    base: "Cumprimento de obrigação legal — art. 7º, II",
   },
 ];
 
@@ -139,26 +144,25 @@ export default function PrivacidadePage() {
           </li>
         </ul>
         <p className="mt-5 leading-relaxed text-navy/65">
-          Pedidos devem ser enviados para{" "}
-          <a
-            href={`mailto:${CONTATO_LGPD}`}
-            className="rounded font-semibold text-purple underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-purple/40"
-          >
-            {CONTATO_LGPD}
-          </a>{" "}
-          e são respondidos em até{" "}
-          <strong className="text-navy">15 dias corridos</strong>, conforme a
-          LGPD. A exclusão da conta remove os dados pessoais e os looks
-          publicados.
+          Se você perdeu o acesso à conta, ou quer falar com quem responde pelos dados,
+          use o formulário abaixo. Respondemos em até{" "}
+          <strong className="text-navy">15 dias corridos</strong>, conforme a LGPD.
         </p>
+
+        <div id="contato">
+          <ContatoForm />
+        </div>
 
         <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
           Retenção
         </h2>
         <p className="mt-4 leading-relaxed text-navy/65">
-          Os dados são mantidos enquanto a conta existir. Depois da exclusão, os
-          dados pessoais são removidos. Esta página descreve o tratamento que a
-          plataforma faz hoje; qualquer coleta nova — métricas de clique, por
+          Os dados da conta são mantidos enquanto ela existir; depois da exclusão, são
+          removidos. O que você envia pelo formulário desta página fica guardado
+          apenas na caixa de quem responde, pelo tempo necessário para atender ao
+          pedido e comprovar que ele foi atendido — não entra no banco da
+          plataforma nem se liga à sua conta. Esta página descreve o tratamento que
+          a plataforma faz hoje; qualquer coleta nova — métricas de clique, por
           exemplo — só entra aqui quando passar a existir de fato.
         </p>
 

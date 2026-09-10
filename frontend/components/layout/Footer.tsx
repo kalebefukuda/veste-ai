@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { CONTATO_LGPD } from "@/lib/contato";
 
 export default function Footer() {
   return (
@@ -28,12 +27,14 @@ export default function Footer() {
               </Link>
             </li>
             <li>
-              <a
-                href={`mailto:${CONTATO_LGPD}`}
+              {/* Aponta para o formulário na própria política: o endereço que estava
+                  aqui não recebia, porque o domínio não tem registro MX. */}
+              <Link
+                href="/privacidade#contato"
                 className="rounded underline-offset-4 transition hover:text-purple hover:underline focus-visible:ring-2 focus-visible:ring-purple/40"
               >
                 Exercer meus direitos (LGPD)
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>

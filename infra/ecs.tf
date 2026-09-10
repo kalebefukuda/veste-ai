@@ -64,6 +64,10 @@ resource "aws_ecs_task_definition" "api" {
       { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.db_url.arn },
       { name = "JWT_SECRET", valueFrom = aws_secretsmanager_secret.jwt.arn },
       { name = "BREVO_API_KEY", valueFrom = aws_secretsmanager_secret.brevo_api_key.arn },
+      {
+        name      = "CONTACT_DESTINATION",
+        valueFrom = aws_secretsmanager_secret.contact_destination.arn
+      },
     ]
 
     logConfiguration = {

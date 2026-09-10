@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import PrivacidadePage from "@/app/(public)/privacidade/page";
-import { CONTATO_LGPD } from "@/lib/contato";
 
 const textoDaPagina = () => document.body.textContent ?? "";
 
@@ -13,7 +12,7 @@ describe("política de privacidade", () => {
     const textos = screen.getAllByRole("row").map((l) => l.textContent ?? "");
 
     expect(textos.some((t) => /nome e e-mail/i.test(t) && /art\. 7º, V/.test(t))).toBe(true);
-    expect(textos.some((t) => /avatar e bio/i.test(t) && /art\. 7º, I/.test(t))).toBe(true);
+    expect(textos.some((t) => /avatar, bio e nome de usuário/i.test(t))).toBe(true);
   });
 
   // A página nasceu descrevendo a RFC, não o código: declarava coleta de cliques,
@@ -39,14 +38,18 @@ describe("política de privacidade", () => {
     expect(textoDaPagina()).not.toMatch(/atendido manualmente/i);
   });
 
-  // Canal do titular que não é clicável vira canal que ninguém usa.
-  it("publica o canal do titular como mailto", () => {
+  // O formulário desta mesma página coleta e-mail e texto livre. Fazer coleta sem
+  // declarar é o espelho do defeito anterior, em que a página declarava coleta que
+  // não acontecia — e é igualmente falso para o titular.
+  it("declara os dados que o próprio formulário coleta", () => {
     render(<PrivacidadePage />);
 
-    expect(screen.getByRole("link", { name: CONTATO_LGPD })).toHaveAttribute(
-      "href",
-      `mailto:${CONTATO_LGPD}`,
+    const linhas = screen.getAllByRole("row").map((l) => l.textContent ?? "");
+
+    expect(linhas.some((t) => /formulário desta página/i.test(t) && /art\. 7º, II/.test(t))).toBe(
+      true,
     );
+    expect(textoDaPagina()).toMatch(/não entra no banco da plataforma/i);
   });
 
   it("nega coletar dado de pagamento", () => {

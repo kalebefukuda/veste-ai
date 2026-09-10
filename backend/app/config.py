@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     brevo_api_key: str = ""
     email_sender: str = "nao-responda@vesteai.site"
     email_sender_name: str = "VesteAí"
+    # Destino do canal do titular. Nunca aparece na interface: é o que permite ter
+    # canal de contato sem publicar endereço nenhum. Vazio de propósito — um padrão
+    # plausível faria o formulário aceitar pedidos e mandar para o nada.
+    contact_destination: str = ""
     frontend_reset_url: str = "http://localhost:3000/reset-password"
     rate_limit_storage: str = "memory://"
     env: str = "development"

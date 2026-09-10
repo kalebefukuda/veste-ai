@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { marcarOnboarding, updateMe, type Intent, type User } from "@/lib/api";
+import HandleField from "@/components/ui/HandleField";
 import { INICIO } from "@/lib/routes";
 
 const PUBLICOS: { valor: Intent; titulo: string; descricao: string; icone: React.ReactNode }[] = [
@@ -25,6 +26,7 @@ const PUBLICOS: { valor: Intent; titulo: string; descricao: string; icone: React
 export default function ComecarForm({ usuario }: { usuario: User }) {
   const router = useRouter();
   const [intent, setIntent] = useState<Intent | null>(usuario.intent ?? null);
+  const [handle, setHandle] = useState(usuario.username ?? "");
   const [bio, setBio] = useState(usuario.bio ?? "");
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<"continuar" | "pular" | null>(null);
@@ -36,10 +38,11 @@ export default function ComecarForm({ usuario }: { usuario: User }) {
     try {
       // Nada preenchido não vira PATCH: mandar campos vazios sobrescreveria o que
       // a pessoa já tinha, e "pular" não pode apagar dado.
-      if (gravarPerfil && (intent || bio.trim())) {
+      if (gravarPerfil && (intent || bio.trim() || handle.trim())) {
         await updateMe({
           ...(intent ? { intent } : {}),
           ...(bio.trim() ? { bio } : {}),
+          ...(handle.trim() ? { username: handle.trim() } : {}),
         });
       }
 
@@ -96,6 +99,10 @@ export default function ComecarForm({ usuario }: { usuario: User }) {
           ))}
         </div>
       </fieldset>
+
+      <div className="mt-10">
+        <HandleField valor={handle} onChange={setHandle} />
+      </div>
 
       <label htmlFor="bio" className="mt-10 block text-sm font-semibold text-navy">
         Bio <span className="font-normal text-navy/55">— opcional</span>

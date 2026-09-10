@@ -2,7 +2,26 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+
+# Endereços que a aplicação usa ou vai usar, e que ninguém pode tomar.
+RESERVADOS = frozenset(
+    {
+        "admin",
+        "api",
+        "comecar",
+        "configuracoes",
+        "inicio",
+        "login",
+        "perfil",
+        "privacidade",
+        "register",
+        "root",
+        "sobre",
+        "suporte",
+        "vesteai",
+    }
+)
 
 
 class UserCreate(BaseModel):
@@ -16,6 +35,7 @@ class UserOut(BaseModel):
 
     id: uuid.UUID
     name: str
+    username: str | None = None
     email: EmailStr
     plan: str
     avatar: str | None = None
@@ -57,6 +77,27 @@ class UserUpdate(BaseModel):
     # Literal e não str: valor livre viraria lixo no banco e quebraria a
     # ramificação do tour, que decide o que mostrar com base nesta coluna.
     intent: Literal["creator", "shopper"] | None = None
+    # Vira endereço público: minúscula, dígito e sublinhado só. Hífen e ponto ficam
+    # de fora para não confundir com separador de rota, e acento porque o endereço
+    # precisa ser digitável por quem recebeu o link em qualquer teclado.
+    username: str | None = Field(
+        default=None, min_length=3, max_length=30, pattern=r"^[A-Za-z0-9_]+$"
+    )
+
+    @field_validator("username")
+    @classmethod
+    def handle_em_minuscula(cls, valor: str | None) -> str | None:
+        if valor is None:
+            return None
+
+        minusculo = valor.lower()
+
+        # O perfil público mora sob /perfil/<handle>; sem reservar, alguém registra
+        # `configuracoes` e ocupa um endereço de que a aplicação precisa.
+        if minusculo in RESERVADOS:
+            raise ValueError("Este nome de usuário não está disponível")
+
+        return minusculo
 
     # `users.name` é NOT NULL: sem esta guarda, mandar null viraria 500 no flush.
     # `avatar` e `bio` podem ser limpos de propósito.
@@ -75,3 +116,12 @@ class ForgotPasswordIn(BaseModel):
 class ResetPasswordIn(BaseModel):
     token: str
     password: str = Field(min_length=8, max_length=128)
+
+
+class ContactIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    # Teto de tamanho porque o corpo vai inteiro para dentro de um e-mail: sem
+    # limite, uma requisição só estoura o payload aceito pelo provedor.
+    message: str = Field(min_length=10, max_length=5000)

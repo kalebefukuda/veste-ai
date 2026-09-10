@@ -3,11 +3,13 @@
 import { useState } from "react";
 
 import { updateMe, type User } from "@/lib/api";
+import HandleField from "@/components/ui/HandleField";
 
 type Estado = { tipo: "parado" } | { tipo: "salvando" } | { tipo: "salvo" } | { tipo: "erro"; mensagem: string };
 
 export default function PerfilForm({ usuario }: { usuario: User }) {
   const [nome, setNome] = useState(usuario.name);
+  const [handle, setHandle] = useState(usuario.username ?? "");
   const [bio, setBio] = useState(usuario.bio ?? "");
   const [estado, setEstado] = useState<Estado>({ tipo: "parado" });
 
@@ -18,7 +20,11 @@ export default function PerfilForm({ usuario }: { usuario: User }) {
     try {
       // `bio` vazia vira null de propósito: o schema aceita limpar o campo, e
       // string vazia guardaria um valor que não significa nada.
-      await updateMe({ name: nome, bio: bio.trim() === "" ? null : bio });
+      await updateMe({
+        name: nome,
+        bio: bio.trim() === "" ? null : bio,
+        ...(handle.trim() ? { username: handle.trim() } : {}),
+      });
       setEstado({ tipo: "salvo" });
     } catch (erro) {
       setEstado({ tipo: "erro", mensagem: (erro as Error).message });
@@ -51,6 +57,10 @@ export default function PerfilForm({ usuario }: { usuario: User }) {
           focus-visible:border-purple focus-visible:outline-none focus-visible:ring-2
           focus-visible:ring-purple/30"
       />
+
+      <div className="mt-6">
+        <HandleField valor={handle} onChange={setHandle} />
+      </div>
 
       <label htmlFor="bio" className="mt-6 block text-sm font-semibold text-navy">
         Bio
