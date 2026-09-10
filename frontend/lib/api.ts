@@ -60,6 +60,14 @@ function messageFor(status: number, data: ApiError | null): string {
     return "E-mail ou senha incorretos.";
   }
 
+  if (status === 429) {
+    return "Muitas tentativas. Tente de novo daqui a pouco.";
+  }
+
+  if (status === 502) {
+    return "Não conseguimos enviar agora. Tente de novo em alguns minutos.";
+  }
+
   if (data?.code === "USERNAME_ALREADY_TAKEN") {
     return "Este nome de usuário já está em uso. Escolha outro.";
   }
@@ -115,4 +123,8 @@ export function marcarOnboarding(): Promise<User> {
 
 export function limparOnboarding(): Promise<User> {
   return send<User>("DELETE", "/api/users/me/onboarding", undefined);
+}
+
+export async function enviarContato(email: string, message: string): Promise<void> {
+  await send<{ detail: string }>("POST", "/api/contact", { email, message });
 }
