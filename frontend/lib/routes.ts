@@ -3,6 +3,7 @@ export const REGISTER = "/register";
 export const FORGOT_PASSWORD = "/forgot-password";
 export const RESET_PASSWORD = "/reset-password";
 
+export const COMECAR = "/comecar";
 export const INICIO = "/inicio";
 export const CONFIGURACOES = "/configuracoes";
 

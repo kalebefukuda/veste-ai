@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import Passos from "@/components/inicio/Passos";
-import { CONFIGURACOES } from "@/lib/routes";
+import { COMECAR, CONFIGURACOES } from "@/lib/routes";
 import { carregarUsuarioLogado } from "@/lib/usuario";
 import type { PassoDoFluxo } from "@/types";
 
@@ -31,6 +32,10 @@ const PASSOS: PassoDoFluxo[] = [
 
 export default async function InicioPage() {
   const usuario = await carregarUsuarioLogado();
+
+  // Conta nova passa pela configuração antes das boas-vindas. Complemento exato da
+  // guarda em /comecar, então as duas não se empurram em laço.
+  if (!usuario.onboarded_at) redirect(COMECAR);
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-14 lg:py-20">

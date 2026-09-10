@@ -1,5 +1,7 @@
 export type ApiError = { detail: string; code?: string };
 
+export type Intent = "creator" | "shopper";
+
 export type User = {
   id: string;
   name: string;
@@ -7,9 +9,11 @@ export type User = {
   plan: string;
   avatar?: string | null;
   bio?: string | null;
+  onboarded_at?: string | null;
+  intent?: Intent | null;
 };
 
-export type PerfilPatch = { name?: string; bio?: string | null };
+export type PerfilPatch = { name?: string; bio?: string | null; intent?: Intent };
 
 // O cadastro pode criar a conta e ainda assim não abrir sessão; quem chama precisa
 // saber disso para mandar o usuário ao login em vez da área logada.
@@ -93,4 +97,12 @@ export async function deleteMe(password: string): Promise<void> {
   if (!response.ok) {
     throw new Error(messageFor(response.status, await response.json().catch(() => null)));
   }
+}
+
+export function marcarOnboarding(): Promise<User> {
+  return send<User>("POST", "/api/users/me/onboarding", undefined);
+}
+
+export function limparOnboarding(): Promise<User> {
+  return send<User>("DELETE", "/api/users/me/onboarding", undefined);
 }

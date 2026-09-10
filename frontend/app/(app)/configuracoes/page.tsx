@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import ExcluirConta from "@/components/configuracoes/ExcluirConta";
 import PerfilForm from "@/components/configuracoes/PerfilForm";
+import ReverOnboarding from "@/components/configuracoes/ReverOnboarding";
 import { carregarUsuarioLogado } from "@/lib/usuario";
 
 export const metadata: Metadata = {
@@ -23,6 +24,17 @@ export default async function ConfiguracoesPage() {
       <PerfilForm usuario={usuario} />
 
       <section className="mt-16 border-t border-navy/10 pt-12">
+        <h2 className="text-xl font-bold tracking-[-0.02em] text-navy">Configuração inicial</h2>
+        <p className="mt-3 max-w-[52ch] leading-relaxed text-navy/65">
+          Aquelas perguntas do começo. Se você pulou ou quer mudar a resposta, é por aqui.
+        </p>
+
+        <div className="mt-6">
+          <ReverOnboarding />
+        </div>
+      </section>
+
+      <section className="mt-14 border-t border-navy/10 pt-12">
         <h2 className="text-xl font-bold tracking-[-0.02em] text-navy">Seus dados</h2>
         <p className="mt-3 max-w-[52ch] leading-relaxed text-navy/65">
           A LGPD te dá direito de acessar, levar e apagar o que guardamos sobre você.
