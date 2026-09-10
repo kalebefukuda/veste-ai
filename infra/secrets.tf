@@ -41,3 +41,20 @@ resource "aws_secretsmanager_secret_version" "brevo_api_key" {
     ignore_changes = [secret_string]
   }
 }
+
+# Endereço pessoal de quem responde pelos dados. Vai em Secrets Manager e não em
+# `environment` porque este arquivo é versionado num repositório público: o endereço
+# ficaria no histórico do git para sempre.
+resource "aws_secretsmanager_secret" "contact_destination" {
+  name_prefix = "${var.project}/contact-destination-"
+}
+
+# O valor real é colado no console, pelo mesmo motivo da chave do Brevo.
+resource "aws_secretsmanager_secret_version" "contact_destination" {
+  secret_id     = aws_secretsmanager_secret.contact_destination.id
+  secret_string = "definir-no-console"
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
