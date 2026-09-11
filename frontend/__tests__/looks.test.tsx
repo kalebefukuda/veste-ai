@@ -79,7 +79,7 @@ describe("criação de look", () => {
     vi.stubGlobal("fetch", vi.fn());
     render(<NovoLook />);
 
-    expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/inicio");
+    expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/meus-looks");
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -160,17 +160,20 @@ describe("editor de look", () => {
     await waitFor(() => expect(screen.queryByText("Sobretudo")).not.toBeInTheDocument());
   });
 
-  // Mesma regra que a tela inicial já guarda: o feed não tem rota. Dizer que o look
-  // "já aparece" promete uma tela que ninguém consegue abrir.
-  it("não afirma que o look já está num feed que não existe", async () => {
+  // O feed passou a existir nesta entrega: a tela larga o futuro e afirma o presente,
+  // com o caminho para conferir.
+  it("diz que o look publicado já está no feed e leva até ele", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", responde({ ...RASCUNHO, status: "published" }));
     render(<EditorDeLook inicial={{ ...RASCUNHO, image_url: "https://cdn/x.jpg" }} />);
 
     await user.click(screen.getByRole("button", { name: /publicar look/i }));
 
-    expect(await screen.findByText(/quando o feed entrar no ar/i)).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/já aparece|já valem/i);
+    expect(await screen.findByRole("link", { name: /ver no feed/i })).toHaveAttribute(
+      "href",
+      "/feed/look-1",
+    );
+    expect(document.body.textContent).not.toMatch(/quando o feed entrar no ar/i);
   });
 
   // Sair do campo não é pedir para gravar: quem escreveu e se arrependeu precisa
@@ -245,7 +248,7 @@ describe("editor de look", () => {
     await user.click(screen.getByRole("button", { name: /excluir look/i }));
     await user.click(screen.getByRole("button", { name: /excluir mesmo assim/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/inicio"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/meus-looks"));
     expect(fetch).toHaveBeenCalledWith("/api/looks/look-1", { method: "DELETE" });
   });
 });
