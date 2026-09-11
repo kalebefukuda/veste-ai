@@ -1,46 +1,23 @@
-"use client";
-
 import { ImageOff, Plus } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 
-import { criarLook, type Look } from "@/lib/api";
+import { NOVO_LOOK } from "@/lib/routes";
+import type { Look } from "@/lib/api";
 
 export default function MeusLooks({ looks }: { looks: Look[] }) {
-  const router = useRouter();
-  const [criando, setCriando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-
-  async function comecarUmLook() {
-    setErro(null);
-    setCriando(true);
-
-    try {
-      // Nasce rascunho e já abre no editor: pedir o título numa tela separada antes
-      // de deixar montar seria um formulário no caminho de quem quer trabalhar.
-      const look = await criarLook("Look sem título");
-      router.push(`/looks/${look.id}`);
-      router.refresh();
-    } catch (falha) {
-      setErro((falha as Error).message);
-      setCriando(false);
-    }
-  }
-
+  // Link e não botão que grava: o rascunho nasce no envio do formulário da tela
+  // seguinte, senão quem só foi olhar já volta com um look vazio na lista.
   const botao = (
-    <button
-      type="button"
-      onClick={comecarUmLook}
-      disabled={criando}
+    <Link
+      href={NOVO_LOOK}
       className="inline-flex items-center gap-2 rounded-2xl bg-purple px-5 py-3 text-sm
         font-semibold text-white transition hover:bg-purple/90 focus-visible:ring-2
-        focus-visible:ring-purple/40 focus-visible:ring-offset-2 disabled:opacity-60
+        focus-visible:ring-purple/40 focus-visible:ring-offset-2
         motion-safe:active:scale-[0.99]"
     >
       <Plus size={16} aria-hidden />
-      {criando ? "Criando…" : looks.length === 0 ? "Criar meu primeiro look" : "Criar um look"}
-    </button>
+      {looks.length === 0 ? "Criar meu primeiro look" : "Criar um look"}
+    </Link>
   );
 
   if (looks.length === 0) {
@@ -54,12 +31,6 @@ export default function MeusLooks({ looks }: { looks: Look[] }) {
             cola o link de cada uma e publica.
           </p>
           <div className="mt-7">{botao}</div>
-
-          {erro && (
-            <p role="alert" className="mt-5 text-sm text-navy">
-              {erro}
-            </p>
-          )}
         </div>
       </section>
     );
@@ -73,12 +44,6 @@ export default function MeusLooks({ looks }: { looks: Look[] }) {
         </h2>
         {botao}
       </div>
-
-      {erro && (
-        <p role="alert" className="mt-4 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy">
-          {erro}
-        </p>
-      )}
 
       <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {looks.map((look, indice) => (
