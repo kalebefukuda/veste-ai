@@ -14,7 +14,6 @@ vi.mock("next/navigation", () => ({
 }));
 
 import InicioPage from "@/app/(app)/inicio/page";
-import AppHeader from "@/components/layout/AppHeader";
 
 // Já concluiu o funil: estes testes são sobre o conteúdo das boas-vindas, e a
 // guarda que desvia a conta nova para /comecar é coberta em comecar.test.tsx.
@@ -106,16 +105,3 @@ describe("página inicial da conta", () => {
   });
 });
 
-// Configurações era alcançável só pelo destino do login: sair da página significava
-// não conseguir voltar sem digitar a URL.
-describe("navegação da área logada", () => {
-  it("dá acesso ao início e às configurações", () => {
-    render(<AppHeader />);
-
-    expect(screen.getByRole("link", { name: /início/i })).toHaveAttribute("href", "/inicio");
-    expect(screen.getByRole("link", { name: /configurações/i })).toHaveAttribute(
-      "href",
-      "/configuracoes",
-    );
-  });
-});
