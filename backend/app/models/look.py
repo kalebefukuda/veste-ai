@@ -7,6 +7,9 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.user import User
+
+PUBLICADO = "published"
 
 
 class Look(Base):
@@ -27,6 +30,10 @@ class Look(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()")
     )
+
+    # Sem `lazy` ansioso: só o feed precisa de quem montou, e ele carrega por
+    # `joinedload` na própria consulta.
+    creator: Mapped["User"] = relationship()
 
     # `lazy="selectin"` porque toda leitura de look mostra as peças: sem isso, listar
     # N looks dispara N consultas de peça.

@@ -3,11 +3,9 @@
 import uuid
 
 from app.core.exceptions import LookNotFound, LookWithoutImage, LookWithoutPiece, NotTheOwner
-from app.models.look import Look, Piece
+from app.models.look import PUBLICADO, Look, Piece
 from app.repositories.look_repository import LookRepository
 from app.schemas.look import LookCreate, LookUpdate, PieceCreate
-
-PUBLICADO = "published"
 
 
 class LookService:

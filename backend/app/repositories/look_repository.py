@@ -1,9 +1,9 @@
 import uuid
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from app.models.look import Look, Piece
+from app.models.look import PUBLICADO, Look, Piece
 
 
 class LookRepository:
@@ -16,6 +16,27 @@ class LookRepository:
     def list_by_user(self, user_id: uuid.UUID) -> list[Look]:
         consulta = select(Look).where(Look.user_id == user_id).order_by(Look.created_at.desc())
         return list(self.db.execute(consulta).scalars())
+
+    # `joinedload` porque o feed mostra o nome de quem montou em todo card: sem
+    # ele, listar N looks dispara N consultas de usuário.
+    def list_published(self, limit: int, offset: int) -> list[Look]:
+        consulta = (
+            select(Look)
+            .where(Look.status == PUBLICADO)
+            .order_by(Look.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+            .options(joinedload(Look.creator))
+        )
+        return list(self.db.execute(consulta).unique().scalars())
+
+    def get_published(self, look_id: uuid.UUID) -> Look | None:
+        consulta = (
+            select(Look)
+            .where(Look.id == look_id, Look.status == PUBLICADO)
+            .options(joinedload(Look.creator))
+        )
+        return self.db.execute(consulta).unique().scalar_one_or_none()
 
     def add(self, look: Look) -> Look:
         self.db.add(look)
