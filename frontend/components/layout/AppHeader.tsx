@@ -22,8 +22,11 @@ export default function AppHeader() {
   return (
     <header className="border-b border-navy/10">
       <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4">
+        {/* Dentro do app a marca leva à casa do app, não ao site: logo aponta para a
+            home do contexto em que a pessoa está, e mandar para a landing despeja
+            quem estava trabalhando. */}
         <Link
-          href="/"
+          href={INICIO}
           className="rounded-full text-lg font-bold tracking-[-0.02em] focus-visible:ring-2 focus-visible:ring-purple/40"
         >
           <span className="text-navy">Veste</span>
@@ -46,6 +49,15 @@ export default function AppHeader() {
               hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40"
           >
             Configurações
+          </Link>
+          {/* A marca deixou de levar ao site, então a saída vira navegação explícita.
+              Escondida no celular: ali o espaço é do que se faz, não do que se vê. */}
+          <Link
+            href="/"
+            className="hidden rounded-full px-3 py-2 text-sm font-medium text-navy/65 transition
+              hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40 sm:block"
+          >
+            Ver o site
           </Link>
 
           <button
