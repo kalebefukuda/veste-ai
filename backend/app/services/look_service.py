@@ -38,8 +38,14 @@ class LookService:
 
     def update(self, look_id: uuid.UUID, dados: LookUpdate, user_id: uuid.UUID) -> Look:
         look = self._meu(look_id, user_id)
+        campos = dados.model_dump(exclude_unset=True)
 
-        for campo, valor in dados.model_dump(exclude_unset=True).items():
+        # A pré-condição de publicar vale enquanto o look estiver publicado, como na
+        # remoção da última peça: senão a edição desfaz o que a publicação exigiu.
+        if look.status == PUBLICADO and "image_url" in campos and not campos["image_url"]:
+            raise LookWithoutImage()
+
+        for campo, valor in campos.items():
             setattr(look, campo, valor)
 
         return look
