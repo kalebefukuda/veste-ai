@@ -103,6 +103,40 @@ def test_rn04_nao_remove_a_ultima_peca_de_look_publicado(dono: TestClient, look:
     assert resposta.json()["code"] == "LOOK_WITHOUT_PIECE"
 
 
+# Simetria com a remoção da última peça: a pré-condição de imagem vale depois da
+# publicação também, senão a edição desfaz o que a publicação exigiu.
+def test_nao_apaga_a_imagem_de_look_publicado(dono: TestClient, look: str) -> None:
+    dono.post(f"/looks/{look}/pieces", json=PECA)
+    dono.patch(f"/looks/{look}", json={"image_url": "https://cdn.exemplo.com/look.jpg"})
+    dono.post(f"/looks/{look}/publish")
+
+    resposta = dono.patch(f"/looks/{look}", json={"image_url": None})
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "LOOK_WITHOUT_IMAGE"
+    assert dono.get(f"/looks/{look}").json()["image_url"] is not None
+
+
+def test_publicado_troca_a_imagem_por_outra(dono: TestClient, look: str) -> None:
+    dono.post(f"/looks/{look}/pieces", json=PECA)
+    dono.patch(f"/looks/{look}", json={"image_url": "https://cdn.exemplo.com/look.jpg"})
+    dono.post(f"/looks/{look}/publish")
+
+    resposta = dono.patch(f"/looks/{look}", json={"image_url": "https://cdn.exemplo.com/2.jpg"})
+
+    assert resposta.status_code == 200
+    assert resposta.json()["image_url"] == "https://cdn.exemplo.com/2.jpg"
+
+
+def test_rascunho_volta_a_ficar_sem_imagem(dono: TestClient, look: str) -> None:
+    dono.patch(f"/looks/{look}", json={"image_url": "https://cdn.exemplo.com/look.jpg"})
+
+    resposta = dono.patch(f"/looks/{look}", json={"image_url": None})
+
+    assert resposta.status_code == 200
+    assert resposta.json()["image_url"] is None
+
+
 def test_rn07_so_o_dono_publica(client: TestClient) -> None:
     do_dono = {"Authorization": f"Bearer {token(client, DONO)}"}
     look = client.post("/looks", json=LOOK, headers=do_dono).json()["id"]
