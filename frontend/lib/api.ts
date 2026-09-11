@@ -180,10 +180,15 @@ export function publicarLook(id: string): Promise<Look> {
 }
 
 // Sem corpo na resposta: 204 não passa pelo `send`, que faz `.json()`.
-export async function removerPeca(lookId: string, pecaId: string): Promise<void> {
-  const resposta = await fetch(`/api/looks/${lookId}/pieces/${pecaId}`, { method: "DELETE" });
+async function remove(path: string): Promise<void> {
+  const resposta = await fetch(path, { method: "DELETE" });
 
   if (!resposta.ok) {
     throw new Error(messageFor(resposta.status, await resposta.json().catch(() => null)));
   }
 }
+
+export const removerLook = (id: string) => remove(`/api/looks/${id}`);
+
+export const removerPeca = (lookId: string, pecaId: string) =>
+  remove(`/api/looks/${lookId}/pieces/${pecaId}`);

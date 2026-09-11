@@ -7,16 +7,29 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 
-import { adicionarPeca, atualizarLook, publicarLook, removerPeca, type Look } from "@/lib/api";
+import {
+  adicionarPeca,
+  atualizarLook,
+  publicarLook,
+  removerLook,
+  removerPeca,
+  type Look,
+} from "@/lib/api";
+import { INICIO } from "@/lib/routes";
 
 const PECA_VAZIA = { name: "", purchase_url: "", store: "" };
 
 export default function EditorDeLook({ inicial }: { inicial: Look }) {
   const router = useRouter();
-  const [look, setLook] = useState(inicial);
+  // `salvo` é o que o servidor tem; os campos são o rascunho na tela. A distância
+  // entre os dois é o que habilita salvar e descartar.
+  const [salvo, setSalvo] = useState(inicial);
+  const [titulo, setTitulo] = useState(inicial.title);
+  const [imagem, setImagem] = useState(inicial.image_url ?? "");
   const [peca, setPeca] = useState(PECA_VAZIA);
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
 
   async function executar(nome: string, acao: () => Promise<void>) {
     setErro(null);
@@ -32,24 +45,36 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
     }
   }
 
-  const publicado = look.status === "published";
+  const publicado = salvo.status === "published";
+  const sujo = titulo !== salvo.title || imagem !== (salvo.image_url ?? "");
 
   return (
     <div className="space-y-10">
-      <section>
+      <form
+        onSubmit={(evento) => {
+          evento.preventDefault();
+          void executar("salvar", async () => {
+            // String vazia não passa pela validação de link do backend; ausência de
+            // imagem é `null`, que é o que limpa o campo.
+            const atualizado = await atualizarLook(salvo.id, {
+              title: titulo,
+              image_url: imagem || null,
+            });
+            setSalvo(atualizado);
+            setTitulo(atualizado.title);
+            setImagem(atualizado.image_url ?? "");
+            toast.success("Alterações salvas.");
+          });
+        }}
+      >
         <label htmlFor="titulo" className="block text-sm font-semibold text-navy">
           Título
         </label>
         <input
           id="titulo"
-          value={look.title}
-          onChange={(e) => setLook({ ...look, title: e.target.value })}
-          onBlur={() =>
-            void executar("titulo", async () => {
-              setLook(await atualizarLook(look.id, { title: look.title }));
-              toast.success("Título salvo.");
-            })
-          }
+          value={titulo}
+          onChange={(e) => setTitulo(e.target.value)}
+          required
           minLength={2}
           maxLength={200}
           className="mt-2 w-full max-w-xl rounded-2xl border border-navy/15 px-4 py-3 text-navy
@@ -65,35 +90,60 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
         </p>
         <input
           id="imagem"
-          value={look.image_url ?? ""}
-          onChange={(e) => setLook({ ...look, image_url: e.target.value })}
-          onBlur={() =>
-            void executar("imagem", async () => {
-              if (!look.image_url) return;
-              setLook(await atualizarLook(look.id, { image_url: look.image_url }));
-              toast.success("Imagem salva.");
-            })
-          }
+          value={imagem}
+          onChange={(e) => setImagem(e.target.value)}
           placeholder="https://…"
           className="mt-2 w-full max-w-xl rounded-2xl border border-navy/15 px-4 py-3 text-navy
             placeholder:text-navy/35 focus-visible:border-purple focus-visible:outline-none
             focus-visible:ring-2 focus-visible:ring-purple/30"
         />
-      </section>
+
+        {/* Gravar é decisão de quem escreve: salvar sozinho ao sair do campo tira a
+            chance de desistir da alteração. */}
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <Button
+            type="submit"
+            variant="outline"
+            loading={ocupado === "salvar"}
+            loadingLabel="Salvando…"
+            disabled={!sujo || ocupado !== null}
+            className="text-sm"
+          >
+            Salvar alterações
+          </Button>
+
+          {sujo ? (
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={ocupado !== null}
+              onClick={() => {
+                setTitulo(salvo.title);
+                setImagem(salvo.image_url ?? "");
+              }}
+              className="text-sm"
+            >
+              Descartar
+            </Button>
+          ) : (
+            <span className="px-2 text-sm text-navy/55">Tudo salvo.</span>
+          )}
+        </div>
+      </form>
 
       <section className="border-t border-navy/10 pt-10">
         <h2 className="text-lg font-bold tracking-[-0.02em] text-navy">
           Peças{" "}
-          <span className="font-normal text-navy/55">{look.pieces.length}</span>
+          <span className="font-normal text-navy/55">{salvo.pieces.length}</span>
         </h2>
         <p className="mt-2 max-w-[56ch] text-sm leading-relaxed text-navy/65">
           Cada peça leva ao link que você colar. É por ele que a comissão chega até você
           — o VesteAí não participa da compra.
         </p>
 
-        {look.pieces.length > 0 && (
+        {salvo.pieces.length > 0 && (
           <ul className="mt-6 divide-y divide-navy/10">
-            {look.pieces.map((p) => (
+            {salvo.pieces.map((p) => (
               <li key={p.id} className="flex items-start justify-between gap-4 py-4">
                 <div className="min-w-0">
                   <p className="font-medium text-navy">{p.name}</p>
@@ -106,8 +156,11 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
                   disabled={ocupado !== null}
                   onClick={() =>
                     void executar(`remover-${p.id}`, async () => {
-                      await removerPeca(look.id, p.id);
-                      setLook({ ...look, pieces: look.pieces.filter((x) => x.id !== p.id) });
+                      await removerPeca(salvo.id, p.id);
+                      setSalvo({
+                        ...salvo,
+                        pieces: salvo.pieces.filter((x) => x.id !== p.id),
+                      });
                       toast.success(`${p.name} saiu do look.`);
                     })
                   }
@@ -126,8 +179,8 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
           onSubmit={(evento) => {
             evento.preventDefault();
             void executar("peca", async () => {
-              const nova = await adicionarPeca(look.id, peca);
-              setLook({ ...look, pieces: [...look.pieces, nova] });
+              const nova = await adicionarPeca(salvo.id, peca);
+              setSalvo({ ...salvo, pieces: [...salvo.pieces, nova] });
               setPeca(PECA_VAZIA);
               toast.success(`${nova.name} entrou no look.`);
             });
@@ -186,7 +239,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
 
         {publicado ? (
           <p className="text-sm font-medium text-navy/75">
-            Este look está publicado. As mudanças que você fizer aqui já valem para quem
+            Este look está publicado. As mudanças que você salvar aqui já valem para quem
             abrir o feed.
           </p>
         ) : (
@@ -198,7 +251,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
             className="text-sm"
             onClick={() =>
               void executar("publicar", async () => {
-                setLook(await publicarLook(look.id));
+                setSalvo(await publicarLook(salvo.id));
                 toast.success("Look publicado.", {
                   description: "Ele já aparece para quem abrir o feed.",
                 });
@@ -206,6 +259,57 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
             }
           >
             Publicar look
+          </Button>
+        )}
+      </section>
+
+      <section className="border-t border-navy/10 pt-10">
+        {/* Duas etapas porque apagar leva as peças junto e não tem volta. */}
+        {confirmando ? (
+          <div className="max-w-xl rounded-2xl border border-rose/40 bg-rose/[0.06] p-5">
+            <p className="text-sm leading-relaxed text-navy">
+              Excluir apaga este look e as peças dele. Não dá para desfazer.
+            </p>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                loading={ocupado === "excluir"}
+                loadingLabel="Excluindo…"
+                disabled={ocupado !== null}
+                className="text-sm"
+                onClick={() =>
+                  void executar("excluir", async () => {
+                    await removerLook(salvo.id);
+                    toast.success("Look excluído.");
+                    router.push(INICIO);
+                  })
+                }
+              >
+                Excluir mesmo assim
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={ocupado !== null}
+                className="text-sm"
+                onClick={() => setConfirmando(false)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={ocupado !== null}
+            className="text-sm"
+            onClick={() => setConfirmando(true)}
+          >
+            Excluir look
           </Button>
         )}
       </section>
