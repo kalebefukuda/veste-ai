@@ -99,7 +99,7 @@ function messageFor(status: number, data: ApiError | null): string {
   }
 
   if (data?.code === "LOOK_WITHOUT_IMAGE") {
-    return "O look precisa de uma imagem para ser publicado.";
+    return "O look precisa de uma imagem para ser publicado — e para continuar publicado.";
   }
 
   if (data?.code === "USERNAME_ALREADY_TAKEN") {
