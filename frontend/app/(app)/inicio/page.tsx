@@ -42,18 +42,24 @@ export default async function InicioPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-14 lg:py-20">
-      <p className="inline-flex items-center gap-2 rounded-full bg-purple-light/20 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.15em] text-navy">
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-purple" />
-        Conta criada
-      </p>
-
-      <h1 className="mt-6 max-w-[16ch] text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-navy sm:text-6xl">
-        Boas-vindas, <span className="text-purple">{usuario.name.split(" ")[0]}</span>.
-      </h1>
-      <p className="mt-6 max-w-[46ch] text-lg leading-relaxed text-navy/65">
-        É por esta conta que os looks que você montar vão ficar salvos no seu nome quando o
-        editor entrar no ar.
-      </p>
+      {/* Sem pílula de "conta criada": era estado do primeiro segundo, e ficava para
+          sempre. E o cabeçalho encolhe quando já há trabalho na tela — a saudação não
+          pode ocupar mais espaço que os looks de quem entrou para trabalhar. */}
+      {looks.length === 0 ? (
+        <>
+          <h1 className="max-w-[16ch] text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-navy sm:text-6xl">
+            Boas-vindas, <span className="text-purple">{usuario.name.split(" ")[0]}</span>.
+          </h1>
+          <p className="mt-6 max-w-[46ch] text-lg leading-relaxed text-navy/65">
+            Monte seu primeiro look: escolha as peças em qualquer loja, cole o link de
+            cada uma e publique.
+          </p>
+        </>
+      ) : (
+        <h1 className="text-2xl font-bold tracking-[-0.03em] text-navy">
+          Olá, <span className="text-purple">{usuario.name.split(" ")[0]}</span>.
+        </h1>
+      )}
 
       {/* O bloco de "como vai funcionar" é estado de conta nova, não decoração fixa:
           quem já montou um look não precisa da explicação toda vez que entra. */}
@@ -67,7 +73,7 @@ export default async function InicioPage() {
         </>
       )}
 
-      <div className="mt-16 border-t border-navy/10 pt-12">
+      <div className={looks.length === 0 ? "mt-14" : "mt-10"}>
         <MeusLooks looks={looks} />
       </div>
     </main>

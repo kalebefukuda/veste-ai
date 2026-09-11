@@ -37,7 +37,7 @@ describe("lista de looks", () => {
   it("convida a começar quando não há nenhum", () => {
     render(<MeusLooks looks={[]} />);
 
-    expect(screen.getByText(/ainda não montou nenhum look/i)).toBeInTheDocument();
+    expect(screen.getByText(/nada montado por aqui ainda/i)).toBeInTheDocument();
   });
 
   it("mostra o estado de cada look", () => {
@@ -54,7 +54,7 @@ describe("lista de looks", () => {
     vi.stubGlobal("fetch", responde(RASCUNHO));
     render(<MeusLooks looks={[]} />);
 
-    await user.click(screen.getByRole("button", { name: /criar um look/i }));
+    await user.click(screen.getByRole("button", { name: /criar (um|meu primeiro) look/i }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/looks/look-1"));
   });
