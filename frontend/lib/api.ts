@@ -14,6 +14,32 @@ export type User = {
   intent?: Intent | null;
 };
 
+export type Peca = {
+  id: string;
+  name: string;
+  purchase_url: string;
+  store?: string | null;
+  price?: string | null;
+  image_url?: string | null;
+};
+
+export type Look = {
+  id: string;
+  title: string;
+  description?: string | null;
+  image_url?: string | null;
+  ai_generated: boolean;
+  status: "draft" | "published";
+  created_at: string;
+  pieces: Peca[];
+};
+
+export type PecaNova = {
+  name: string;
+  purchase_url: string;
+  store?: string;
+};
+
 export type PerfilPatch = {
   name?: string;
   bio?: string | null;
@@ -66,6 +92,14 @@ function messageFor(status: number, data: ApiError | null): string {
 
   if (status === 502) {
     return "Não conseguimos enviar agora. Tente de novo em alguns minutos.";
+  }
+
+  if (data?.code === "LOOK_WITHOUT_PIECE") {
+    return "Adicione ao menos uma peça com link de compra antes de publicar.";
+  }
+
+  if (data?.code === "LOOK_WITHOUT_IMAGE") {
+    return "O look precisa de uma imagem para ser publicado — e para continuar publicado.";
   }
 
   if (data?.code === "USERNAME_ALREADY_TAKEN") {
@@ -128,3 +162,33 @@ export function limparOnboarding(): Promise<User> {
 export async function enviarContato(email: string, message: string): Promise<void> {
   await send<{ detail: string }>("POST", "/api/contact", { email, message });
 }
+
+export function criarLook(title: string, description?: string): Promise<Look> {
+  return send<Look>("POST", "/api/looks", { title, ...(description ? { description } : {}) });
+}
+
+export function atualizarLook(id: string, dados: Partial<Look>): Promise<Look> {
+  return send<Look>("PATCH", `/api/looks/${id}`, dados);
+}
+
+export function adicionarPeca(lookId: string, peca: PecaNova): Promise<Peca> {
+  return send<Peca>("POST", `/api/looks/${lookId}/pieces`, peca);
+}
+
+export function publicarLook(id: string): Promise<Look> {
+  return send<Look>("POST", `/api/looks/${id}/publish`, undefined);
+}
+
+// Sem corpo na resposta: 204 não passa pelo `send`, que faz `.json()`.
+async function remove(path: string): Promise<void> {
+  const resposta = await fetch(path, { method: "DELETE" });
+
+  if (!resposta.ok) {
+    throw new Error(messageFor(resposta.status, await resposta.json().catch(() => null)));
+  }
+}
+
+export const removerLook = (id: string) => remove(`/api/looks/${id}`);
+
+export const removerPeca = (lookId: string, pecaId: string) =>
+  remove(`/api/looks/${lookId}/pieces/${pecaId}`);

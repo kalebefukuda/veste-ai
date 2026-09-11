@@ -10,7 +10,7 @@ from app.core.exceptions import DomainHTTPException, TooManyRequests
 from app.core.logging import RequestIdMiddleware, configure
 from app.core.rate_limit import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
-from app.routers import auth, contact, users
+from app.routers import auth, contact, looks, users
 
 configure()
 
@@ -56,6 +56,7 @@ def handle_domain_error(request: Request, exc: DomainHTTPException) -> JSONRespo
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(looks.router)
 app.include_router(contact.router)
 
 

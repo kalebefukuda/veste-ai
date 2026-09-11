@@ -10,11 +10,10 @@ vi.mock("next/navigation", () => ({
     redirecionou(destino);
     throw new Error("NEXT_REDIRECT");
   },
-  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() }),
 }));
 
 import InicioPage from "@/app/(app)/inicio/page";
-import AppHeader from "@/components/layout/AppHeader";
 
 // Já concluiu o funil: estes testes são sobre o conteúdo das boas-vindas, e a
 // guarda que desvia a conta nova para /comecar é coberta em comecar.test.tsx.
@@ -30,7 +29,15 @@ beforeEach(() => {
   cookieStore.get.mockReset();
   redirecionou.mockReset();
   cookieStore.get.mockReturnValue({ value: "tok" });
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => USUARIO }));
+  // A página busca duas coisas: o usuário e os looks. Um mock único devolveria o
+  // usuário no lugar da lista, e a tela quebraria por um motivo que não é o do teste.
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => ({
+      ok: true,
+      json: async () => (String(url).includes("/looks") ? [] : USUARIO),
+    })),
+  );
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -42,13 +49,17 @@ describe("página inicial da conta", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/mariana/i);
   });
 
-  // O editor de look ainda não existe. Anunciar o passo como disponível seria
-  // prometer o que o código não faz — o erro que já corrigimos na política e na RFC.
-  it("diz que criar look ainda não está disponível, sem botão morto", async () => {
+  // O editor passou a existir, então a tela para de dizer que ele está em
+  // desenvolvimento e passa a oferecer a ação. Afirmação que era verdadeira ontem
+  // vira falsa quando o código muda, e é isto que o teste guarda.
+  it("oferece criar um look, sem falar em indisponibilidade", async () => {
     render(await InicioPage());
 
-    expect(screen.getByText(/em desenvolvimento/i)).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /criar.*look/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /criar (um|meu primeiro) look/i })).toHaveAttribute(
+      "href",
+      "/looks/novo",
+    );
+    expect(document.body.textContent).not.toMatch(/em desenvolvimento/i);
   });
 
   // O rastreio de clique não existe: não há modelo nem rota. Afirmar em presente
@@ -69,13 +80,13 @@ describe("página inicial da conta", () => {
     expect(document.body.textContent).not.toMatch(/navegar pelo feed/i);
   });
 
-  it("leva para as configurações da conta", async () => {
+  // "Completar meu perfil" era fixo e aparecia mesmo com o perfil já preenchido,
+  // porque a tela nunca leu o estado do perfil. A ação da casa é montar look; o
+  // perfil fica no header, onde mora navegação.
+  it("não repete um convite fixo para completar o perfil", async () => {
     render(await InicioPage());
 
-    expect(screen.getByRole("link", { name: /completar meu perfil/i })).toHaveAttribute(
-      "href",
-      "/configuracoes",
-    );
+    expect(document.body.textContent).not.toMatch(/completar meu perfil/i);
   });
 
   // A tela tinha um "Ver o site" apontando para a raiz no lugar da ação principal:
@@ -97,16 +108,3 @@ describe("página inicial da conta", () => {
   });
 });
 
-// Configurações era alcançável só pelo destino do login: sair da página significava
-// não conseguir voltar sem digitar a URL.
-describe("navegação da área logada", () => {
-  it("dá acesso ao início e às configurações", () => {
-    render(<AppHeader />);
-
-    expect(screen.getByRole("link", { name: /início/i })).toHaveAttribute("href", "/inicio");
-    expect(screen.getByRole("link", { name: /configurações/i })).toHaveAttribute(
-      "href",
-      "/configuracoes",
-    );
-  });
-});

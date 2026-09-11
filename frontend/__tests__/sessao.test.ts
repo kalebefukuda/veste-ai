@@ -83,6 +83,11 @@ describe("guarda da área logada", () => {
 
   it("deixa passar quando há sessão", async () => {
     cookieStore.get.mockReturnValue({ value: "tok" });
+    // O layout carrega o usuário para alimentar o menu da conta no header.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "1", name: "Mariana" }) }),
+    );
 
     await AppLayout({ children: null });
 

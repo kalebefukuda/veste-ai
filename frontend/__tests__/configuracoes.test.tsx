@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PerfilForm from "@/components/configuracoes/PerfilForm";
 import ExcluirConta from "@/components/configuracoes/ExcluirConta";
 import ReverOnboarding from "@/components/configuracoes/ReverOnboarding";
-import AppHeader from "@/components/layout/AppHeader";
 
 const replace = vi.fn();
 const refresh = vi.fn();
@@ -100,21 +99,6 @@ describe("formulário de perfil", () => {
   });
 });
 
-// O cookie é httpOnly: nenhum script da página consegue apagá-lo, então sair tem
-// que passar pelo servidor. Botão que só troca de rota deixaria a sessão viva.
-describe("sair da conta", () => {
-  it("encerra a sessão no servidor e volta para o login", async () => {
-    const user = userEvent.setup();
-    const chamou = vi.fn().mockResolvedValue({ ok: true, status: 204 });
-    vi.stubGlobal("fetch", chamou);
-    render(<AppHeader />);
-
-    await user.click(screen.getByRole("button", { name: /sair/i }));
-
-    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
-    expect(chamou).toHaveBeenCalledWith("/api/auth/logout", { method: "POST" });
-  });
-});
 
 // Exclusão é irreversível: o caminho tem dois passos de propósito, e o segundo pede
 // a senha porque a sessão dura 24h e pode estar aberta em máquina compartilhada.

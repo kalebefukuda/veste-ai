@@ -24,7 +24,11 @@ const NOVO = { id: "1", name: "Mariana", email: "m@e.com", plan: "free", onboard
 const VETERANO = { ...NOVO, onboarded_at: "2026-09-01T10:00:00Z" };
 
 const responde = (usuario: unknown) =>
-  vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => usuario });
+  vi.fn(async (url: string) => ({
+    ok: true,
+    status: 200,
+    json: async () => (String(url).includes("/looks") ? [] : usuario),
+  }));
 
 beforeEach(() => {
   cookieStore.get.mockReset();

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -23,6 +24,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
+      toast.success("Bem-vindo de volta.");
       router.push(AFTER_AUTH);
     } catch (failure) {
       setError((failure as Error).message);
@@ -72,7 +74,7 @@ export default function LoginPage() {
           </p>
         )}
 
-        <Button type="submit" loading={loading} loadingLabel="Entrando…">
+        <Button type="submit" fullWidth loading={loading} loadingLabel="Entrando…">
           Entrar
         </Button>
       </form>
