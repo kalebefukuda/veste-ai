@@ -239,8 +239,8 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
 
         {publicado ? (
           <p className="text-sm font-medium text-navy/75">
-            Este look está publicado. As mudanças que você salvar aqui já valem para quem
-            abrir o feed.
+            Este look está publicado. O que você salvar aqui vale para o feed público
+            quando o feed entrar no ar.
           </p>
         ) : (
           <Button
@@ -253,7 +253,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
               void executar("publicar", async () => {
                 setSalvo(await publicarLook(salvo.id));
                 toast.success("Look publicado.", {
-                  description: "Ele já aparece para quem abrir o feed.",
+                  description: "Ele entra no feed público quando o feed entrar no ar.",
                 });
               })
             }
