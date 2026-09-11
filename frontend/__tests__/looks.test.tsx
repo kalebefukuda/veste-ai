@@ -197,6 +197,22 @@ describe("editor de look", () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Alterações salvas."));
   });
 
+  // O PATCH tem que levar só o que mudou: reenviar `image_url` intocada faz a guarda
+  // de imagem do backend recusar uma edição que só trocou o título.
+  it("envia apenas o campo alterado", async () => {
+    const user = userEvent.setup();
+    const chamou = responde({ ...RASCUNHO, title: "Inverno urbano noturno" });
+    vi.stubGlobal("fetch", chamou);
+    const publicado = { ...RASCUNHO, status: "published" as const, image_url: "https://cdn/x.jpg" };
+    render(<EditorDeLook inicial={publicado} />);
+
+    await user.type(screen.getByLabelText(/título/i), " noturno");
+    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toEqual({ title: "Inverno urbano noturno" });
+  });
+
   it("descarta a alteração e volta ao que estava salvo", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn());
