@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import Passos from "@/components/inicio/Passos";
+import Passos from "@/components/looks/Passos";
 import MeusLooks from "@/components/looks/MeusLooks";
 import { COMECAR, CONFIGURACOES } from "@/lib/routes";
 import { carregarUsuarioLogado } from "@/lib/usuario";
@@ -10,7 +10,7 @@ import { carregarMeusLooks } from "@/lib/looks";
 import type { PassoDoFluxo } from "@/types";
 
 export const metadata: Metadata = {
-  title: "Início — VesteAí",
+  title: "Meus looks — VesteAí",
 };
 
 const PASSOS: PassoDoFluxo[] = [

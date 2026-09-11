@@ -34,6 +34,29 @@ export type Look = {
   pieces: Peca[];
 };
 
+export type Criador = {
+  name: string;
+  username?: string | null;
+  avatar?: string | null;
+};
+
+// O que a vitrine mostra de um look de outra pessoa: sem `status`, sem dono, sem nada
+// que só interesse a quem edita.
+export type LookPublico = {
+  id: string;
+  title: string;
+  description?: string | null;
+  image_url?: string | null;
+  created_at: string;
+  creator: Criador;
+  pieces: Peca[];
+};
+
+export type PaginaDoFeed = {
+  items: LookPublico[];
+  next_page: number | null;
+};
+
 export type PecaNova = {
   name: string;
   purchase_url: string;
@@ -161,6 +184,10 @@ export function limparOnboarding(): Promise<User> {
 
 export async function enviarContato(email: string, message: string): Promise<void> {
   await send<{ detail: string }>("POST", "/api/contact", { email, message });
+}
+
+export function carregarMaisDoFeed(page: number): Promise<PaginaDoFeed> {
+  return send<PaginaDoFeed>("GET", `/api/feed?page=${page}`, undefined);
 }
 
 export function criarLook(title: string, description?: string): Promise<Look> {

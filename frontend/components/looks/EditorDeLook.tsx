@@ -1,6 +1,7 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -15,7 +16,7 @@ import {
   removerPeca,
   type Look,
 } from "@/lib/api";
-import { INICIO } from "@/lib/routes";
+import { lookPublico, MEUS_LOOKS } from "@/lib/routes";
 
 const PECA_VAZIA = { name: "", purchase_url: "", store: "" };
 
@@ -240,10 +241,23 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
         )}
 
         {publicado ? (
-          <p className="text-sm font-medium text-navy/75">
-            Este look está publicado. O que você salvar aqui vale para o feed público
-            quando o feed entrar no ar.
-          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <p className="max-w-[46ch] text-sm font-medium leading-relaxed text-navy/75">
+              Este look já está no feed. O que você salvar aqui vale na hora para quem
+              abrir a vitrine.
+            </p>
+
+            <Link
+              href={lookPublico(salvo.id)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-navy/15 px-4
+                py-2.5 text-sm font-semibold text-navy transition hover:border-purple
+                hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40
+                focus-visible:ring-offset-2"
+            >
+              Ver no feed
+              <ExternalLink size={14} aria-hidden />
+            </Link>
+          </div>
         ) : (
           <Button
             type="button"
@@ -255,7 +269,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
               void executar("publicar", async () => {
                 setSalvo(await publicarLook(salvo.id));
                 toast.success("Look publicado.", {
-                  description: "Ele entra no feed público quando o feed entrar no ar.",
+                  description: "Ele já aparece para quem abrir o feed.",
                 });
               })
             }
@@ -285,7 +299,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
                   void executar("excluir", async () => {
                     await removerLook(salvo.id);
                     toast.success("Look excluído.");
-                    router.push(INICIO);
+                    router.push(MEUS_LOOKS);
                   })
                 }
               >

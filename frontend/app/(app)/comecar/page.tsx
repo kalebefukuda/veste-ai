@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import ComecarForm from "@/components/comecar/ComecarForm";
-import { INICIO } from "@/lib/routes";
+import { FEED } from "@/lib/routes";
 import { carregarUsuarioLogado } from "@/lib/usuario";
 
 export const metadata: Metadata = {
@@ -13,8 +13,8 @@ export default async function ComecarPage() {
   const usuario = await carregarUsuarioLogado();
 
   // Quem já passou não volta ao funil a cada login: é o que faz "pular por agora"
-  // valer de verdade. A condição é o complemento da guarda em /inicio.
-  if (usuario.onboarded_at) redirect(INICIO);
+  // valer de verdade. A condição é o complemento da guarda em /meus-looks.
+  if (usuario.onboarded_at) redirect(FEED);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14 lg:py-20">
