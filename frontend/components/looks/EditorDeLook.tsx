@@ -54,12 +54,14 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
         onSubmit={(evento) => {
           evento.preventDefault();
           void executar("salvar", async () => {
-            // String vazia não passa pela validação de link do backend; ausência de
-            // imagem é `null`, que é o que limpa o campo.
-            const atualizado = await atualizarLook(salvo.id, {
-              title: titulo,
-              image_url: imagem || null,
-            });
+            // Só o que mudou: reenviar a imagem intocada faz o backend recusar uma
+            // edição de título em look publicado. String vazia não passa pela
+            // validação de link — ausência de imagem é `null`.
+            const mudancas: Partial<Look> = {};
+            if (titulo !== salvo.title) mudancas.title = titulo;
+            if (imagem !== (salvo.image_url ?? "")) mudancas.image_url = imagem || null;
+
+            const atualizado = await atualizarLook(salvo.id, mudancas);
             setSalvo(atualizado);
             setTitulo(atualizado.title);
             setImagem(atualizado.image_url ?? "");
