@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { marcarOnboarding, updateMe, type Intent, type User } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
 import HandleField from "@/components/ui/HandleField";
 import { INICIO } from "@/lib/routes";
 
@@ -126,27 +127,29 @@ export default function ComecarForm({ usuario }: { usuario: User }) {
       )}
 
       <div className="mt-10 flex flex-wrap items-center gap-4">
-        <button
+        <Button
           type="submit"
+          loading={ocupado === "continuar"}
+          loadingLabel="Salvando…"
           disabled={ocupado !== null}
-          className="rounded-2xl bg-purple px-6 py-3.5 text-sm font-semibold text-white transition
-            hover:bg-purple/90 focus-visible:ring-2 focus-visible:ring-purple/40
-            focus-visible:ring-offset-2 disabled:opacity-60 motion-safe:active:scale-[0.99]"
+          className="text-sm"
         >
-          {ocupado === "continuar" ? "Salvando…" : "Continuar"}
-        </button>
+          Continuar
+        </Button>
 
         {/* Pular fica visível e no mesmo nível, não escondido num canto: a saída
             tem que ser tão fácil de achar quanto a continuação. */}
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => void concluir(false)}
+          loading={ocupado === "pular"}
+          loadingLabel="Pulando…"
           disabled={ocupado !== null}
-          className="rounded-2xl px-4 py-3 text-sm font-semibold text-navy/70 transition
-            hover:text-navy focus-visible:ring-2 focus-visible:ring-purple/40 disabled:opacity-60"
+          className="text-sm"
         >
-          {ocupado === "pular" ? "Pulando…" : "Pular por agora"}
-        </button>
+          Pular por agora
+        </Button>
       </div>
 
       <p className="mt-6 max-w-[52ch] text-sm leading-relaxed text-navy/60">

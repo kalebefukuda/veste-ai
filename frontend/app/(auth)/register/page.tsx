@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -28,6 +29,9 @@ export default function RegisterPage() {
 
     try {
       const created = await register(name, email, password);
+      toast.success(
+        created.authenticated ? "Conta criada. Boas-vindas!" : "Conta criada. Entre para continuar.",
+      );
       router.push(created.authenticated ? AFTER_AUTH : LOGIN);
     } catch (failure) {
       setError((failure as Error).message);
@@ -78,7 +82,7 @@ export default function RegisterPage() {
           </p>
         )}
 
-        <Button type="submit" loading={loading} loadingLabel="Criando conta…" disabled={passwordTooShort}>
+        <Button type="submit" fullWidth loading={loading} loadingLabel="Criando conta…" disabled={passwordTooShort}>
           Criar conta
         </Button>
       </form>

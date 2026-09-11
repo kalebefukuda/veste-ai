@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
           </p>
         )}
 
-        <Button type="submit" loading={loading} loadingLabel="Enviando…">
+        <Button type="submit" fullWidth loading={loading} loadingLabel="Enviando…">
           Enviar link
         </Button>
       </form>

@@ -3,6 +3,9 @@
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/Button";
 
 import { adicionarPeca, atualizarLook, publicarLook, removerPeca, type Look } from "@/lib/api";
 
@@ -13,12 +16,10 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
   const [look, setLook] = useState(inicial);
   const [peca, setPeca] = useState(PECA_VAZIA);
   const [erro, setErro] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
 
   async function executar(nome: string, acao: () => Promise<void>) {
     setErro(null);
-    setAviso(null);
     setOcupado(nome);
 
     try {
@@ -46,6 +47,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
           onBlur={() =>
             void executar("titulo", async () => {
               setLook(await atualizarLook(look.id, { title: look.title }));
+              toast.success("Título salvo.");
             })
           }
           minLength={2}
@@ -58,7 +60,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
         <label htmlFor="imagem" className="mt-6 block text-sm font-semibold text-navy">
           Imagem do look
         </label>
-        <p className="mt-1.5 text-sm text-navy/60">
+        <p className="mt-1.5 text-sm text-navy/65">
           Cole o endereço de uma imagem. A geração por IA ainda não está disponível.
         </p>
         <input
@@ -69,6 +71,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
             void executar("imagem", async () => {
               if (!look.image_url) return;
               setLook(await atualizarLook(look.id, { image_url: look.image_url }));
+              toast.success("Imagem salva.");
             })
           }
           placeholder="https://…"
@@ -81,7 +84,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
       <section className="border-t border-navy/10 pt-10">
         <h2 className="text-lg font-bold tracking-[-0.02em] text-navy">
           Peças{" "}
-          <span className="font-normal text-navy/45">{look.pieces.length}</span>
+          <span className="font-normal text-navy/55">{look.pieces.length}</span>
         </h2>
         <p className="mt-2 max-w-[56ch] text-sm leading-relaxed text-navy/65">
           Cada peça leva ao link que você colar. É por ele que a comissão chega até você
@@ -94,7 +97,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
               <li key={p.id} className="flex items-start justify-between gap-4 py-4">
                 <div className="min-w-0">
                   <p className="font-medium text-navy">{p.name}</p>
-                  <p className="mt-0.5 truncate text-sm text-navy/55">{p.purchase_url}</p>
+                  <p className="mt-0.5 truncate text-sm text-navy/65">{p.purchase_url}</p>
                 </div>
 
                 <button
@@ -105,9 +108,10 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
                     void executar(`remover-${p.id}`, async () => {
                       await removerPeca(look.id, p.id);
                       setLook({ ...look, pieces: look.pieces.filter((x) => x.id !== p.id) });
+                      toast.success(`${p.name} saiu do look.`);
                     })
                   }
-                  className="shrink-0 rounded-xl p-2 text-navy/45 transition hover:bg-rose/10
+                  className="shrink-0 rounded-xl p-2 text-navy/55 transition hover:bg-rose/10
                     hover:text-navy focus-visible:ring-2 focus-visible:ring-rose/40
                     disabled:opacity-50"
                 >
@@ -125,6 +129,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
               const nova = await adicionarPeca(look.id, peca);
               setLook({ ...look, pieces: [...look.pieces, nova] });
               setPeca(PECA_VAZIA);
+              toast.success(`${nova.name} entrou no look.`);
             });
           }}
           className="mt-6 max-w-xl rounded-2xl border border-navy/12 bg-navy/[0.02] p-5"
@@ -159,15 +164,16 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
               focus-visible:ring-2 focus-visible:ring-purple/30"
           />
 
-          <button
+          <Button
             type="submit"
+            variant="outline"
+            loading={ocupado === "peca"}
+            loadingLabel="Adicionando…"
             disabled={ocupado !== null}
-            className="mt-5 rounded-2xl border border-navy/20 px-5 py-2.5 text-sm font-semibold
-              text-navy transition hover:border-purple hover:text-purple focus-visible:ring-2
-              focus-visible:ring-purple/40 disabled:opacity-60"
+            className="mt-5 text-sm"
           >
-            {ocupado === "peca" ? "Adicionando…" : "Adicionar peça"}
-          </button>
+            Adicionar peça
+          </Button>
         </form>
       </section>
 
@@ -178,33 +184,29 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
           </p>
         )}
 
-        {aviso && (
-          <p role="status" className="mb-5 text-sm font-medium text-navy/75">
-            {aviso}
-          </p>
-        )}
-
         {publicado ? (
           <p className="text-sm font-medium text-navy/75">
             Este look está publicado. As mudanças que você fizer aqui já valem para quem
             abrir o feed.
           </p>
         ) : (
-          <button
+          <Button
             type="button"
+            loading={ocupado === "publicar"}
+            loadingLabel="Publicando…"
             disabled={ocupado !== null}
+            className="text-sm"
             onClick={() =>
               void executar("publicar", async () => {
                 setLook(await publicarLook(look.id));
-                setAviso("Look publicado.");
+                toast.success("Look publicado.", {
+                  description: "Ele já aparece para quem abrir o feed.",
+                });
               })
             }
-            className="rounded-2xl bg-purple px-6 py-3.5 text-sm font-semibold text-white
-              transition hover:bg-purple/90 focus-visible:ring-2 focus-visible:ring-purple/40
-              focus-visible:ring-offset-2 disabled:opacity-60 motion-safe:active:scale-[0.99]"
           >
-            {ocupado === "publicar" ? "Publicando…" : "Publicar look"}
-          </button>
+            Publicar look
+          </Button>
         )}
       </section>
     </div>

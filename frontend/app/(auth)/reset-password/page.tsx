@@ -126,7 +126,7 @@ function ResetPasswordForm() {
           </p>
         )}
 
-        <Button type="submit" loading={loading} loadingLabel="Salvando…">
+        <Button type="submit" fullWidth loading={loading} loadingLabel="Salvando…">
           Salvar nova senha
         </Button>
       </form>

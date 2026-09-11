@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/Button";
 import { updateMe, type User } from "@/lib/api";
 import HandleField from "@/components/ui/HandleField";
 
@@ -26,6 +29,7 @@ export default function PerfilForm({ usuario }: { usuario: User }) {
         ...(handle.trim() ? { username: handle.trim() } : {}),
       });
       setEstado({ tipo: "salvo" });
+      toast.success("Perfil salvo.");
     } catch (erro) {
       setEstado({ tipo: "erro", mensagem: (erro as Error).message });
     }
@@ -78,15 +82,9 @@ export default function PerfilForm({ usuario }: { usuario: User }) {
       <p className="mt-2 text-sm text-navy/55">{bio.length}/500</p>
 
       <div className="mt-8 flex flex-wrap items-center gap-4">
-        <button
-          type="submit"
-          disabled={salvando}
-          className="rounded-2xl bg-purple px-6 py-3 text-sm font-semibold text-white transition
-            hover:bg-purple/90 focus-visible:ring-2 focus-visible:ring-purple/40
-            focus-visible:ring-offset-2 disabled:opacity-60 motion-safe:active:scale-[0.99]"
-        >
-          {salvando ? "Salvando…" : "Salvar alterações"}
-        </button>
+        <Button type="submit" loading={salvando} loadingLabel="Salvando…" className="text-sm">
+          Salvar alterações
+        </Button>
 
         {estado.tipo === "salvo" && (
           <p role="status" className="text-sm font-medium text-navy/70">
