@@ -160,6 +160,19 @@ describe("editor de look", () => {
     await waitFor(() => expect(screen.queryByText("Sobretudo")).not.toBeInTheDocument());
   });
 
+  // Mesma regra que a tela inicial já guarda: o feed não tem rota. Dizer que o look
+  // "já aparece" promete uma tela que ninguém consegue abrir.
+  it("não afirma que o look já está num feed que não existe", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde({ ...RASCUNHO, status: "published" }));
+    render(<EditorDeLook inicial={{ ...RASCUNHO, image_url: "https://cdn/x.jpg" }} />);
+
+    await user.click(screen.getByRole("button", { name: /publicar look/i }));
+
+    expect(await screen.findByText(/quando o feed entrar no ar/i)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/já aparece|já valem/i);
+  });
+
   // Sair do campo não é pedir para gravar: quem escreveu e se arrependeu precisa
   // poder fechar a tela sem que a mudança tenha virado estado do servidor.
   it("não salva o título ao sair do campo", async () => {
