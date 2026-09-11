@@ -10,6 +10,7 @@ vi.mock("next/headers", () => ({ cookies: () => ({ get: () => ({ value: "tok" })
 
 import EditorDeLook from "@/components/looks/EditorDeLook";
 import MeusLooks from "@/components/looks/MeusLooks";
+import NovoLook from "@/components/looks/NovoLook";
 import { carregarLook, carregarMeusLooks } from "@/lib/looks";
 import { toast } from "sonner";
 
@@ -50,14 +51,45 @@ describe("lista de looks", () => {
     expect(screen.getByText("Publicado")).toBeInTheDocument();
   });
 
-  // Criar já abre o editor: pedir o título numa tela separada seria um formulário no
-  // caminho de quem quer trabalhar.
-  it("cria um rascunho e abre o editor", async () => {
-    const user = userEvent.setup();
-    vi.stubGlobal("fetch", responde(RASCUNHO));
+  // Criar deixou de gravar no clique: o botão só leva ao formulário, e quem desistir
+  // no meio do caminho não deixa rascunho vazio para trás.
+  it("leva ao formulário sem gravar nada", () => {
+    vi.stubGlobal("fetch", vi.fn());
     render(<MeusLooks looks={[]} />);
 
-    await user.click(screen.getByRole("button", { name: /criar (um|meu primeiro) look/i }));
+    const link = screen.getByRole("link", { name: /criar (um|meu primeiro) look/i });
+
+    expect(link).toHaveAttribute("href", "/looks/novo");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("criação de look", () => {
+  it("não grava enquanto o formulário está sendo preenchido", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn());
+    render(<NovoLook />);
+
+    await user.type(screen.getByLabelText(/título/i), "Inverno urbano");
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("desiste sem deixar rascunho para trás", () => {
+    vi.stubGlobal("fetch", vi.fn());
+    render(<NovoLook />);
+
+    expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/inicio");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("cria o rascunho e abre o editor quando você confirma", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde(RASCUNHO));
+    render(<NovoLook />);
+
+    await user.type(screen.getByLabelText(/título/i), "Inverno urbano");
+    await user.click(screen.getByRole("button", { name: /criar look/i }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/looks/look-1"));
   });
@@ -126,6 +158,66 @@ describe("editor de look", () => {
     await user.click(screen.getByRole("button", { name: /remover sobretudo/i }));
 
     await waitFor(() => expect(screen.queryByText("Sobretudo")).not.toBeInTheDocument());
+  });
+
+  // Sair do campo não é pedir para gravar: quem escreveu e se arrependeu precisa
+  // poder fechar a tela sem que a mudança tenha virado estado do servidor.
+  it("não salva o título ao sair do campo", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn());
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.type(screen.getByLabelText(/título/i), " noturno");
+    await user.tab();
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("salva quando você pede", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde({ ...RASCUNHO, title: "Inverno urbano noturno" }));
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.type(screen.getByLabelText(/título/i), " noturno");
+    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Alterações salvas."));
+  });
+
+  it("descarta a alteração e volta ao que estava salvo", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn());
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.type(screen.getByLabelText(/título/i), " noturno");
+    await user.click(screen.getByRole("button", { name: /descartar/i }));
+
+    expect(screen.getByLabelText(/título/i)).toHaveValue("Inverno urbano");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  // Apagar look é irreversível e leva as peças junto: um clique só não pode bastar.
+  it("não exclui no primeiro clique", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn());
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("button", { name: /excluir look/i }));
+
+    expect(screen.getByText(/não dá para desfazer/i)).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("exclui o look depois da confirmação e volta para a lista", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 204 }));
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("button", { name: /excluir look/i }));
+    await user.click(screen.getByRole("button", { name: /excluir mesmo assim/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/inicio"));
+    expect(fetch).toHaveBeenCalledWith("/api/looks/look-1", { method: "DELETE" });
   });
 });
 

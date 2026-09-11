@@ -55,7 +55,10 @@ describe("página inicial da conta", () => {
   it("oferece criar um look, sem falar em indisponibilidade", async () => {
     render(await InicioPage());
 
-    expect(screen.getByRole("button", { name: /criar (um|meu primeiro) look/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /criar (um|meu primeiro) look/i })).toHaveAttribute(
+      "href",
+      "/looks/novo",
+    );
     expect(document.body.textContent).not.toMatch(/em desenvolvimento/i);
   });
 
