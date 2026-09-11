@@ -15,7 +15,8 @@ a imagem entra na primeira requisição, ou o look não pode nascer.
 ## Decisão
 
 `image_url` passa a aceitar nulo, e a imagem vira **pré-condição de publicação**,
-verificada em `LookService.publish` junto da RN04.
+verificada em `LookService.publish` junto da RN04 — e preservada em
+`LookService.update` enquanto o look estiver publicado.
 
 ## Consequências
 
@@ -30,6 +31,12 @@ se alguém publicar por outro caminho que não o serviço, nada impede.
 Enquanto `publish` for o único lugar que escreve `status = 'published'`, a garantia se
 mantém. Se aparecer um segundo caminho — importação em massa, seed, painel
 administrativo — a regra precisa ser reaplicada lá, ou virar `CHECK` no banco.
+
+A invariante tem dois lados, e a primeira versão desta decisão só enxergou um: vigiar
+quem escreve `status` não basta, porque apagar `image_url` de um look já publicado
+quebra "publicado tem imagem" pela outra ponta. `update` passa a recusar a remoção da
+imagem de look publicado — a mesma leitura que a RN04 já tinha na remoção da última
+peça. Trocar a imagem por outra continua liberado: o que se recusa é ficar sem.
 
 A RFC v1.1 foi atualizada junto com esta mudança: documento que descreve schema
 diferente do que a migration cria é pior que documento ausente.
