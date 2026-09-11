@@ -5,11 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const push = vi.fn();
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("next/headers", () => ({ cookies: () => ({ get: () => ({ value: "tok" }) }) }));
 
 import EditorDeLook from "@/components/looks/EditorDeLook";
 import MeusLooks from "@/components/looks/MeusLooks";
 import { carregarLook, carregarMeusLooks } from "@/lib/looks";
+import { toast } from "sonner";
+
 import type { Look } from "@/lib/api";
 
 const RASCUNHO: Look = {
@@ -103,8 +106,12 @@ describe("editor de look", () => {
 
     await user.click(screen.getByRole("button", { name: /publicar look/i }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent(/publicado/i);
-    expect(screen.queryByRole("button", { name: /publicar look/i })).not.toBeInTheDocument();
+    // O sucesso virou toast: a confirmação sobrevive à troca de tela, e o botão
+    // some porque o look deixou de ser rascunho.
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /publicar look/i })).not.toBeInTheDocument(),
+    );
+    expect(toast.success).toHaveBeenCalledWith("Look publicado.", expect.anything());
   });
 
   it("remove uma peça", async () => {
