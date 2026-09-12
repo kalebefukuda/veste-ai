@@ -23,6 +23,7 @@ class FeedLookOut(BaseModel):
     title: str
     description: str | None = None
     image_url: str | None = None
+    category: str | None = None
     created_at: datetime
     creator: FeedCreator
     pieces: list[PieceOut] = []

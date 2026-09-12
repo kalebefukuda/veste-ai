@@ -25,6 +25,8 @@ class Look(Base):
     description: Mapped[str | None] = mapped_column(Text)
     # Nulável: rascunho sem imagem existe, publicado sem imagem não — ADR-0019.
     image_url: Mapped[str | None] = mapped_column(Text)
+    # Ocasião do look. Nulável no rascunho; publicar exige — ver ADR-0021.
+    category: Mapped[str | None] = mapped_column(String(20))
     ai_generated: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     status: Mapped[str] = mapped_column(String(20), server_default="draft")
     created_at: Mapped[datetime] = mapped_column(

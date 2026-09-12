@@ -8,6 +8,7 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import (
     DomainHTTPException,
     LookNotFound,
+    LookWithoutCategory,
     LookWithoutImage,
     LookWithoutPiece,
     NotTheOwner,
@@ -103,5 +104,11 @@ def remover_peca(
 def publicar(look_id: uuid.UUID, user: Autenticado, service: Servico) -> LookOut:
     try:
         return LookOut.model_validate(service.publish(look_id, user.id))
-    except (LookNotFound, NotTheOwner, LookWithoutPiece, LookWithoutImage) as erro:
+    except (
+        LookNotFound,
+        NotTheOwner,
+        LookWithoutPiece,
+        LookWithoutImage,
+        LookWithoutCategory,
+    ) as erro:
         raise _http(erro) from erro

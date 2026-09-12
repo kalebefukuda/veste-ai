@@ -8,6 +8,7 @@ from app.core.exceptions import DomainHTTPException, LookNotFound
 from app.database import get_db
 from app.repositories.look_repository import LookRepository
 from app.schemas.feed import FeedLookOut, FeedPage
+from app.schemas.look import Categoria
 from app.services.feed_service import FeedService
 
 router = APIRouter(prefix="/feed", tags=["feed"])
@@ -28,8 +29,10 @@ def listar(
     service: Servico,
     page: Annotated[int, Query(ge=1)] = 1,
     per_page: Annotated[int, Query(ge=1, le=50)] = POR_PAGINA,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    categoria: Annotated[Categoria | None, Query()] = None,
 ) -> FeedPage:
-    looks, proxima = service.page(page, per_page)
+    looks, proxima = service.page(page, per_page, q, categoria)
 
     return FeedPage(
         items=[FeedLookOut.model_validate(look) for look in looks],

@@ -2,7 +2,13 @@
 
 import uuid
 
-from app.core.exceptions import LookNotFound, LookWithoutImage, LookWithoutPiece, NotTheOwner
+from app.core.exceptions import (
+    LookNotFound,
+    LookWithoutCategory,
+    LookWithoutImage,
+    LookWithoutPiece,
+    NotTheOwner,
+)
 from app.models.look import PUBLICADO, Look, Piece
 from app.repositories.look_repository import LookRepository
 from app.schemas.look import LookCreate, LookUpdate, PieceCreate
@@ -77,6 +83,11 @@ class LookService:
 
         if not look.image_url:
             raise LookWithoutImage()
+
+        # Sem ocasião o look entra no feed fora de todo filtro: existiria só para quem
+        # rolasse até ele.
+        if not look.category:
+            raise LookWithoutCategory()
 
         look.status = PUBLICADO
         return look

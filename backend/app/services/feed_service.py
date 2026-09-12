@@ -11,10 +11,21 @@ class FeedService:
     def __init__(self, looks: LookRepository) -> None:
         self.looks = looks
 
-    def page(self, page: int, per_page: int) -> tuple[list[Look], int | None]:
+    def page(
+        self,
+        page: int,
+        per_page: int,
+        busca: str | None = None,
+        categoria: str | None = None,
+    ) -> tuple[list[Look], int | None]:
         # Busca um a mais que o pedido: é o que responde "tem próxima?" sem varrer a
         # tabela inteira com um count a cada página.
-        achados = self.looks.list_published(limit=per_page + 1, offset=(page - 1) * per_page)
+        achados = self.looks.list_published(
+            limit=per_page + 1,
+            offset=(page - 1) * per_page,
+            busca=busca,
+            categoria=categoria,
+        )
         tem_mais = len(achados) > per_page
 
         return achados[:per_page], page + 1 if tem_mais else None
