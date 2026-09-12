@@ -5,8 +5,16 @@ const VAZIA: PaginaDoFeed = { items: [], next_page: null };
 
 // Sem `Authorization`: o feed é a RN03 em código, e mandar token aqui esconderia uma
 // dependência de sessão numa rota que precisa servir visitante.
-export async function carregarFeed(page = 1): Promise<PaginaDoFeed> {
-  const resposta = await fetch(apiUrl(`/feed?page=${page}`), { cache: "no-store" });
+export async function carregarFeed(
+  page = 1,
+  busca?: string,
+  categoria?: string,
+): Promise<PaginaDoFeed> {
+  const alvo = new URLSearchParams({ page: String(page) });
+  if (busca) alvo.set("q", busca);
+  if (categoria) alvo.set("categoria", categoria);
+
+  const resposta = await fetch(apiUrl(`/feed?${alvo}`), { cache: "no-store" });
 
   return resposta.ok ? resposta.json() : VAZIA;
 }
