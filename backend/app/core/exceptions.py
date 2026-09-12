@@ -27,6 +27,10 @@ class LookWithoutImage(DomainError):
     code = "LOOK_WITHOUT_IMAGE"
 
 
+class LookWithoutCategory(DomainError):
+    code = "LOOK_WITHOUT_CATEGORY"
+
+
 class NotTheOwner(DomainError):
     code = "NOT_THE_OWNER"
     rule = "RN07"
