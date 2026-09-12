@@ -18,6 +18,7 @@ const LOOK: LookPublico = {
   id: "look-1",
   title: "Inverno urbano",
   description: null,
+  category: "work",
   image_url: "https://cdn.exemplo.com/1.jpg",
   created_at: "2026-09-10T10:00:00Z",
   creator: { name: "Mariana Souza", username: "mari", avatar: null },
@@ -42,6 +43,14 @@ describe("vitrine pública", () => {
 
     expect(screen.getByText("Inverno urbano")).toBeInTheDocument();
     expect(screen.getByText(/mariana souza/i)).toBeInTheDocument();
+  });
+
+  // Ícone sozinho não comunica para quem usa leitor de tela: a ocasião precisa de
+  // rótulo em texto mesmo quando a tela mostra só o desenho.
+  it("marca a ocasião no card, com rótulo legível", () => {
+    render(<Vitrine inicial={[LOOK]} proxima={null} logado={false} />);
+
+    expect(screen.getByText("Trabalho")).toBeInTheDocument();
   });
 
   it("leva ao look público pelo card", () => {
@@ -87,6 +96,31 @@ describe("vitrine pública", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: /carregar mais/i })).not.toBeInTheDocument(),
     );
+  });
+
+  // A distinção é a que o Kalebe pediu nas duas pontas: voltar de um look para o
+  // feed é a mesma lista e não pode piscar; trocar de ocasião é outra lista e precisa
+  // entrar animada.
+  it("não anima a lista que já estava na tela", () => {
+    const { container } = render(<Vitrine inicial={[LOOK]} proxima={null} logado={false} />);
+
+    expect(container.querySelector("ul")?.className).not.toMatch(/animate-page-in/);
+  });
+
+  // A grade inteira entra de uma vez, como a transição entre páginas. Card a card,
+  // com atraso em cascata, vira pisca-pisca — cada imagem chegando na sua hora.
+  it("anima a grade inteira, de uma vez, quando o filtro muda", () => {
+    const { container, rerender } = render(
+      <Vitrine inicial={[LOOK]} proxima={null} logado={false} />,
+    );
+
+    rerender(
+      <Vitrine inicial={[OUTRO]} proxima={null} logado={false} categoria="beach" />,
+    );
+
+    expect(screen.getByText("Alfaiataria clara")).toBeInTheDocument();
+    expect(container.querySelector("ul")?.className).toMatch(/animate-page-in/);
+    expect(container.querySelector("li")?.className ?? "").not.toMatch(/animate/);
   });
 
   it("convida a publicar quando ainda não há look nenhum", () => {

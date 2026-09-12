@@ -176,6 +176,31 @@ describe("editor de look", () => {
     expect(document.body.textContent).not.toMatch(/quando o feed entrar no ar/i);
   });
 
+  // Publicar exige ocasião, como já exige peça e imagem. Sem campo no editor, a
+  // recusa do backend seria um beco sem saída.
+  it("pede a ocasião e manda junto ao salvar", async () => {
+    const user = userEvent.setup();
+    const chamou = responde({ ...RASCUNHO, category: "beach" });
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("radio", { name: /praia/i }));
+    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toMatchObject({ category: "beach" });
+  });
+
+  it("explica a recusa por falta de ocasião", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde({ detail: "x", code: "LOOK_WITHOUT_CATEGORY" }, false, 422));
+    render(<EditorDeLook inicial={{ ...RASCUNHO, image_url: "https://cdn/x.jpg" }} />);
+
+    await user.click(screen.getByRole("button", { name: /publicar look/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/ocasião/i);
+  });
+
   // Sair do campo não é pedir para gravar: quem escreveu e se arrependeu precisa
   // poder fechar a tela sem que a mudança tenha virado estado do servidor.
   it("não salva o título ao sair do campo", async () => {

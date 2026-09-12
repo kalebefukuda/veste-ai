@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const cookieStore = { get: vi.fn(), set: vi.fn(), delete: vi.fn() };
@@ -30,6 +30,7 @@ const LOOK: LookPublico = {
   id: "look-1",
   title: "Inverno urbano",
   description: "Camadas para o frio da cidade",
+  category: "beach",
   image_url: "https://cdn.exemplo.com/1.jpg",
   created_at: "2026-09-10T10:00:00Z",
   creator: { name: "Mariana Souza", username: "mari", avatar: null },
@@ -37,6 +38,8 @@ const LOOK: LookPublico = {
     { id: "p1", name: "Sobretudo bordô", purchase_url: "https://loja.com/x", store: "Loja X" },
   ],
 };
+
+const OUTRO: LookPublico = { ...LOOK, id: "look-2", title: "Alfaiataria clara" };
 
 const USUARIO = { id: "1", name: "Mariana Souza", email: "mari@exemplo.com", plan: "free" };
 
@@ -67,10 +70,70 @@ describe("página do feed", () => {
     cookieStore.get.mockReturnValue(undefined);
     vi.stubGlobal("fetch", respondePorUrl({ "/feed": { items: [LOOK], next_page: null } }));
 
-    render(await FeedPage());
+    render(await FeedPage({ searchParams: {} }));
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/pessoal montou/i);
     expect(screen.getByText("Inverno urbano")).toBeInTheDocument();
+  });
+
+  it("leva o termo buscado até a API e mostra o que voltou", async () => {
+    cookieStore.get.mockReturnValue(undefined);
+    const chamou = respondePorUrl({ "/feed": { items: [LOOK], next_page: null } });
+    vi.stubGlobal("fetch", chamou);
+
+    render(await FeedPage({ searchParams: { q: "  inverno  " } }));
+
+    expect(String(chamou.mock.calls[0][0])).toContain("q=inverno");
+    expect(screen.getByText(/resultados para/i)).toBeInTheDocument();
+  });
+
+  // A RFC desenha o feed com as ocasiões em pills na navegação. São links, não
+  // botões: o filtro vira URL e sobrevive a recarregar e a compartilhar.
+  it("oferece as ocasiões como filtro, e marca a que está valendo", async () => {
+    cookieStore.get.mockReturnValue(undefined);
+    vi.stubGlobal("fetch", respondePorUrl({ "/feed": { items: [LOOK], next_page: null } }));
+
+    render(await FeedPage({ searchParams: { categoria: "beach" } }));
+
+    const filtro = within(screen.getByRole("navigation", { name: /ocasião/i }));
+
+    expect(filtro.getByRole("link", { name: /praia/i })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(filtro.getByRole("link", { name: /trabalho/i })).not.toHaveAttribute(
+      "aria-current",
+    );
+    expect(filtro.getByRole("link", { name: /^tudo$/i })).toHaveAttribute("href", "/feed");
+  });
+
+  it("leva a ocasião escolhida até a API", async () => {
+    cookieStore.get.mockReturnValue(undefined);
+    const chamou = respondePorUrl({ "/feed": { items: [LOOK], next_page: null } });
+    vi.stubGlobal("fetch", chamou);
+
+    render(await FeedPage({ searchParams: { categoria: "beach", q: "linho" } }));
+
+    const url = String(chamou.mock.calls[0][0]);
+    expect(url).toContain("categoria=beach");
+    expect(url).toContain("q=linho");
+  });
+
+  // Trocar de ocasião é navegação do lado do cliente: a página re-renderiza sem
+  // desmontar. Sem forçar a vitrine a reiniciar, ela guardaria a lista da primeira
+  // visita — a URL mudava e a tela não.
+  it("troca a lista ao mudar de ocasião, sem recarregar a página", async () => {
+    cookieStore.get.mockReturnValue(undefined);
+    vi.stubGlobal("fetch", respondePorUrl({ "/feed": { items: [LOOK], next_page: null } }));
+    const { rerender } = render(await FeedPage({ searchParams: {} }));
+
+    expect(screen.getByText("Inverno urbano")).toBeInTheDocument();
+
+    vi.stubGlobal("fetch", respondePorUrl({ "/feed": { items: [OUTRO], next_page: null } }));
+    rerender(await FeedPage({ searchParams: { categoria: "beach" } }));
+
+    expect(screen.getByText("Alfaiataria clara")).toBeInTheDocument();
+    expect(screen.queryByText("Inverno urbano")).not.toBeInTheDocument();
   });
 
   it("monta o cabeçalho com a sessão que houver", async () => {
