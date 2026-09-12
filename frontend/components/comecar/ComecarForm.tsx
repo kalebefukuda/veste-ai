@@ -7,7 +7,7 @@ import { useState } from "react";
 import { marcarOnboarding, updateMe, type Intent, type User } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import HandleField from "@/components/ui/HandleField";
-import { INICIO } from "@/lib/routes";
+import { MEUS_LOOKS } from "@/lib/routes";
 
 const PUBLICOS: { valor: Intent; titulo: string; descricao: string; icone: React.ReactNode }[] = [
   {
@@ -48,7 +48,7 @@ export default function ComecarForm({ usuario }: { usuario: User }) {
       }
 
       await marcarOnboarding();
-      router.push(INICIO);
+      router.push(MEUS_LOOKS);
       router.refresh();
     } catch (falha) {
       setErro((falha as Error).message);

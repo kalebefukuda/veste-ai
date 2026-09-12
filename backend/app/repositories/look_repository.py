@@ -1,9 +1,10 @@
 import uuid
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session, contains_eager
 
-from app.models.look import Look, Piece
+from app.models.look import PUBLICADO, Look, Piece
+from app.models.user import User
 
 
 class LookRepository:
@@ -16,6 +17,43 @@ class LookRepository:
     def list_by_user(self, user_id: uuid.UUID) -> list[Look]:
         consulta = select(Look).where(Look.user_id == user_id).order_by(Look.created_at.desc())
         return list(self.db.execute(consulta).scalars())
+
+    # O join com users é sempre válido — todo look tem dono — então ele entra fixo e
+    # `contains_eager` aproveita a linha já trazida. Sem isso, listar N looks dispara
+    # N consultas de usuário só para escrever o nome no card.
+    def _publicados(self):  # noqa: ANN202 — Select tipado polui mais do que esclarece
+        return (
+            select(Look)
+            .join(Look.creator)
+            .where(Look.status == PUBLICADO)
+            .options(contains_eager(Look.creator))
+        )
+
+    def list_published(
+        self,
+        limit: int,
+        offset: int,
+        busca: str | None = None,
+        categoria: str | None = None,
+    ) -> list[Look]:
+        consulta = self._publicados()
+
+        # Título e nome de quem montou: é o que a pessoa lembra na hora de procurar.
+        if busca:
+            termo = f"%{busca}%"
+            consulta = consulta.where(or_(Look.title.ilike(termo), User.name.ilike(termo)))
+
+        if categoria:
+            consulta = consulta.where(Look.category == categoria)
+
+        consulta = consulta.order_by(Look.created_at.desc()).limit(limit).offset(offset)
+
+        return list(self.db.execute(consulta).unique().scalars())
+
+    def get_published(self, look_id: uuid.UUID) -> Look | None:
+        consulta = self._publicados().where(Look.id == look_id)
+
+        return self.db.execute(consulta).unique().scalar_one_or_none()
 
     def add(self, look: Look) -> Look:
         self.db.add(look)

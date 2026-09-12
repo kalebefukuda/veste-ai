@@ -27,6 +27,7 @@ export type Look = {
   id: string;
   title: string;
   description?: string | null;
+  category?: Categoria | null;
   image_url?: string | null;
   ai_generated: boolean;
   status: "draft" | "published";
@@ -34,10 +35,38 @@ export type Look = {
   pieces: Peca[];
 };
 
+import type { Categoria } from "@/lib/categorias";
+
+export type Criador = {
+  name: string;
+  username?: string | null;
+  avatar?: string | null;
+};
+
+// O que a vitrine mostra de um look de outra pessoa: sem `status`, sem dono, sem nada
+// que só interesse a quem edita.
+export type LookPublico = {
+  id: string;
+  title: string;
+  description?: string | null;
+  category?: Categoria | null;
+  image_url?: string | null;
+  created_at: string;
+  creator: Criador;
+  pieces: Peca[];
+};
+
+export type PaginaDoFeed = {
+  items: LookPublico[];
+  next_page: number | null;
+};
+
 export type PecaNova = {
   name: string;
   purchase_url: string;
   store?: string;
+  image_url?: string;
+  price?: string;
 };
 
 export type PerfilPatch = {
@@ -96,6 +125,10 @@ function messageFor(status: number, data: ApiError | null): string {
 
   if (data?.code === "LOOK_WITHOUT_PIECE") {
     return "Adicione ao menos uma peça com link de compra antes de publicar.";
+  }
+
+  if (data?.code === "LOOK_WITHOUT_CATEGORY") {
+    return "Escolha a ocasião do look antes de publicar.";
   }
 
   if (data?.code === "LOOK_WITHOUT_IMAGE") {
@@ -161,6 +194,18 @@ export function limparOnboarding(): Promise<User> {
 
 export async function enviarContato(email: string, message: string): Promise<void> {
   await send<{ detail: string }>("POST", "/api/contact", { email, message });
+}
+
+export function carregarMaisDoFeed(
+  page: number,
+  busca?: string,
+  categoria?: string,
+): Promise<PaginaDoFeed> {
+  const alvo = new URLSearchParams({ page: String(page) });
+  if (busca) alvo.set("q", busca);
+  if (categoria) alvo.set("categoria", categoria);
+
+  return send<PaginaDoFeed>("GET", `/api/feed?${alvo}`, undefined);
 }
 
 export function criarLook(title: string, description?: string): Promise<Look> {

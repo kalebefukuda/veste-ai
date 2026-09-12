@@ -742,7 +742,7 @@ sem sair da tela.
 O conteúdo é organizado em um grid uniforme de quatro colunas, com
 cards de proporção padronizada seguindo a convenção de marketplaces de
 moda. Cada card exibe a foto do look, o handle do creator, o título,
-as tags de estilo, a contagem de curtidas e um link direto para o look
+o ícone da ocasião, a contagem de curtidas e um link direto para o look
 completo. O visitante não precisa estar autenticado para navegar no feed
 — a exploração é aberta a qualquer usuário (RN03).
 
@@ -1054,6 +1054,7 @@ looks (
   title        VARCHAR(200) NOT NULL,
   description  TEXT,
   image_url    TEXT,                                -- ver ADR-0019
+  category     VARCHAR(20),                         -- ocasião; ver ADR-0021
   ai_generated BOOLEAN      NOT NULL DEFAULT false,
   status       VARCHAR(20)  NOT NULL DEFAULT 'draft',  -- 'draft' | 'published'
   created_at   TIMESTAMP    NOT NULL DEFAULT now()

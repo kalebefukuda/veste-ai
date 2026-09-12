@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
@@ -22,6 +22,11 @@ def _link_de_loja(valor: str) -> str:
 
 
 LinkDeCompra = Annotated[str, AfterValidator(_link_de_loja)]
+
+# Um eixo só, de ocasião — não dois com estação junto. A RFC desenha o feed com pills
+# de categoria; esta é a lista que elas mostram. Literal e não `str` porque valor livre
+# viraria lixo no banco e a barra de filtro deixaria de fechar.
+Categoria = Literal["work", "casual", "social", "party", "beach", "sport"]
 
 
 class PieceCreate(BaseModel):
@@ -50,6 +55,7 @@ class LookCreate(BaseModel):
 
     title: str = Field(min_length=2, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
+    category: Categoria | None = None
 
 
 class LookUpdate(BaseModel):
@@ -58,6 +64,7 @@ class LookUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=2, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
     image_url: LinkDeCompra | None = None
+    category: Categoria | None = None
 
 
 class LookOut(BaseModel):
@@ -67,6 +74,7 @@ class LookOut(BaseModel):
     title: str
     description: str | None = None
     image_url: str | None = None
+    category: str | None = None
     ai_generated: bool
     status: str
     created_at: datetime

@@ -79,7 +79,7 @@ describe("criação de look", () => {
     vi.stubGlobal("fetch", vi.fn());
     render(<NovoLook />);
 
-    expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/inicio");
+    expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/meus-looks");
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -160,17 +160,45 @@ describe("editor de look", () => {
     await waitFor(() => expect(screen.queryByText("Sobretudo")).not.toBeInTheDocument());
   });
 
-  // Mesma regra que a tela inicial já guarda: o feed não tem rota. Dizer que o look
-  // "já aparece" promete uma tela que ninguém consegue abrir.
-  it("não afirma que o look já está num feed que não existe", async () => {
+  // O feed passou a existir nesta entrega: a tela larga o futuro e afirma o presente,
+  // com o caminho para conferir.
+  it("diz que o look publicado já está no feed e leva até ele", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", responde({ ...RASCUNHO, status: "published" }));
     render(<EditorDeLook inicial={{ ...RASCUNHO, image_url: "https://cdn/x.jpg" }} />);
 
     await user.click(screen.getByRole("button", { name: /publicar look/i }));
 
-    expect(await screen.findByText(/quando o feed entrar no ar/i)).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/já aparece|já valem/i);
+    expect(await screen.findByRole("link", { name: /ver no feed/i })).toHaveAttribute(
+      "href",
+      "/feed/look-1",
+    );
+    expect(document.body.textContent).not.toMatch(/quando o feed entrar no ar/i);
+  });
+
+  // Publicar exige ocasião, como já exige peça e imagem. Sem campo no editor, a
+  // recusa do backend seria um beco sem saída.
+  it("pede a ocasião e manda junto ao salvar", async () => {
+    const user = userEvent.setup();
+    const chamou = responde({ ...RASCUNHO, category: "beach" });
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("radio", { name: /praia/i }));
+    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toMatchObject({ category: "beach" });
+  });
+
+  it("explica a recusa por falta de ocasião", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde({ detail: "x", code: "LOOK_WITHOUT_CATEGORY" }, false, 422));
+    render(<EditorDeLook inicial={{ ...RASCUNHO, image_url: "https://cdn/x.jpg" }} />);
+
+    await user.click(screen.getByRole("button", { name: /publicar look/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/ocasião/i);
   });
 
   // Sair do campo não é pedir para gravar: quem escreveu e se arrependeu precisa
@@ -245,7 +273,7 @@ describe("editor de look", () => {
     await user.click(screen.getByRole("button", { name: /excluir look/i }));
     await user.click(screen.getByRole("button", { name: /excluir mesmo assim/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/inicio"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/meus-looks"));
     expect(fetch).toHaveBeenCalledWith("/api/looks/look-1", { method: "DELETE" });
   });
 });
