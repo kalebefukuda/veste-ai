@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { REGISTER } from "@/lib/routes";
+import { FEED, REGISTER } from "@/lib/routes";
 
 export default function CtaBanner() {
   return (
@@ -26,15 +26,27 @@ export default function CtaBanner() {
             Monte o look, linke as peças e publique. O clique de quem gostou vai direto para a
             loja. Comece grátis, sem cartão de crédito.
           </p>
-          <Link
-            href={REGISTER}
-            className="mt-10 inline-block rounded-2xl bg-white px-7 py-4 font-semibold text-navy
-              transition hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/70
-              focus-visible:ring-offset-2 focus-visible:ring-offset-navy
-              motion-safe:active:scale-[0.99]"
-          >
-            Criar minha conta grátis
-          </Link>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+            <Link
+              href={REGISTER}
+              className="inline-block rounded-2xl bg-white px-7 py-4 font-semibold text-navy
+                transition hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/70
+                focus-visible:ring-offset-2 focus-visible:ring-offset-navy
+                motion-safe:active:scale-[0.99]"
+            >
+              Criar minha conta grátis
+            </Link>
+
+            <Link
+              href={FEED}
+              className="inline-block rounded-2xl border border-white/30 px-7 py-4 font-semibold
+                text-white transition hover:border-white/70 focus-visible:ring-2
+                focus-visible:ring-white/70 focus-visible:ring-offset-2
+                focus-visible:ring-offset-navy"
+            >
+              Ver os looks
+            </Link>
+          </div>
         </div>
       </div>
     </section>
