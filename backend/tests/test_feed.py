@@ -18,10 +18,10 @@ def dono(client: TestClient) -> TestClient:
     return client
 
 
-def publicar(c: TestClient, titulo: str = LOOK["title"]) -> str:
+def publicar(c: TestClient, titulo: str = LOOK["title"], categoria: str = "casual") -> str:
     look = c.post("/looks", json={**LOOK, "title": titulo}).json()["id"]
     c.post(f"/looks/{look}/pieces", json=PECA)
-    c.patch(f"/looks/{look}", json={"image_url": IMAGEM})
+    c.patch(f"/looks/{look}", json={"image_url": IMAGEM, "category": categoria})
     c.post(f"/looks/{look}/publish")
     return look
 
@@ -132,6 +132,88 @@ def test_a_ultima_pagina_nao_aponta_proxima(dono: TestClient) -> None:
     pagina = sem_sessao(dono).get("/feed", params={"per_page": 1}).json()
 
     assert pagina["next_page"] is None
+
+
+# Busca por título e por quem montou, que é o que a pessoa lembra na hora de procurar
+# — ninguém guarda o id de um look.
+def test_a_busca_acha_pelo_titulo(dono: TestClient) -> None:
+    publicar(dono, "Alfaiataria clara")
+    publicar(dono, "Inverno urbano")
+
+    itens = sem_sessao(dono).get("/feed", params={"q": "alfaiataria"}).json()["items"]
+
+    assert [item["title"] for item in itens] == ["Alfaiataria clara"]
+
+
+def test_a_busca_acha_pelo_nome_de_quem_montou(client: TestClient) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+    publicar(client, "Da dona")
+
+    client.headers["Authorization"] = f"Bearer {token(client, OUTRA)}"
+    publicar(client, "Da outra")
+
+    itens = sem_sessao(client).get("/feed", params={"q": OUTRA["name"]}).json()["items"]
+
+    assert [item["title"] for item in itens] == ["Da outra"]
+
+
+def test_a_busca_ignora_caixa_e_acento_parcial(dono: TestClient) -> None:
+    publicar(dono, "Inverno Urbano")
+
+    itens = sem_sessao(dono).get("/feed", params={"q": "URBANO"}).json()["items"]
+
+    assert len(itens) == 1
+
+
+def test_a_busca_sem_resultado_devolve_lista_vazia(dono: TestClient) -> None:
+    publicar(dono)
+
+    pagina = sem_sessao(dono).get("/feed", params={"q": "nao existe isso"}).json()
+
+    assert pagina["items"] == []
+    assert pagina["next_page"] is None
+
+
+# O filtro por ocasião é o que a RFC desenha como pills na navegação do feed.
+def test_o_feed_filtra_por_categoria(dono: TestClient) -> None:
+    publicar(dono, "Para o escritório", "work")
+    publicar(dono, "Para a areia", "beach")
+
+    itens = sem_sessao(dono).get("/feed", params={"categoria": "beach"}).json()["items"]
+
+    assert [item["title"] for item in itens] == ["Para a areia"]
+
+
+def test_o_feed_sem_filtro_traz_todas_as_categorias(dono: TestClient) -> None:
+    publicar(dono, "Para o escritório", "work")
+    publicar(dono, "Para a areia", "beach")
+
+    assert len(sem_sessao(dono).get("/feed").json()["items"]) == 2
+
+
+def test_o_feed_recusa_categoria_fora_da_lista(dono: TestClient) -> None:
+    resposta = sem_sessao(dono).get("/feed", params={"categoria": "inventada"})
+
+    assert resposta.status_code == 422
+
+
+def test_o_feed_entrega_a_categoria_do_look(dono: TestClient) -> None:
+    publicar(dono, "Para a areia", "beach")
+
+    assert sem_sessao(dono).get("/feed").json()["items"][0]["category"] == "beach"
+
+
+def test_a_busca_e_o_filtro_se_combinam(dono: TestClient) -> None:
+    publicar(dono, "Linho para o escritório", "work")
+    publicar(dono, "Linho para a areia", "beach")
+
+    itens = (
+        sem_sessao(dono)
+        .get("/feed", params={"q": "linho", "categoria": "work"})
+        .json()["items"]
+    )
+
+    assert [item["title"] for item in itens] == ["Linho para o escritório"]
 
 
 def test_o_feed_recusa_pagina_grande_demais(dono: TestClient) -> None:
