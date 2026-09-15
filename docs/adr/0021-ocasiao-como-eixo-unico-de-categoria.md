@@ -42,6 +42,16 @@ Acrescentar valor depois é barato — troca o `CHECK` e a lista no frontend, se
 dado. Tirar valor é caro, porque exige decidir o que fazer com os looks que já o usam.
 A lista nasceu curta por isso.
 
+A migration deixa `category` nulo nos looks que já estavam publicados, e esses não
+passam por `publish()` de novo para receber a validação. A saída escolhida é a leitura:
+o feed exige `category is not null` junto de `status`. Não foi backfill com um valor
+padrão, que inventaria conteúdo no lugar de quem montou o look, nem despublicação em
+massa, que tiraria do ar o trabalho de alguém sem avisar. O look continua publicado e
+volta ao feed assim que o creator escolher a ocasião na edição.
+
+Isso também mantém uma propriedade que a tela promete: o total de "Tudo" é a soma das
+pills. Look publicado sem ocasião apareceria só no total, e a conta não fecharia.
+
 A terceira pré-condição de publicação expôs um teste que passava pelo motivo errado:
 `test_publicado_troca_a_imagem_por_outra` seguia verde porque a publicação passou a
 falhar em silêncio e ele media um rascunho. As três pré-condições foram reunidas num
