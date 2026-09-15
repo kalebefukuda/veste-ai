@@ -2,12 +2,23 @@
 
 import uuid
 
-from app.core.exceptions import LookNotFound, LookWithoutImage, LookWithoutPiece, NotTheOwner
-from app.models.look import Look, Piece
+from app.core.exceptions import (
+    LookNotFound,
+    LookWithoutCategory,
+    LookWithoutImage,
+    LookWithoutPiece,
+    NotTheOwner,
+)
+from app.models.look import PUBLICADO, Look, Piece
 from app.repositories.look_repository import LookRepository
 from app.schemas.look import LookCreate, LookUpdate, PieceCreate
 
-PUBLICADO = "published"
+# O que a publicação exige, a edição não pode desfazer. Tabela e não uma sequência de
+# `if`: assim a próxima pré-condição entra aqui, e não em mais um lugar esquecível.
+EXIGIDOS_NO_PUBLICADO = {
+    "image_url": LookWithoutImage,
+    "category": LookWithoutCategory,
+}
 
 
 class LookService:
@@ -40,10 +51,12 @@ class LookService:
         look = self._meu(look_id, user_id)
         campos = dados.model_dump(exclude_unset=True)
 
-        # A pré-condição de publicar vale enquanto o look estiver publicado, como na
-        # remoção da última peça: senão a edição desfaz o que a publicação exigiu.
-        if look.status == PUBLICADO and "image_url" in campos and not campos["image_url"]:
-            raise LookWithoutImage()
+        # Vale enquanto o look estiver publicado, como na remoção da última peça:
+        # senão a edição desfaz o que a publicação exigiu.
+        if look.status == PUBLICADO:
+            for campo, erro in EXIGIDOS_NO_PUBLICADO.items():
+                if campo in campos and not campos[campo]:
+                    raise erro()
 
         for campo, valor in campos.items():
             setattr(look, campo, valor)
@@ -79,6 +92,11 @@ class LookService:
 
         if not look.image_url:
             raise LookWithoutImage()
+
+        # Sem ocasião o look entra no feed fora de todo filtro: existiria só para quem
+        # rolasse até ele.
+        if not look.category:
+            raise LookWithoutCategory()
 
         look.status = PUBLICADO
         return look

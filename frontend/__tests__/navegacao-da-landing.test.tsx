@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import Hero from "@/components/sections/Hero";
+
 import Navbar from "@/components/layout/Navbar";
 import Acesso from "@/components/sections/Acesso";
 import CtaBanner from "@/components/sections/CtaBanner";
@@ -42,6 +44,34 @@ describe("navegação da landing", () => {
     expect(screen.getByRole("link", { name: /criar minha conta/i })).toHaveAttribute(
       "href",
       "/register",
+    );
+  });
+});
+
+// O produto é vitrine pública: a RN03 diz que o feed é aberto, e a landing não tinha
+// nenhuma porta para ele. Quem não quer criar conta ainda precisa conseguir entrar.
+describe("porta de entrada sem conta", () => {
+  it("leva do topo direto para a vitrine", () => {
+    render(<Navbar />);
+
+    expect(screen.getByRole("link", { name: /ver looks/i })).toHaveAttribute("href", "/feed");
+  });
+
+  it("oferece ver os looks como caminho ao lado de criar conta", () => {
+    render(<Hero />);
+
+    expect(screen.getByRole("link", { name: /ver os looks/i })).toHaveAttribute(
+      "href",
+      "/feed",
+    );
+  });
+
+  it("repete a oferta no fim da página, para quem leu tudo", () => {
+    render(<CtaBanner />);
+
+    expect(screen.getByRole("link", { name: /ver os looks/i })).toHaveAttribute(
+      "href",
+      "/feed",
     );
   });
 });

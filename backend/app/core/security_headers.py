@@ -12,6 +12,19 @@ from app.config import get_settings
 # dela. `default-src 'none'` é a política mais restritiva possível, e cabe aqui.
 CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
 
+CDN = "https://cdn.jsdelivr.net"
+DOCUMENTACAO = ("/docs", "/redoc")
+
+# Swagger e ReDoc são as duas únicas páginas HTML da API, e buscam CSS e JS na CDN.
+# Sob a política estrita o navegador recusa os dois e a tela fica em branco — 200 no
+# servidor, nada para ver. Isto abre o mínimo, e só nessas rotas.
+CSP_DOCUMENTACAO = (
+    f"default-src 'none'; script-src {CDN} 'unsafe-inline'; style-src {CDN} 'unsafe-inline'; "
+    f"font-src {CDN}; img-src 'self' data: https://fastapi.tiangolo.com; "
+    "connect-src 'self'; worker-src blob:; "
+    "frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+)
+
 FIXOS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
@@ -35,6 +48,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         response = await call_next(request)
         response.headers.update(FIXOS)
+
+        if request.url.path in DOCUMENTACAO:
+            response.headers["Content-Security-Policy"] = CSP_DOCUMENTACAO
 
         # HSTS instrui o navegador a nunca mais usar HTTP neste domínio, por um ano.
         # Mandar isso em desenvolvimento deixaria localhost inacessível.

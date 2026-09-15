@@ -1,6 +1,7 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,10 +15,24 @@ import {
   removerLook,
   removerPeca,
   type Look,
+  type PecaNova,
 } from "@/lib/api";
-import { INICIO } from "@/lib/routes";
+import { CATEGORIAS, type Categoria } from "@/lib/categorias";
+import { lookPublico, MEUS_LOOKS } from "@/lib/routes";
 
-const PECA_VAZIA = { name: "", purchase_url: "", store: "" };
+const PECA_VAZIA = { name: "", purchase_url: "", store: "", image_url: "", price: "" };
+
+// Campo vazio não pode virar `""` no corpo: o backend valida `image_url` como link e
+// `price` como número, e string vazia reprova nos dois.
+function soOPreenchido(peca: typeof PECA_VAZIA): PecaNova {
+  return {
+    name: peca.name,
+    purchase_url: peca.purchase_url,
+    ...(peca.store ? { store: peca.store } : {}),
+    ...(peca.image_url ? { image_url: peca.image_url } : {}),
+    ...(peca.price ? { price: peca.price } : {}),
+  };
+}
 
 export default function EditorDeLook({ inicial }: { inicial: Look }) {
   const router = useRouter();
@@ -26,6 +41,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
   const [salvo, setSalvo] = useState(inicial);
   const [titulo, setTitulo] = useState(inicial.title);
   const [imagem, setImagem] = useState(inicial.image_url ?? "");
+  const [ocasiao, setOcasiao] = useState<Categoria | "">(inicial.category ?? "");
   const [peca, setPeca] = useState(PECA_VAZIA);
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
@@ -46,7 +62,10 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
   }
 
   const publicado = salvo.status === "published";
-  const sujo = titulo !== salvo.title || imagem !== (salvo.image_url ?? "");
+  const sujo =
+    titulo !== salvo.title ||
+    imagem !== (salvo.image_url ?? "") ||
+    ocasiao !== (salvo.category ?? "");
 
   return (
     <div className="space-y-10">
@@ -60,11 +79,13 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
             const mudancas: Partial<Look> = {};
             if (titulo !== salvo.title) mudancas.title = titulo;
             if (imagem !== (salvo.image_url ?? "")) mudancas.image_url = imagem || null;
+            if (ocasiao !== (salvo.category ?? "")) mudancas.category = ocasiao || null;
 
             const atualizado = await atualizarLook(salvo.id, mudancas);
             setSalvo(atualizado);
             setTitulo(atualizado.title);
             setImagem(atualizado.image_url ?? "");
+            setOcasiao(atualizado.category ?? "");
             toast.success("Alterações salvas.");
           });
         }}
@@ -100,6 +121,39 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
             focus-visible:ring-2 focus-visible:ring-purple/30"
         />
 
+        <fieldset className="mt-6">
+          <legend className="text-sm font-semibold text-navy">Ocasião</legend>
+          <p className="mt-1.5 text-sm text-navy/65">
+            É por aqui que as pessoas filtram o feed. Publicar exige uma.
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {CATEGORIAS.map(({ valor, rotulo, Icone }) => (
+              <label key={valor} className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="ocasiao"
+                  value={valor}
+                  checked={ocasiao === valor}
+                  onChange={() => setOcasiao(valor)}
+                  className="peer sr-only"
+                />
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border border-navy/15
+                    px-4 py-2 text-sm font-semibold text-navy/70 transition
+                    hover:border-purple hover:text-purple peer-checked:border-navy
+                    peer-checked:bg-navy peer-checked:text-white
+                    peer-focus-visible:ring-2 peer-focus-visible:ring-purple/40
+                    peer-focus-visible:ring-offset-2"
+                >
+                  <Icone size={15} aria-hidden />
+                  {rotulo}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
         {/* Gravar é decisão de quem escreve: salvar sozinho ao sair do campo tira a
             chance de desistir da alteração. */}
         <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -122,6 +176,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
               onClick={() => {
                 setTitulo(salvo.title);
                 setImagem(salvo.image_url ?? "");
+                setOcasiao(salvo.category ?? "");
               }}
               className="text-sm"
             >
@@ -181,7 +236,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
           onSubmit={(evento) => {
             evento.preventDefault();
             void executar("peca", async () => {
-              const nova = await adicionarPeca(salvo.id, peca);
+              const nova = await adicionarPeca(salvo.id, soOPreenchido(peca));
               setSalvo({ ...salvo, pieces: [...salvo.pieces, nova] });
               setPeca(PECA_VAZIA);
               toast.success(`${nova.name} entrou no look.`);
@@ -219,6 +274,56 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
               focus-visible:ring-2 focus-visible:ring-purple/30"
           />
 
+          <label htmlFor="peca-foto" className="mt-4 block text-sm font-semibold text-navy">
+            Foto da peça <span className="font-normal text-navy/55">opcional</span>
+          </label>
+          <input
+            id="peca-foto"
+            type="url"
+            value={peca.image_url}
+            onChange={(e) => setPeca({ ...peca, image_url: e.target.value })}
+            placeholder="https://loja.com/foto.jpg"
+            className="mt-2 w-full rounded-2xl border border-navy/15 bg-white px-4 py-3 text-navy
+              placeholder:text-navy/35 focus-visible:border-purple focus-visible:outline-none
+              focus-visible:ring-2 focus-visible:ring-purple/30"
+          />
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="peca-loja" className="block text-sm font-semibold text-navy">
+                Loja <span className="font-normal text-navy/55">opcional</span>
+              </label>
+              <input
+                id="peca-loja"
+                value={peca.store}
+                onChange={(e) => setPeca({ ...peca, store: e.target.value })}
+                maxLength={100}
+                placeholder="Reserva"
+                className="mt-2 w-full rounded-2xl border border-navy/15 bg-white px-4 py-3
+                  text-navy placeholder:text-navy/35 focus-visible:border-purple
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple/30"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="peca-preco" className="block text-sm font-semibold text-navy">
+                Preço <span className="font-normal text-navy/55">opcional</span>
+              </label>
+              <input
+                id="peca-preco"
+                type="number"
+                min="0"
+                step="0.01"
+                value={peca.price}
+                onChange={(e) => setPeca({ ...peca, price: e.target.value })}
+                placeholder="289,90"
+                className="mt-2 w-full rounded-2xl border border-navy/15 bg-white px-4 py-3
+                  text-navy placeholder:text-navy/35 focus-visible:border-purple
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple/30"
+              />
+            </div>
+          </div>
+
           <Button
             type="submit"
             variant="outline"
@@ -240,10 +345,23 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
         )}
 
         {publicado ? (
-          <p className="text-sm font-medium text-navy/75">
-            Este look está publicado. O que você salvar aqui vale para o feed público
-            quando o feed entrar no ar.
-          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <p className="max-w-[46ch] text-sm font-medium leading-relaxed text-navy/75">
+              Este look já está no feed. O que você salvar aqui vale na hora para quem
+              abrir a vitrine.
+            </p>
+
+            <Link
+              href={lookPublico(salvo.id)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-navy/15 px-4
+                py-2.5 text-sm font-semibold text-navy transition hover:border-purple
+                hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40
+                focus-visible:ring-offset-2"
+            >
+              Ver no feed
+              <ExternalLink size={14} aria-hidden />
+            </Link>
+          </div>
         ) : (
           <Button
             type="button"
@@ -255,7 +373,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
               void executar("publicar", async () => {
                 setSalvo(await publicarLook(salvo.id));
                 toast.success("Look publicado.", {
-                  description: "Ele entra no feed público quando o feed entrar no ar.",
+                  description: "Ele já aparece para quem abrir o feed.",
                 });
               })
             }
@@ -285,7 +403,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
                   void executar("excluir", async () => {
                     await removerLook(salvo.id);
                     toast.success("Look excluído.");
-                    router.push(INICIO);
+                    router.push(MEUS_LOOKS);
                   })
                 }
               >

@@ -17,7 +17,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import ComecarPage from "@/app/(app)/comecar/page";
-import InicioPage from "@/app/(app)/inicio/page";
+import MeusLooksPage from "@/app/(app)/meus-looks/page";
 import ComecarForm from "@/components/comecar/ComecarForm";
 
 const NOVO = { id: "1", name: "Mariana", email: "m@e.com", plan: "free", onboarded_at: null };
@@ -46,22 +46,22 @@ describe("porta de entrada do funil", () => {
     vi.stubGlobal("fetch", responde(VETERANO));
 
     await expect(ComecarPage()).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirecionou).toHaveBeenCalledWith("/inicio");
+    expect(redirecionou).toHaveBeenCalledWith("/feed");
   });
 
   // O contrário: conta nova que cai direto nas boas-vindas volta para configurar.
   // Uma condição é o complemento da outra, então não há laço entre as duas.
-  it("manda a conta nova de /inicio para /comecar", async () => {
+  it("manda a conta nova de /meus-looks para /comecar", async () => {
     vi.stubGlobal("fetch", responde(NOVO));
 
-    await expect(InicioPage()).rejects.toThrow("NEXT_REDIRECT");
+    await expect(MeusLooksPage()).rejects.toThrow("NEXT_REDIRECT");
     expect(redirecionou).toHaveBeenCalledWith("/comecar");
   });
 
-  it("deixa /inicio passar quem já concluiu", async () => {
+  it("deixa /meus-looks passar quem já concluiu", async () => {
     vi.stubGlobal("fetch", responde(VETERANO));
 
-    render(await InicioPage());
+    render(await MeusLooksPage());
 
     expect(redirecionou).not.toHaveBeenCalled();
   });
@@ -92,7 +92,7 @@ describe("configuração inicial", () => {
     await user.type(screen.getByLabelText(/nome de usuário/i), "mariana");
     await user.click(screen.getByRole("button", { name: /continuar/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/inicio"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/meus-looks"));
     expect(JSON.parse(chamou.mock.calls[0][1].body)).toMatchObject({ username: "mariana" });
   });
 
@@ -125,7 +125,7 @@ describe("configuração inicial", () => {
     await user.type(screen.getByLabelText(/bio/i), "Curadoria urbana");
     await user.click(screen.getByRole("button", { name: /continuar/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/inicio"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/meus-looks"));
 
     const [perfil, marcar] = chamou.mock.calls;
     expect(JSON.parse(perfil[1].body)).toEqual({ intent: "creator", bio: "Curadoria urbana" });
@@ -141,7 +141,7 @@ describe("configuração inicial", () => {
 
     await user.click(screen.getByRole("button", { name: /pular por agora/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/inicio"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/meus-looks"));
     expect(chamou).toHaveBeenCalledTimes(1);
     expect(chamou.mock.calls[0][0]).toBe("/api/users/me/onboarding");
   });
@@ -154,7 +154,7 @@ describe("configuração inicial", () => {
 
     await user.click(screen.getByRole("button", { name: /continuar/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/inicio"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/meus-looks"));
     expect(chamou).toHaveBeenCalledTimes(1);
   });
 

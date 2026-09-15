@@ -32,6 +32,22 @@ def test_existe_politica_de_conteudo(client: TestClient) -> None:
     assert "frame-ancestors 'none'" in csp
 
 
+# O Swagger e o ReDoc são HTML e buscam CSS e JS numa CDN. Sob `default-src 'none'`
+# o navegador recusa os dois e a página abre em branco — 200 no servidor, nada na tela.
+def test_a_documentacao_consegue_carregar_o_swagger(client: TestClient) -> None:
+    csp = client.get("/docs").headers.get("content-security-policy", "")
+
+    assert "script-src" in csp
+    assert "https://cdn.jsdelivr.net" in csp
+
+
+def test_a_politica_estrita_continua_fora_da_documentacao(client: TestClient) -> None:
+    csp = client.get("/health").headers.get("content-security-policy", "")
+
+    assert "default-src 'none'" in csp
+    assert "cdn.jsdelivr.net" not in csp
+
+
 # HSTS instrui o navegador a nunca mais usar HTTP no domínio, por um ano. Mandar isso
 # em desenvolvimento deixaria localhost inacessível.
 def test_hsts_nao_vai_fora_de_producao(client: TestClient) -> None:

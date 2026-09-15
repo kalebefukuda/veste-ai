@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import EditorDeLook from "@/components/looks/EditorDeLook";
-import { INICIO } from "@/lib/routes";
+import { MEUS_LOOKS } from "@/lib/routes";
 import { carregarLook } from "@/lib/looks";
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export default async function EditarLookPage({ params }: { params: { id: string 
       {/* Botão de verdade, com área de clique: texto pelado com uma seta digitada
           não parece clicável e não dá alvo no toque. */}
       <Link
-        href={INICIO}
+        href={MEUS_LOOKS}
         className="group inline-flex items-center gap-2 rounded-full border border-navy/15
           py-2 pl-3 pr-4 text-sm font-semibold text-navy/70 transition hover:border-purple
           hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40

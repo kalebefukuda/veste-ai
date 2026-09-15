@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { REGISTER } from "@/lib/routes";
+import { FEED, REGISTER } from "@/lib/routes";
 
 // Nomeiam o que a foto realmente mostra e a mecânica, sem citar loja: rótulo que a
 // imagem desmente é o mesmo problema de dado inventado. A loja real aparece no editor.
@@ -63,14 +63,17 @@ export default function Hero() {
           >
             Criar meu primeiro look
           </Link>
-          <a
-            href="#como-funciona"
+          {/* Era âncora para a seção logo abaixo, que o menu e a rolagem já alcançam.
+              A ação secundária agora é a outra metade do público: quem veio ver look,
+              não montar. */}
+          <Link
+            href={FEED}
             className="rounded-2xl border border-white/30 px-7 py-4 font-semibold text-white
               transition hover:border-white/70 focus-visible:ring-2 focus-visible:ring-white/70
               focus-visible:ring-offset-2 focus-visible:ring-offset-navy"
           >
-            Ver como funciona
-          </a>
+            Ver os looks
+          </Link>
         </div>
 
         {/* Em linha no celular, flutuando sobre a foto a partir do `sm`. */}

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 import { criarLook } from "@/lib/api";
-import { INICIO } from "@/lib/routes";
+import { MEUS_LOOKS } from "@/lib/routes";
 
 export default function NovoLook() {
   const router = useRouter();
@@ -65,7 +65,7 @@ export default function NovoLook() {
         </Button>
 
         <Link
-          href={INICIO}
+          href={MEUS_LOOKS}
           className="inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm
             font-semibold text-navy/70 transition hover:text-navy focus-visible:ring-2
             focus-visible:ring-purple/40 focus-visible:ring-offset-2"

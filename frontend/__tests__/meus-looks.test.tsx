@@ -13,7 +13,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() }),
 }));
 
-import InicioPage from "@/app/(app)/inicio/page";
+import MeusLooksPage from "@/app/(app)/meus-looks/page";
 
 // Já concluiu o funil: estes testes são sobre o conteúdo das boas-vindas, e a
 // guarda que desvia a conta nova para /comecar é coberta em comecar.test.tsx.
@@ -42,9 +42,9 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("página inicial da conta", () => {
+describe("página dos meus looks", () => {
   it("recebe a pessoa pelo nome", async () => {
-    render(await InicioPage());
+    render(await MeusLooksPage());
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/mariana/i);
   });
@@ -53,7 +53,7 @@ describe("página inicial da conta", () => {
   // desenvolvimento e passa a oferecer a ação. Afirmação que era verdadeira ontem
   // vira falsa quando o código muda, e é isto que o teste guarda.
   it("oferece criar um look, sem falar em indisponibilidade", async () => {
-    render(await InicioPage());
+    render(await MeusLooksPage());
 
     expect(screen.getByRole("link", { name: /criar (um|meu primeiro) look/i })).toHaveAttribute(
       "href",
@@ -66,25 +66,17 @@ describe("página inicial da conta", () => {
   // que cada clique é registrado é declarar coleta que não acontece — a mesma
   // correção que a política de privacidade já levou nesta branch.
   it("fala do rastreio de clique no futuro, porque ele ainda não existe", async () => {
-    render(await InicioPage());
+    render(await MeusLooksPage());
 
     expect(document.body.textContent).not.toMatch(/clique em link de compra é registrado/i);
     expect(document.body.textContent).toMatch(/passará a ser registrado/i);
-  });
-
-  // Não existe rota de feed. Dizer que a pessoa já pode navegar por ele cria uma
-  // expectativa que ela não consegue cumprir.
-  it("não promete um feed que ainda não tem rota", async () => {
-    render(await InicioPage());
-
-    expect(document.body.textContent).not.toMatch(/navegar pelo feed/i);
   });
 
   // "Completar meu perfil" era fixo e aparecia mesmo com o perfil já preenchido,
   // porque a tela nunca leu o estado do perfil. A ação da casa é montar look; o
   // perfil fica no header, onde mora navegação.
   it("não repete um convite fixo para completar o perfil", async () => {
-    render(await InicioPage());
+    render(await MeusLooksPage());
 
     expect(document.body.textContent).not.toMatch(/completar meu perfil/i);
   });
@@ -93,7 +85,7 @@ describe("página inicial da conta", () => {
   // ação para trás vestida de ação para frente, num funil que deveria seguir adiante.
   // Voltar ao site é a marca no header, não botão de boas-vindas.
   it("não oferece caminho para trás como ação principal", async () => {
-    render(await InicioPage());
+    render(await MeusLooksPage());
 
     const paraTras = screen.queryAllByRole("link").filter((l) => l.getAttribute("href") === "/");
 
@@ -103,7 +95,7 @@ describe("página inicial da conta", () => {
   it("manda ao login quando o backend recusa o token", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 401 }));
 
-    await expect(InicioPage()).rejects.toThrow("NEXT_REDIRECT");
+    await expect(MeusLooksPage()).rejects.toThrow("NEXT_REDIRECT");
     expect(redirecionou).toHaveBeenCalledWith("/login");
   });
 });

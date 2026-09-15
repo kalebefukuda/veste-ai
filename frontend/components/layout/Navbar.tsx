@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { LOGIN, REGISTER } from "@/lib/routes";
+import { FEED, LOGIN, REGISTER } from "@/lib/routes";
 import type { NavLink } from "@/types";
 
 const NAV_LINKS: NavLink[] = [
@@ -39,6 +39,14 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-1">
+          {/* A RN03 abre o feed a qualquer um, e a landing não tinha porta para ele.
+              Quem chega para olhar precisa conseguir entrar sem criar conta. */}
+          <Link
+            href={FEED}
+            className="hidden rounded-full px-4 py-2 text-sm font-medium text-navy transition hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40 sm:block"
+          >
+            Ver looks
+          </Link>
           <Link
             href={LOGIN}
             className="hidden rounded-full px-4 py-2 text-sm font-medium text-navy transition hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40 sm:block"
