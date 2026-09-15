@@ -125,6 +125,31 @@ def test_publicado_troca_a_imagem_por_outra(dono: TestClient, look: str) -> None
     assert resposta.json()["image_url"] == "https://cdn.exemplo.com/2.jpg"
 
 
+def test_nao_apaga_a_categoria_de_look_publicado(dono: TestClient, look: str) -> None:
+    publicar(dono, look)
+
+    resposta = dono.patch(f"/looks/{look}", json={"category": None})
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "LOOK_WITHOUT_CATEGORY"
+    assert dono.get(f"/looks/{look}").json()["category"] == "work"
+
+
+def test_publicado_troca_a_categoria_por_outra(dono: TestClient, look: str) -> None:
+    publicar(dono, look)
+
+    resposta = dono.patch(f"/looks/{look}", json={"category": "beach"})
+
+    assert resposta.status_code == 200
+    assert resposta.json()["category"] == "beach"
+
+
+def test_rascunho_volta_a_ficar_sem_categoria(dono: TestClient, look: str) -> None:
+    dono.patch(f"/looks/{look}", json={"category": "work"})
+
+    assert dono.patch(f"/looks/{look}", json={"category": None}).status_code == 200
+
+
 def test_rascunho_volta_a_ficar_sem_imagem(dono: TestClient, look: str) -> None:
     dono.patch(f"/looks/{look}", json={"image_url": "https://cdn.exemplo.com/look.jpg"})
 

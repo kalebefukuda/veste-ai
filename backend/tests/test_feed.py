@@ -30,6 +30,10 @@ def datar(db: Session, look: str, quando: datetime) -> None:
     db.execute(update(Look).where(Look.id == uuid.UUID(look)).values(created_at=quando))
 
 
+def descategorizar(db: Session, look: str) -> None:
+    db.execute(update(Look).where(Look.id == uuid.UUID(look)).values(category=None))
+
+
 def sem_sessao(c: TestClient) -> TestClient:
     c.headers.pop("Authorization", None)
     return c
@@ -189,6 +193,29 @@ def test_o_feed_sem_filtro_traz_todas_as_categorias(dono: TestClient) -> None:
     publicar(dono, "Para a areia", "beach")
 
     assert len(sem_sessao(dono).get("/feed").json()["items"]) == 2
+
+
+# Publicado sem ocasião só existe como resíduo: a migration que criou a coluna deixa
+# nulo em quem já estava no ar, e esse look não passa por `publish()` de novo. Ele
+# apareceria em "Tudo" e sumiria de toda pill, fazendo a soma dos filtros não fechar
+# com o total.
+def test_o_feed_ignora_publicado_sem_categoria(dono: TestClient, db: Session) -> None:
+    orfao = publicar(dono, "Resíduo de antes da coluna")
+    publicar(dono, "Com ocasião", "work")
+    descategorizar(db, orfao)
+
+    itens = sem_sessao(dono).get("/feed").json()["items"]
+
+    assert [item["title"] for item in itens] == ["Com ocasião"]
+
+
+def test_o_detalhe_publico_ignora_publicado_sem_categoria(
+    dono: TestClient, db: Session
+) -> None:
+    orfao = publicar(dono)
+    descategorizar(db, orfao)
+
+    assert sem_sessao(dono).get(f"/feed/{orfao}").status_code == 404
 
 
 def test_o_feed_recusa_categoria_fora_da_lista(dono: TestClient) -> None:
