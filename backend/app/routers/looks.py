@@ -64,7 +64,7 @@ def editar(
 ) -> LookOut:
     try:
         return LookOut.model_validate(service.update(look_id, dados, user.id))
-    except (LookNotFound, NotTheOwner, LookWithoutImage) as erro:
+    except (LookNotFound, NotTheOwner, LookWithoutImage, LookWithoutCategory) as erro:
         raise _http(erro) from erro
 
 

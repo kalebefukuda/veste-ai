@@ -21,11 +21,15 @@ class LookRepository:
     # O join com users é sempre válido — todo look tem dono — então ele entra fixo e
     # `contains_eager` aproveita a linha já trazida. Sem isso, listar N looks dispara
     # N consultas de usuário só para escrever o nome no card.
+    # `category is not null` junto de `status`: a migration que criou a coluna deixa
+    # nulo em quem já estava publicado, e esse look não volta a passar por `publish()`.
+    # Sem isto ele apareceria em "Tudo" e em nenhuma pill, e a soma dos filtros não
+    # fecharia com o total — ver ADR-0021.
     def _publicados(self):  # noqa: ANN202 — Select tipado polui mais do que esclarece
         return (
             select(Look)
             .join(Look.creator)
-            .where(Look.status == PUBLICADO)
+            .where(Look.status == PUBLICADO, Look.category.is_not(None))
             .options(contains_eager(Look.creator))
         )
 
