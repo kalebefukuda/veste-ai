@@ -17,6 +17,22 @@ const config: Config = {
         "veste-gradient": "linear-gradient(135deg, #8B5CF6 0%, #F472B6 100%)",
       },
       keyframes: {
+        // O coração cresce, passa do ponto e volta: pulo curto, não inflada lenta.
+        "heart-pop": {
+          "0%": { transform: "scale(1)" },
+          "35%": { transform: "scale(1.35)" },
+          "60%": { transform: "scale(0.92)" },
+          "100%": { transform: "scale(1)" },
+        },
+        // Cada faísca recebe a própria direção por variável CSS, então um keyframe só
+        // serve às seis.
+        faisca: {
+          "0%": { opacity: "1", transform: "translate(0, 0) scale(1)" },
+          "100%": {
+            opacity: "0",
+            transform: "translate(var(--tx), var(--ty)) scale(0.2)",
+          },
+        },
         "fade-up": {
           from: { opacity: "0", transform: "translateY(20px)" },
           to: { opacity: "1", transform: "translateY(0)" },
@@ -51,6 +67,8 @@ const config: Config = {
         },
       },
       animation: {
+        "heart-pop": "heart-pop 420ms cubic-bezier(0.22, 1, 0.36, 1)",
+        faisca: "faisca 520ms ease-out forwards",
         "fade-up": "fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         "page-in": "page-in 220ms ease-out",
         "slide-from-below": "slide-from-below 260ms ease-out",
