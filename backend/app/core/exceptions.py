@@ -31,6 +31,11 @@ class LookWithoutCategory(DomainError):
     code = "LOOK_WITHOUT_CATEGORY"
 
 
+class UnsafeLink(DomainError):
+    code = "UNSAFE_LINK"
+    detail = "Este link foi sinalizado como perigoso e não pode ser usado"
+
+
 class NotTheOwner(DomainError):
     code = "NOT_THE_OWNER"
     rule = "RN07"
