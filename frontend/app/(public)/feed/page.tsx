@@ -5,7 +5,7 @@ import Link from "next/link";
 import Vitrine from "@/components/feed/Vitrine";
 import { CATEGORIAS } from "@/lib/categorias";
 import { FEED } from "@/lib/routes";
-import { carregarFeed } from "@/lib/feed";
+import { carregarFeed, carregarIdsSalvos } from "@/lib/feed";
 import { carregarUsuarioTalvez } from "@/lib/usuario";
 
 export const metadata: Metadata = {
@@ -23,9 +23,10 @@ export default async function FeedPage({ searchParams }: Props) {
   const busca = searchParams.q?.trim() || undefined;
   const categoria = CATEGORIAS.find((c) => c.valor === searchParams.categoria)?.valor;
 
-  const [pagina, usuario] = await Promise.all([
+  const [pagina, usuario, salvos] = await Promise.all([
     carregarFeed(1, busca, categoria),
     carregarUsuarioTalvez(),
+    carregarIdsSalvos(),
   ]);
 
   // O filtro compõe com a busca em vez de substituí-la: trocar de ocasião não pode
@@ -134,6 +135,7 @@ export default async function FeedPage({ searchParams }: Props) {
           logado={usuario !== null}
           busca={busca}
           categoria={categoria}
+          salvos={salvos}
         />
       </div>
     </main>
