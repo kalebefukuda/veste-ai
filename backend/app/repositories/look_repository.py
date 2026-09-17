@@ -1,8 +1,9 @@
 import uuid
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, contains_eager
 
+from app.models.click import Click
 from app.models.look import PUBLICADO, Look, Piece
 from app.models.user import User
 
@@ -65,8 +66,11 @@ class LookRepository:
         self.db.refresh(look)
         return look
 
-    def add_piece(self, piece: Piece) -> Piece:
-        self.db.add(piece)
+    # Pela relação, não por `db.add`, pelo mesmo motivo do `remove_piece`: a peça
+    # acrescentada direto não entra na coleção já carregada do look, e some da
+    # leitura seguinte dentro da mesma sessão.
+    def add_piece(self, look: Look, piece: Piece) -> Piece:
+        look.pieces.append(piece)
         self.db.flush()
         self.db.refresh(piece)
         return piece
@@ -84,3 +88,25 @@ class LookRepository:
     def remove_piece(self, look: Look, piece: Piece) -> None:
         look.pieces.remove(piece)
         self.db.flush()
+
+    def get_piece_publicada(self, piece_id: uuid.UUID) -> Piece | None:
+        consulta = (
+            select(Piece)
+            .join(Look, Look.id == Piece.look_id)
+            .where(Piece.id == piece_id, Look.status == PUBLICADO)
+        )
+        return self.db.execute(consulta).scalar_one_or_none()
+
+    def add_click(self, click: Click) -> None:
+        self.db.add(click)
+        self.db.flush()
+
+    # Contagem por peça numa consulta só: pedir o total e depois um count por peça
+    # dispararia N+1 num look com muitas peças.
+    def count_clicks(self, look_id: uuid.UUID) -> dict[uuid.UUID, int]:
+        consulta = (
+            select(Click.piece_id, func.count(Click.id))
+            .where(Click.look_id == look_id)
+            .group_by(Click.piece_id)
+        )
+        return {peca: total for peca, total in self.db.execute(consulta)}

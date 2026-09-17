@@ -12,11 +12,14 @@ from app.core.exceptions import (
     LookWithoutImage,
     LookWithoutPiece,
     NotTheOwner,
+    UnsafeLink,
 )
 from app.database import get_db
 from app.models.user import User
 from app.repositories.look_repository import LookRepository
+from app.schemas.click import LookMetrics, PieceMetrics
 from app.schemas.look import LookCreate, LookOut, LookUpdate, PieceCreate, PieceOut
+from app.services.click_service import ClickService
 from app.services.look_service import LookService
 
 router = APIRouter(prefix="/looks", tags=["looks"])
@@ -26,7 +29,12 @@ def get_look_service(db: Annotated[Session, Depends(get_db)]) -> LookService:
     return LookService(LookRepository(db))
 
 
+def get_click_service(db: Annotated[Session, Depends(get_db)]) -> ClickService:
+    return ClickService(LookRepository(db))
+
+
 Servico = Annotated[LookService, Depends(get_look_service)]
+Metricas = Annotated[ClickService, Depends(get_click_service)]
 # RN01: toda rota daqui exige sessão. O feed público entra em rotas próprias.
 Autenticado = Annotated[User, Depends(get_current_user)]
 
@@ -78,13 +86,29 @@ def remover(look_id: uuid.UUID, user: Autenticado, service: Servico) -> Response
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+# RN09: as métricas são do creator. A rota fica aqui, e não em /clicks, porque o
+# recurso é o look — o clique é só como ele se mede.
+@router.get("/{look_id}/metrics")
+def metricas(look_id: uuid.UUID, user: Autenticado, service: Metricas) -> LookMetrics:
+    try:
+        look, por_peca = service.metrics(look_id, user.id)
+    except (LookNotFound, NotTheOwner) as erro:
+        raise _http(erro) from erro
+
+    pecas = [
+        PieceMetrics(id=p.id, name=p.name, clicks=por_peca.get(p.id, 0)) for p in look.pieces
+    ]
+
+    return LookMetrics(clicks=sum(p.clicks for p in pecas), pieces=pecas)
+
+
 @router.post("/{look_id}/pieces", status_code=status.HTTP_201_CREATED)
 def adicionar_peca(
     look_id: uuid.UUID, dados: PieceCreate, user: Autenticado, service: Servico
 ) -> PieceOut:
     try:
         return PieceOut.model_validate(service.add_piece(look_id, dados, user.id))
-    except (LookNotFound, NotTheOwner) as erro:
+    except (LookNotFound, NotTheOwner, UnsafeLink) as erro:
         raise _http(erro) from erro
 
 
