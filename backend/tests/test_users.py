@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from tests.test_looks import DONO, LOOK, PECA, token
+
 CREDENTIALS = {"name": "Mariana", "email": "mariana@exemplo.com", "password": "senha-bem-longa"}
 
 
@@ -133,3 +135,33 @@ def test_export_nao_inclui_a_senha(auth_client: TestClient) -> None:
 
 def test_export_sem_token_retorna_401(client: TestClient) -> None:
     assert client.get("/users/me/export").status_code == 401
+
+
+# LGPD art. 18, II e V: acesso e portabilidade. O look montado pelo titular é dado
+# dele — exportar só nome e e-mail entregaria a conta e deixaria o trabalho para trás.
+def test_o_export_leva_os_looks_e_as_pecas(client: TestClient) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+    look = client.post("/looks", json=LOOK).json()["id"]
+    criada = client.post(f"/looks/{look}/pieces", json=PECA)
+    assert criada.status_code == 201, criada.json()
+
+    exportado = client.get("/users/me/export").json()
+
+    assert exportado["looks"][0]["title"] == LOOK["title"]
+    assert exportado["looks"][0]["pieces"][0]["purchase_url"] == PECA["purchase_url"]
+
+
+def test_o_export_nao_leva_a_senha(client: TestClient) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+
+    exportado = client.get("/users/me/export").json()
+
+    # Credencial não é dado a entregar: exportá-la seria vazamento com carimbo de
+    # conformidade.
+    assert "password" not in exportado
+
+
+def test_o_export_de_conta_sem_look_traz_lista_vazia(client: TestClient) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+
+    assert client.get("/users/me/export").json()["looks"] == []
