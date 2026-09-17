@@ -56,6 +56,10 @@ export type LookPublico = {
   pieces: Peca[];
 };
 
+export type MetricasDaPeca = { id: string; name: string; clicks: number };
+
+export type MetricasDoLook = { clicks: number; pieces: MetricasDaPeca[] };
+
 export type PaginaDoFeed = {
   items: LookPublico[];
   next_page: number | null;

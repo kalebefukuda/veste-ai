@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import Coracao from "@/components/feed/Coracao";
 
 import { carregarMaisDoFeed, type LookPublico } from "@/lib/api";
 import { acharCategoria } from "@/lib/categorias";
@@ -16,9 +17,19 @@ type Props = {
   logado: boolean;
   busca?: string;
   categoria?: string;
+  salvos?: string[];
+  vazio?: string;
 };
 
-export default function Vitrine({ inicial, proxima, logado, busca, categoria }: Props) {
+export default function Vitrine({
+  inicial,
+  proxima,
+  logado,
+  busca,
+  categoria,
+  salvos = [],
+  vazio,
+}: Props) {
   const recorte = `${busca ?? ""}|${categoria ?? ""}`;
   const [visao, setVisao] = useState({
     looks: inicial,
@@ -65,7 +76,8 @@ export default function Vitrine({ inicial, proxima, logado, busca, categoria }: 
         <p className="mx-auto max-w-[46ch] leading-relaxed text-navy/65">
           {busca
             ? `Nada encontrado para “${busca}”. Tente outro termo, ou o nome de quem montou.`
-            : "Nenhum look publicado ainda. Quando alguém publicar o primeiro, ele aparece aqui."}
+            : (vazio ??
+              "Nenhum look publicado ainda. Quando alguém publicar o primeiro, ele aparece aqui.")}
         </p>
       </div>
     );
@@ -83,7 +95,12 @@ export default function Vitrine({ inicial, proxima, logado, busca, categoria }: 
         }`}
       >
         {looks.map((look) => (
-          <Card key={look.id} look={look} />
+          <Card
+            key={look.id}
+            look={look}
+            logado={logado}
+            salvo={salvos.includes(look.id)}
+          />
         ))}
       </ul>
 
@@ -156,12 +173,18 @@ function iniciais(nome: string): string {
     .toUpperCase();
 }
 
-function Card({ look }: { look: LookPublico }) {
+type CardProps = { look: LookPublico; logado: boolean; salvo: boolean };
+
+function Card({ look, logado, salvo }: CardProps) {
   const pecas = look.pieces.length;
   const ocasiao = acharCategoria(look.category);
 
   return (
-    <li>
+    // O coração é irmão do link, não filho: botão dentro de âncora é HTML inválido, e
+    // o clique num acabaria disparando o outro.
+    <li className="relative">
+      <Coracao lookId={look.id} salvo={salvo} logado={logado} />
+
       <Link href={lookPublico(look.id)} className="group block focus-visible:outline-none">
         {/* 3:4 fixo para todo look. O corpo inteiro é o assunto da foto, e grade de moda
             só funciona quando todos os quadros têm a mesma altura. */}

@@ -1,12 +1,12 @@
 "use client";
 
-import { LogOut, Settings, Shirt } from "lucide-react";
+import { Heart, LogOut, Settings, Shirt } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import type { User } from "@/lib/api";
-import { CONFIGURACOES, FEED, LOGIN, MEUS_LOOKS, REGISTER } from "@/lib/routes";
+import { CONFIGURACOES, FEED, LOGIN, MEUS_LOOKS, REGISTER, SALVOS } from "@/lib/routes";
 
 function iniciais(nome: string): string {
   const partes = nome.trim().split(/\s+/);
@@ -124,6 +124,18 @@ export default function AppHeader({ usuario }: { usuario: User | null }) {
                 >
                   <Shirt size={16} aria-hidden className="text-navy/55" />
                   Meus looks
+                </Link>
+
+                <Link
+                  role="menuitem"
+                  href={SALVOS}
+                  onClick={() => setAberto(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-navy
+                    transition hover:bg-navy/[0.04] focus-visible:bg-navy/[0.04]
+                    focus-visible:outline-none"
+                >
+                  <Heart size={16} aria-hidden className="text-navy/55" />
+                  Salvos
                 </Link>
 
                 <Link

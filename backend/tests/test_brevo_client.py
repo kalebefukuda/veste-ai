@@ -5,9 +5,13 @@ from app.clients import brevo
 from app.core.exceptions import EmailDeliveryFailed
 
 
+# Mesmo cuidado do cliente de Safe Browsing: sem limpar na saída, a chave falsa
+# sobrevive em cache e vaza para os testes seguintes.
 @pytest.fixture(autouse=True)
-def _com_chave(monkeypatch: pytest.MonkeyPatch) -> None:
+def _com_chave(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("BREVO_API_KEY", "chave-de-teste")
+    brevo.get_settings.cache_clear()
+    yield
     brevo.get_settings.cache_clear()
 
 

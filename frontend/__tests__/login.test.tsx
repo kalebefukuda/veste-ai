@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,9 +7,28 @@ import * as api from "@/lib/api";
 import { AFTER_AUTH } from "@/lib/routes";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 
 describe("tela de login", () => {
+  it("invalida o cache do roteador ao entrar", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "login").mockResolvedValue({
+      id: "1",
+      name: "Mariana",
+      email: "m@e.com",
+      plan: "free",
+    });
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText(/e-mail/i), "m@e.com");
+    await user.type(screen.getByLabelText(/^senha$/i), "senha-bem-longa");
+    await user.click(screen.getByRole("button", { name: /entrar/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith(AFTER_AUTH));
+    expect(refresh).toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.restoreAllMocks();
     push.mockClear();

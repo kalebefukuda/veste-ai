@@ -7,10 +7,12 @@ const refresh = vi.fn();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh, replace }) }));
 vi.mock("next/headers", () => ({ cookies: () => ({ get: () => undefined }) }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import AppHeader from "@/components/layout/AppHeader";
 import Vitrine from "@/components/feed/Vitrine";
 import { carregarFeed, carregarLookPublico } from "@/lib/feed";
+import { toast } from "sonner";
 
 import type { LookPublico } from "@/lib/api";
 
@@ -166,5 +168,76 @@ describe("leitura do feed no servidor", () => {
     vi.stubGlobal("fetch", responde({ code: "LOOK_NOT_FOUND" }, false, 404));
 
     expect(await carregarLookPublico("look-1")).toBeNull();
+  });
+});
+
+// RN02: favoritar exige conta. O coração some para visitante? Não — ele aparece e
+// leva ao cadastro, porque esconder a função esconde também o motivo de criar conta.
+describe("favoritos na vitrine", () => {
+  it("leva o visitante ao cadastro em vez de fingir que salvou", () => {
+    render(<Vitrine inicial={[LOOK]} proxima={null} logado={false} />);
+
+    expect(screen.getByRole("link", { name: /salvar/i })).toHaveAttribute(
+      "href",
+      "/register",
+    );
+  });
+
+  it("mostra o coração preenchido no que já está salvo", () => {
+    render(<Vitrine inicial={[LOOK]} proxima={null} logado salvos={["look-1"]} />);
+
+    expect(screen.getByRole("button", { name: /remover dos salvos/i })).toBeInTheDocument();
+  });
+
+  // Desfazer em silêncio é pior que falhar: o coração pisca e volta, e a pessoa fica
+  // sem saber se salvou. Foi assim que o servidor fora do ar apareceu na tela — como
+  // se o clique não fizesse nada.
+  it("avisa quando não conseguiu salvar, em vez de só voltar atrás", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    render(<Vitrine inicial={[LOOK]} proxima={null} logado salvos={[]} />);
+
+    await user.click(screen.getByRole("button", { name: /^salvar/i }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: /^salvar/i })).toBeInTheDocument();
+  });
+
+  // Favoritar é gesto de prazer: merece recompensa na tela. Desfavoritar não — soltar
+  // brilho ao remover comemoraria o contrário do que aconteceu.
+  it("solta brilho ao favoritar, e não ao desfazer", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => ({}) }),
+    );
+    const { container } = render(
+      <Vitrine inicial={[LOOK]} proxima={null} logado salvos={[]} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /^salvar/i }));
+
+    expect(container.querySelectorAll("[data-brilho]").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: /remover dos salvos/i }));
+
+    expect(container.querySelectorAll("[data-brilho]")).toHaveLength(0);
+  });
+
+  it("salva ao clicar, e desfaz no clique seguinte", async () => {
+    const user = userEvent.setup();
+    const chamou = vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => ({}) });
+    vi.stubGlobal("fetch", chamou);
+    render(<Vitrine inicial={[LOOK]} proxima={null} logado salvos={[]} />);
+
+    await user.click(screen.getByRole("button", { name: /^salvar/i }));
+
+    expect(await screen.findByRole("button", { name: /remover dos salvos/i })).toBeInTheDocument();
+    expect(chamou.mock.calls[0][0]).toBe("/api/saved/look-1");
+    expect(chamou.mock.calls[0][1].method).toBe("POST");
+
+    await user.click(screen.getByRole("button", { name: /remover dos salvos/i }));
+
+    await waitFor(() => expect(chamou.mock.calls[1][1].method).toBe("DELETE"));
   });
 });

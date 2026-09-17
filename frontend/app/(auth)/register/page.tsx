@@ -33,6 +33,7 @@ export default function RegisterPage() {
         created.authenticated ? "Conta criada. Boas-vindas!" : "Conta criada. Entre para continuar.",
       );
       router.push(created.authenticated ? AFTER_AUTH : LOGIN);
+      router.refresh();
     } catch (failure) {
       setError((failure as Error).message);
       setLoading(false);

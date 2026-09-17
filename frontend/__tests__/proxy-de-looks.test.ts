@@ -33,7 +33,7 @@ describe("encaminhamento autenticado", () => {
   });
 
   it("leva o token e não manda content-type sem corpo", async () => {
-    const chamou = vi.fn().mockResolvedValue({ status: 200, json: async () => ({}) });
+    const chamou = vi.fn().mockResolvedValue({ status: 200, text: async () => "{}" });
     vi.stubGlobal("fetch", chamou);
 
     await encaminhar("/looks");
@@ -46,7 +46,7 @@ describe("encaminhamento autenticado", () => {
 
   // 204 não tem corpo: chamar .json() nele estoura, e a remoção quebraria.
   it("repassa o 204 sem tentar ler corpo", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 204 }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 204, text: async () => "" }));
 
     expect((await encaminhar("/looks/1", { method: "DELETE" })).status).toBe(204);
   });
@@ -54,7 +54,7 @@ describe("encaminhamento autenticado", () => {
   it("repassa a recusa do backend em vez de mascarar", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ status: 403, json: async () => ({ code: "NOT_THE_OWNER" }) }),
+      vi.fn().mockResolvedValue({ status: 403, text: async () => JSON.stringify({ code: "NOT_THE_OWNER" }) }),
     );
 
     const resposta = await encaminhar("/looks/1");
@@ -66,7 +66,7 @@ describe("encaminhamento autenticado", () => {
 
 describe("as rotas de look chamam o caminho certo", () => {
   const espiar = () => {
-    const chamou = vi.fn().mockResolvedValue({ status: 200, json: async () => ({}) });
+    const chamou = vi.fn().mockResolvedValue({ status: 200, text: async () => "{}" });
     vi.stubGlobal("fetch", chamou);
     return chamou;
   };
@@ -110,4 +110,22 @@ describe("as rotas de look chamam o caminho certo", () => {
     await publicar(pedido(), { params: { id: "abc" } });
     expect(chamou.mock.calls[0][0]).toContain("/looks/abc/publish");
   });
+});
+
+// 204 já era tratado, mas 201 sem corpo não: o proxy tentava ler JSON de uma resposta
+// vazia e virava 500. Quem decide é haver conteúdo, não o número do status.
+it("repassa resposta sem corpo que não seja 204", async () => {
+  const chamou = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 201,
+    headers: new Headers(),
+    text: async () => "",
+  });
+  vi.stubGlobal("fetch", chamou);
+  cookieStore.get.mockReturnValue({ value: "tok" });
+
+  const resposta = await encaminhar("/saved/look-1", { method: "POST" });
+
+  expect(resposta.status).toBe(201);
+  expect(await resposta.text()).toBe("");
 });
