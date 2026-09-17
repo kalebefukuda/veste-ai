@@ -82,3 +82,16 @@ describe("menu de usuário", () => {
     expect(screen.getByRole("button", { name: /abrir menu da conta/i })).toHaveTextContent("MS");
   });
 });
+
+// Salvos é da pessoa, então mora atrás da identidade dela, junto de Meus looks.
+it("oferece os salvos no menu", async () => {
+  const user = userEvent.setup();
+  render(<AppHeader usuario={USUARIO} />);
+
+  await user.click(screen.getByRole("button", { name: /abrir menu da conta/i }));
+
+  expect(screen.getByRole("menuitem", { name: /salvos/i })).toHaveAttribute(
+    "href",
+    "/salvos",
+  );
+});
