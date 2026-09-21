@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, contains_eager
 
 from app.models.look import PUBLICADO, Look
@@ -21,8 +22,15 @@ class SavedRepository:
         )
         return self.db.execute(consulta).first() is not None
 
+    # `ON CONFLICT DO NOTHING` e não conferir-depois-inserir: entre a conferência e a
+    # inserção cabe outra requisição, e a segunda estouraria na restrição única.
     def save(self, user_id: uuid.UUID, look_id: uuid.UUID) -> None:
-        self.db.add(SavedLook(user_id=user_id, look_id=look_id))
+        comando = (
+            insert(SavedLook)
+            .values(user_id=user_id, look_id=look_id)
+            .on_conflict_do_nothing(index_elements=["user_id", "look_id"])
+        )
+        self.db.execute(comando)
         self.db.flush()
 
     def unsave(self, user_id: uuid.UUID, look_id: uuid.UUID) -> None:

@@ -91,7 +91,7 @@ def remover(look_id: uuid.UUID, user: Autenticado, service: Servico) -> Response
 @router.get("/{look_id}/metrics")
 def metricas(look_id: uuid.UUID, user: Autenticado, service: Metricas) -> LookMetrics:
     try:
-        look, por_peca = service.metrics(look_id, user.id)
+        look, por_peca, total = service.metrics(look_id, user.id)
     except (LookNotFound, NotTheOwner) as erro:
         raise _http(erro) from erro
 
@@ -99,7 +99,7 @@ def metricas(look_id: uuid.UUID, user: Autenticado, service: Metricas) -> LookMe
         PieceMetrics(id=p.id, name=p.name, clicks=por_peca.get(p.id, 0)) for p in look.pieces
     ]
 
-    return LookMetrics(clicks=sum(p.clicks for p in pecas), pieces=pecas)
+    return LookMetrics(clicks=total, pieces=pecas)
 
 
 @router.post("/{look_id}/pieces", status_code=status.HTTP_201_CREATED)

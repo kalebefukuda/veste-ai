@@ -101,6 +101,12 @@ class LookRepository:
         self.db.add(click)
         self.db.flush()
 
+    # O total é do look, não a soma das peças atuais: clique de peça removida continua
+    # contando, e somar só o que restou apagaria história — ADR-0022.
+    def total_clicks(self, look_id: uuid.UUID) -> int:
+        consulta = select(func.count(Click.id)).where(Click.look_id == look_id)
+        return self.db.execute(consulta).scalar_one()
+
     # Contagem por peça numa consulta só: pedir o total e depois um count por peça
     # dispararia N+1 num look com muitas peças.
     def count_clicks(self, look_id: uuid.UUID) -> dict[uuid.UUID, int]:

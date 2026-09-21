@@ -36,7 +36,9 @@ class User(Base):
     # antiga na troca de senha sem abandonar o JWT stateless.
     password_changed_at: Mapped[datetime] = mapped_column(server_default=text("now()"))
 
-    # Só o export da LGPD percorre isto, e sempre por inteiro.
+    # Preguiçosa de propósito: `get_current_user` carrega o usuário em quase toda
+    # requisição autenticada, e `selectin` aqui faria cada uma delas puxar todos os
+    # looks e, por tabela, todas as peças. Só o export percorre isto.
     looks: Mapped[list["Look"]] = relationship(
-        back_populates="creator", lazy="selectin", order_by="Look.created_at.desc()"
+        back_populates="creator", order_by="Look.created_at.desc()"
     )

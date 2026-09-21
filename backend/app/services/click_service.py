@@ -26,7 +26,7 @@ class ClickService:
 
         return peca
 
-    def metrics(self, look_id: uuid.UUID, user_id: uuid.UUID) -> tuple[Look, dict]:
+    def metrics(self, look_id: uuid.UUID, user_id: uuid.UUID) -> tuple[Look, dict, int]:
         look = self.looks.get(look_id)
 
         if look is None:
@@ -37,4 +37,4 @@ class ClickService:
         if look.user_id != user_id:
             raise NotTheOwner()
 
-        return look, self.looks.count_clicks(look.id)
+        return look, self.looks.count_clicks(look.id), self.looks.total_clicks(look.id)

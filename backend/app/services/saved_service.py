@@ -17,10 +17,10 @@ class SavedService:
         if self.salvos.get_publicado(look_id) is None:
             raise LookNotFound()
 
-        # O coração é interruptor: o segundo toque não pode virar erro nem linha
-        # repetida, mesmo com a restrição única do banco por trás.
-        if not self.salvos.esta_salvo(user_id, look_id):
-            self.salvos.save(user_id, look_id)
+        # O coração é interruptor: o segundo toque não vira erro nem linha repetida.
+        # Quem garante isso é o `ON CONFLICT` do insert, não uma conferência antes —
+        # entre conferir e inserir cabe outra requisição.
+        self.salvos.save(user_id, look_id)
 
     def unsave(self, look_id: uuid.UUID, user_id: uuid.UUID) -> None:
         # Desfazer o que não estava salvo chega no mesmo estado, então não é erro.

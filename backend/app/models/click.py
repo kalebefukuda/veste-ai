@@ -14,11 +14,13 @@ class Click(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
     )
-    piece_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("pieces.id", ondelete="CASCADE")
+    # Nulável e `SET NULL`: a peça pode sair do look, e o clique que ela recebeu
+    # continua sendo parte do histórico — ADR-0022.
+    piece_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pieces.id", ondelete="SET NULL")
     )
-    # O look vai junto da peça: a métrica do look não pode depender de uma peça que
-    # saiu dele depois.
+    # O look vai junto da peça justamente por isso: o total não pode depender de uma
+    # peça que saiu dele depois.
     look_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("looks.id", ondelete="CASCADE")
     )
