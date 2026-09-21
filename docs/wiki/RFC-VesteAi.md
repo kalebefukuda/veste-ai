@@ -1073,7 +1073,7 @@ pieces (
 
 clicks (
   id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  piece_id     UUID         NOT NULL REFERENCES pieces(id) ON DELETE CASCADE,
+  piece_id     UUID         REFERENCES pieces(id) ON DELETE SET NULL,  -- ver ADR-0022
   look_id      UUID         NOT NULL REFERENCES looks(id) ON DELETE CASCADE,
   created_at   TIMESTAMP    NOT NULL DEFAULT now()
 )

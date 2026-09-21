@@ -35,6 +35,10 @@ paralelo e a segunda devolve só uma lista de ids, então o custo é uma ida à 
 uma consulta cara. Em troca, `GET /feed` continua cacheável e sem nada de pessoal na
 resposta — o mesmo corpo serve a todo mundo.
 
+A idempotência mora no `INSERT ... ON CONFLICT DO NOTHING`, não numa conferência antes
+de inserir: entre conferir e gravar cabe outra requisição, e a segunda estouraria na
+restrição única do banco — 500 em cima de um gesto que deu certo.
+
 O coração é otimista: responde ao toque e volta atrás se a API recusar. E **avisa**
 quando volta atrás. Desfazer em silêncio foi um defeito real desta entrega — o coração
 piscava, voltava, e quem clicou ficava sem saber se guardou; o servidor fora do ar

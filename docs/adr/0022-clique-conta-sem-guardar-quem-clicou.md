@@ -56,6 +56,13 @@ Falhar aberto significa que um período de indisponibilidade do Google deixa ent
 que seria recusado. É trade-off consciente: a alternativa é o produto parar quando um
 terceiro para.
 
+O clique **sobrevive à peça**. A `0001` cascateava `piece_id`, então remover uma peça
+apagava o histórico dela — e o total do look era a soma das peças que restaram. A `0008`
+troca para `SET NULL` e o total passa a vir do próprio look. O número que o creator vê é
+histórico, não inventário do que sobrou: tirar uma peça para arrumar o look não pode
+zerar o que ela já rendeu. `look_id` continua cascateando, porque apagar o look — ou a
+conta — precisa mesmo levar junto o que ele mediu.
+
 A RN06 continua valendo — a validade comercial do link é do creator. Isto não é
 curadoria, que está fora de escopo na RFC; é recusa de endereço sabidamente usado para
 phishing ou malware.
