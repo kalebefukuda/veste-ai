@@ -165,3 +165,26 @@ def test_o_export_de_conta_sem_look_traz_lista_vazia(client: TestClient) -> None
     client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
 
     assert client.get("/users/me/export").json()["looks"] == []
+
+
+# `lazy="selectin"` em User.looks fazia toda requisição autenticada carregar os looks
+# e, por tabela, as peças — `get_current_user` roda em quase todas. A relação existe
+# para o export, e é lá que ela deve ser percorrida.
+def test_requisicao_comum_nao_carrega_os_looks(client: TestClient, db: Session) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+    look = client.post("/looks", json=LOOK).json()["id"]
+    client.post(f"/looks/{look}/pieces", json=PECA)
+
+    consultas: list[str] = []
+    from sqlalchemy import event
+
+    def anotar(conn, cursor, statement, *_: object) -> None:  # noqa: ANN001
+        consultas.append(statement)
+
+    event.listen(db.get_bind(), "before_cursor_execute", anotar)
+    try:
+        assert client.get("/users/me").status_code == 200
+    finally:
+        event.remove(db.get_bind(), "before_cursor_execute", anotar)
+
+    assert not [c for c in consultas if "FROM looks" in c], consultas

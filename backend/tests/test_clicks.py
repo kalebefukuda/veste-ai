@@ -105,3 +105,21 @@ def test_o_clique_guarda_o_look_junto_da_peca(dono: TestClient, publicado, db) -
     assert str(registrado.piece_id) == peca
     # Nada de IP: a RN09 precisa de contagem, não de quem clicou — ver ADR-0022.
     assert registrado.ip_hash is None
+
+
+# O comentário do model prometia que a métrica sobrevive à peça sair do look, e o
+# schema não entregava: `piece_id` cascateava, então remover a peça apagava o histórico
+# dela. O total do look é número histórico do creator, não inventário do que restou.
+def test_o_clique_sobrevive_a_remocao_da_peca(dono: TestClient, publicado) -> None:
+    look, peca = publicado
+    sem_sessao(dono).post(f"/clicks/{peca}")
+    dono.headers["Authorization"] = f"Bearer {token(dono, DONO)}"
+
+    dono.post(f"/looks/{look}/pieces", json={**PECA, "name": "Segunda peça"})
+    assert dono.delete(f"/looks/{look}/pieces/{peca}").status_code == 204
+
+    metricas = dono.get(f"/looks/{look}/metrics").json()
+
+    assert metricas["clicks"] == 1
+    # A peça saiu, então some da quebra — mas o total do look continua contando.
+    assert [p["name"] for p in metricas["pieces"]] == ["Segunda peça"]

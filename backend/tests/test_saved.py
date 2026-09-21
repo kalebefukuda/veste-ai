@@ -96,3 +96,22 @@ def test_a_lista_de_ids_salvos_responde_sem_carregar_o_look(dono: TestClient) ->
     dono.post(f"/saved/{look}")
 
     assert dono.get("/saved/ids").json() == [look]
+
+
+# Dois POST simultâneos passavam pelo `esta_salvo` juntos e um estourava na restrição
+# única, virando 500. O insert precisa ser idempotente por si, não pela conferência
+# anterior — que é onde a corrida cabe.
+def test_salvar_e_idempotente_sem_depender_da_conferencia(dono: TestClient, db) -> None:
+    from app.repositories.saved_repository import SavedRepository
+
+    look = publicar(dono)
+    usuario = db.execute(
+        __import__("sqlalchemy").text("select id from users where email = :e"),
+        {"e": DONO["email"]},
+    ).scalar_one()
+
+    repo = SavedRepository(db)
+    repo.save(usuario, __import__("uuid").UUID(look))
+    repo.save(usuario, __import__("uuid").UUID(look))
+
+    assert len(repo.list_ids(usuario)) == 1
