@@ -21,7 +21,9 @@ vi.mock("next/navigation", () => ({
 import FeedLayout from "@/app/(public)/feed/layout";
 import FeedPage from "@/app/(public)/feed/page";
 import LookPublicoPage, { generateMetadata } from "@/app/(public)/feed/[id]/page";
+import EditarLookPage from "@/app/(app)/looks/[id]/page";
 import HomePage from "@/app/page";
+import SalvosPage from "@/app/(app)/salvos/page";
 import { GET } from "@/app/api/feed/route";
 
 import type { LookPublico } from "@/lib/api";
@@ -154,10 +156,21 @@ describe("look público", () => {
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Inverno urbano");
     expect(screen.getByText(/mariana souza/i)).toBeInTheDocument();
+    // RN08: o link sai pela nossa rota, senão não há onde contar o clique.
     expect(screen.getByRole("link", { name: /sobretudo bordô/i })).toHaveAttribute(
       "href",
-      "https://loja.com/x",
+      "/r/p1",
     );
+  });
+
+  // Contrapartida de o link deixar de ser o endereço da loja: quem clica precisa ver
+  // para onde vai antes de sair daqui.
+  it("mostra o domínio de destino da peça", async () => {
+    vi.stubGlobal("fetch", respondePorUrl({ "/feed/look-1": LOOK }));
+
+    render(await LookPublicoPage({ params: { id: "look-1" } }));
+
+    expect(screen.getByText(/loja\.com/)).toBeInTheDocument();
   });
 
   // Rascunho e inexistente dão no mesmo 404: distinguir os dois entregaria a quem
@@ -212,5 +225,58 @@ describe("proxy público do feed", () => {
 
     expect(resposta.status).toBe(200);
     expect(String(chamou.mock.calls[0][0])).toContain("page=3");
+  });
+});
+
+// RN09: a métrica é do creator, e o lugar dela é a tela onde ele edita o próprio look.
+describe("métricas do creator", () => {
+  it("mostra o total e o número por peça", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    vi.stubGlobal(
+      "fetch",
+      respondePorUrl({
+        "/metrics": { clicks: 7, pieces: [{ id: "p1", name: "Sobretudo bordô", clicks: 7 }] },
+        "/looks/look-1": { ...LOOK, status: "published", pieces: LOOK.pieces },
+      }),
+    );
+
+    render(await EditarLookPage({ params: { id: "look-1" } }));
+
+    // Dois "7": o total do look e o da única peça. É justamente o par que o painel
+    // promete — agregado em cima, detalhe embaixo.
+    expect(screen.getAllByText("7")).toHaveLength(2);
+    expect(screen.getByText(/cliques em links de compra/i)).toBeInTheDocument();
+  });
+
+  // Rascunho não tem público, então o painel de cliques só mentiria zero.
+  it("não mostra painel de cliques em rascunho", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    vi.stubGlobal("fetch", respondePorUrl({ "/looks/look-1": { ...LOOK, status: "draft" } }));
+
+    render(await EditarLookPage({ params: { id: "look-1" } }));
+
+    expect(screen.queryByText(/cliques/i)).not.toBeInTheDocument();
+  });
+});
+
+// RN02: a coleção é de quem salvou, então a tela mora na área logada e o caminho
+// para ela é o menu do avatar, junto do resto que é da pessoa.
+describe("meus salvos", () => {
+  it("lista o que foi salvo", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    vi.stubGlobal("fetch", respondePorUrl({ "/saved": [LOOK] }));
+
+    render(await SalvosPage());
+
+    expect(screen.getByText("Inverno urbano")).toBeInTheDocument();
+  });
+
+  it("explica o vazio em vez de falar de publicação", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok" });
+    vi.stubGlobal("fetch", respondePorUrl({ "/saved": [] }));
+
+    render(await SalvosPage());
+
+    expect(screen.getByText(/nenhum look salvo/i)).toBeInTheDocument();
   });
 });

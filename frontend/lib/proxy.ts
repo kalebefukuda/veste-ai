@@ -25,9 +25,14 @@ export async function encaminhar(
     cache: "no-store",
   });
 
-  if (resposta.status === 204) {
-    return new NextResponse(null, { status: 204 });
+  // Quem decide é haver conteúdo, não o número do status: 201 sem corpo existe, e
+  // tentar ler JSON de resposta vazia virava 500 em cima de uma requisição que deu
+  // certo.
+  const corpo = await resposta.text();
+
+  if (!corpo) {
+    return new NextResponse(null, { status: resposta.status });
   }
 
-  return NextResponse.json(await resposta.json(), { status: resposta.status });
+  return NextResponse.json(JSON.parse(corpo), { status: resposta.status });
 }

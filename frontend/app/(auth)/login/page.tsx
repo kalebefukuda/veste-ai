@@ -26,6 +26,7 @@ export default function LoginPage() {
       await login(email, password);
       toast.success("Bem-vindo de volta.");
       router.push(AFTER_AUTH);
+      router.refresh();
     } catch (failure) {
       setError((failure as Error).message);
       setLoading(false);

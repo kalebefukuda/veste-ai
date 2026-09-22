@@ -1,5 +1,5 @@
 import type { LookPublico, PaginaDoFeed } from "@/lib/api";
-import { apiUrl } from "@/lib/session";
+import { apiUrl, readSession } from "@/lib/session";
 
 const VAZIA: PaginaDoFeed = { items: [], next_page: null };
 
@@ -17,6 +17,32 @@ export async function carregarFeed(
   const resposta = await fetch(apiUrl(`/feed?${alvo}`), { cache: "no-store" });
 
   return resposta.ok ? resposta.json() : VAZIA;
+}
+
+// Os ids vêm por fora do feed, e só para quem tem sessão: é o que deixa a vitrine
+// continuar pública enquanto a tela sabe quais corações preencher — ADR-0023.
+export async function carregarIdsSalvos(): Promise<string[]> {
+  const token = readSession();
+  if (!token) return [];
+
+  const resposta = await fetch(apiUrl("/saved/ids"), {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+
+  return resposta.ok ? resposta.json() : [];
+}
+
+export async function carregarSalvos(): Promise<LookPublico[]> {
+  const token = readSession();
+  if (!token) return [];
+
+  const resposta = await fetch(apiUrl("/saved"), {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+
+  return resposta.ok ? resposta.json() : [];
 }
 
 export async function carregarLookPublico(id: string): Promise<LookPublico | null> {

@@ -8,9 +8,13 @@ export const COMECAR = "/comecar";
 // chega no que os outros publicaram, e o próprio trabalho fica atrás do avatar.
 export const FEED = "/feed";
 export const MEUS_LOOKS = "/meus-looks";
+export const SALVOS = "/salvos";
 export const NOVO_LOOK = "/looks/novo";
 export const CONFIGURACOES = "/configuracoes";
 
 export const lookPublico = (id: string) => `${FEED}/${id}`;
+
+// RN08: a peça sai por aqui, não direto para a loja. É o ponto onde o clique conta.
+export const saidaParaLoja = (pecaId: string) => `/r/${pecaId}`;
 
 export const AFTER_AUTH = FEED;

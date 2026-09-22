@@ -10,7 +10,7 @@ from app.core.exceptions import DomainHTTPException, TooManyRequests
 from app.core.logging import RequestIdMiddleware, configure
 from app.core.rate_limit import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
-from app.routers import auth, contact, feed, looks, users
+from app.routers import auth, clicks, contact, feed, looks, saved, users
 
 configure()
 
@@ -58,6 +58,8 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(looks.router)
 app.include_router(feed.router)
+app.include_router(clicks.router)
+app.include_router(saved.router)
 app.include_router(contact.router)
 
 

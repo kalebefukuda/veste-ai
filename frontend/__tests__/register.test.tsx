@@ -7,7 +7,8 @@ import * as api from "@/lib/api";
 import { AFTER_AUTH } from "@/lib/routes";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 
 describe("tela de cadastro", () => {
   beforeEach(() => {

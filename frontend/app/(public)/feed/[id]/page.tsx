@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import FotoDoLook from "@/components/feed/FotoDoLook";
-import { FEED } from "@/lib/routes";
+import { FEED, saidaParaLoja } from "@/lib/routes";
 import { carregarLookPublico } from "@/lib/feed";
 
 import type { Peca } from "@/lib/api";
@@ -111,13 +111,24 @@ export default async function LookPublicoPage({ params }: Props) {
   );
 }
 
+function dominio(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 function ItemDaPeca({ peca }: { peca: Peca }) {
+  const destino = dominio(peca.purchase_url);
+
   return (
     <li>
-      {/* RN03: o link de compra é público. `noreferrer` porque o destino é loja de
-          terceiro e não precisa saber de onde veio. */}
+      {/* RN03: o link é público. Ele sai pela nossa rota, que conta o clique e só
+          então redireciona — RN08. `noreferrer` porque a loja de terceiro não precisa
+          saber de onde veio. */}
       <a
-        href={peca.purchase_url}
+        href={saidaParaLoja(peca.id)}
         target="_blank"
         rel="noopener noreferrer"
         className="group flex items-center gap-4 rounded-2xl border border-navy/10 p-3
@@ -137,8 +148,10 @@ function ItemDaPeca({ peca }: { peca: Peca }) {
           <span className="block truncate font-medium text-navy group-hover:text-purple">
             {peca.name}
           </span>
+          {/* O domínio sempre visível: o link deixou de ser o endereço da loja, então
+              quem clica precisa ver para onde vai antes de sair daqui. */}
           <span className="mt-0.5 block truncate text-sm text-navy/55">
-            {peca.store ?? new URL(peca.purchase_url).hostname.replace(/^www\./, "")}
+            {peca.store ? `${peca.store} · ${destino}` : destino}
           </span>
         </span>
 

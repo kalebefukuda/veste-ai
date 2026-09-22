@@ -1,11 +1,15 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+if TYPE_CHECKING:
+    from app.models.look import Look
 
 
 class User(Base):
@@ -31,3 +35,10 @@ class User(Base):
     # Token emitido antes desta marca é recusado: é o que permite invalidar sessão
     # antiga na troca de senha sem abandonar o JWT stateless.
     password_changed_at: Mapped[datetime] = mapped_column(server_default=text("now()"))
+
+    # Preguiçosa de propósito: `get_current_user` carrega o usuário em quase toda
+    # requisição autenticada, e `selectin` aqui faria cada uma delas puxar todos os
+    # looks e, por tabela, todas as peças. Só o export percorre isto.
+    looks: Mapped[list["Look"]] = relationship(
+        back_populates="creator", order_by="Look.created_at.desc()"
+    )

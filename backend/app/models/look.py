@@ -35,7 +35,7 @@ class Look(Base):
 
     # Sem `lazy` ansioso: só o feed precisa de quem montou, e ele carrega por
     # `joinedload` na própria consulta.
-    creator: Mapped["User"] = relationship()
+    creator: Mapped["User"] = relationship(back_populates="looks")
 
     # `lazy="selectin"` porque toda leitura de look mostra as peças: sem isso, listar
     # N looks dispara N consultas de peça.

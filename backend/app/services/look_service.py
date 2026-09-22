@@ -2,12 +2,14 @@
 
 import uuid
 
+from app.clients.safe_browsing import e_perigoso
 from app.core.exceptions import (
     LookNotFound,
     LookWithoutCategory,
     LookWithoutImage,
     LookWithoutPiece,
     NotTheOwner,
+    UnsafeLink,
 )
 from app.models.look import PUBLICADO, Look, Piece
 from app.repositories.look_repository import LookRepository
@@ -67,8 +69,14 @@ class LookService:
         self.looks.delete(self._meu(look_id, user_id))
 
     def add_piece(self, look_id: uuid.UUID, dados: PieceCreate, user_id: uuid.UUID) -> Piece:
-        self._meu(look_id, user_id)
-        return self.looks.add_piece(Piece(look_id=look_id, **dados.model_dump()))
+        look = self._meu(look_id, user_id)
+
+        # Na entrada e não no clique: consultar a cada redirecionamento poria o
+        # Google no caminho de quem está comprando — ADR-0022.
+        if e_perigoso(dados.purchase_url):
+            raise UnsafeLink()
+
+        return self.looks.add_piece(look, Piece(**dados.model_dump()))
 
     def remove_piece(self, look_id: uuid.UUID, piece_id: uuid.UUID, user_id: uuid.UUID) -> None:
         look = self._meu(look_id, user_id)

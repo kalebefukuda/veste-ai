@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from tests.test_looks import DONO, LOOK, PECA, token
+
 CREDENTIALS = {"name": "Mariana", "email": "mariana@exemplo.com", "password": "senha-bem-longa"}
 
 
@@ -133,3 +135,56 @@ def test_export_nao_inclui_a_senha(auth_client: TestClient) -> None:
 
 def test_export_sem_token_retorna_401(client: TestClient) -> None:
     assert client.get("/users/me/export").status_code == 401
+
+
+# LGPD art. 18, II e V: acesso e portabilidade. O look montado pelo titular é dado
+# dele — exportar só nome e e-mail entregaria a conta e deixaria o trabalho para trás.
+def test_o_export_leva_os_looks_e_as_pecas(client: TestClient) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+    look = client.post("/looks", json=LOOK).json()["id"]
+    criada = client.post(f"/looks/{look}/pieces", json=PECA)
+    assert criada.status_code == 201, criada.json()
+
+    exportado = client.get("/users/me/export").json()
+
+    assert exportado["looks"][0]["title"] == LOOK["title"]
+    assert exportado["looks"][0]["pieces"][0]["purchase_url"] == PECA["purchase_url"]
+
+
+def test_o_export_nao_leva_a_senha(client: TestClient) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+
+    exportado = client.get("/users/me/export").json()
+
+    # Credencial não é dado a entregar: exportá-la seria vazamento com carimbo de
+    # conformidade.
+    assert "password" not in exportado
+
+
+def test_o_export_de_conta_sem_look_traz_lista_vazia(client: TestClient) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+
+    assert client.get("/users/me/export").json()["looks"] == []
+
+
+# `lazy="selectin"` em User.looks fazia toda requisição autenticada carregar os looks
+# e, por tabela, as peças — `get_current_user` roda em quase todas. A relação existe
+# para o export, e é lá que ela deve ser percorrida.
+def test_requisicao_comum_nao_carrega_os_looks(client: TestClient, db: Session) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+    look = client.post("/looks", json=LOOK).json()["id"]
+    client.post(f"/looks/{look}/pieces", json=PECA)
+
+    consultas: list[str] = []
+    from sqlalchemy import event
+
+    def anotar(conn, cursor, statement, *_: object) -> None:  # noqa: ANN001
+        consultas.append(statement)
+
+    event.listen(db.get_bind(), "before_cursor_execute", anotar)
+    try:
+        assert client.get("/users/me").status_code == 200
+    finally:
+        event.remove(db.get_bind(), "before_cursor_execute", anotar)
+
+    assert not [c for c in consultas if "FROM looks" in c], consultas

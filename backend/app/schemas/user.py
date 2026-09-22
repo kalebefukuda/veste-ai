@@ -2,7 +2,16 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
+
+from app.schemas.look import LookOut
 
 # Endereços que a aplicação usa ou vai usar, e que ninguém pode tomar.
 RESERVADOS = frozenset(
@@ -46,8 +55,14 @@ class UserOut(BaseModel):
 
 # Devolve tudo que a conta guarda sobre o titular, menos a senha: credencial não é
 # dado a entregar, e exportá-la viraria vazamento com carimbo de conformidade.
+#
+# Os looks vão junto porque são dele: exportar só a conta entregaria o cadastro e
+# deixaria o trabalho para trás, e portabilidade sem o conteúdo não é portabilidade.
+# Cliques ficam de fora — a tabela não tem `user_id`, o clique é de visitante, e o que
+# ele diz sobre o look aparece nas métricas, não no dado pessoal do titular.
 class UserExport(UserOut):
     created_at: datetime
+    looks: list[LookOut] = []
 
 
 # A senha vai no corpo do DELETE em vez de num endpoint separado de conferência:

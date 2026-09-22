@@ -12,6 +12,9 @@ os.environ.setdefault("JWT_SECRET", "test-only-secret")
 # a suíte dispara e-mail de verdade para endereços @exemplo.com, e bounce em massa
 # é o que derruba reputação de remetente.
 os.environ["BREVO_API_KEY"] = ""
+# Mesma razão para a Safe Browsing: sem isto, uma chave real no backend/.env
+# faria a suíte consultar o Google a cada peça cadastrada.
+os.environ["SAFE_BROWSING_API_KEY"] = ""
 os.environ.setdefault("CONTACT_DESTINATION", "destino-de-teste@exemplo.com")
 
 import subprocess  # noqa: E402
