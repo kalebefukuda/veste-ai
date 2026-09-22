@@ -19,8 +19,14 @@ A rota é `app/(public)/(vitrine)/[handle]`, e endereço que não começa com `@
 404 — o segmento dinâmico captura os dois, e só um é perfil.
 
 O perfil reusa a **mesma consulta do feed**: mesmo join, mesma exigência de ocasião,
-mesma ordem. Um recorte que divergisse mostraria no perfil um look que a vitrine não
-mostra.
+mesma ordem — e a mesma paginação, com `next_page` e a busca de um registro a mais.
+Um recorte que divergisse mostraria no perfil um look que a vitrine não mostra, e uma
+resposta sem página cresceria junto com a coleção de quem publica muito, que é
+justamente o creator que a plataforma quer.
+
+Perfil inexistente responde `PROFILE_NOT_FOUND`, não `LOOK_NOT_FOUND`. O código de erro
+é contrato: dizer que faltou um look quando quem falta é a pessoa mente sobre o que
+aconteceu, e a tela que quiser tratar os dois casos diferente não consegue.
 
 Feed e perfil passam a dividir um layout, através de um grupo de rotas `(vitrine)`. A
 política de privacidade fica fora dele porque tem cabeçalho próprio, com volta para a
