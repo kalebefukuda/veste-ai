@@ -145,7 +145,9 @@ describe("mais looks no perfil", () => {
     const chamou = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ items: [], next_page: null }),
+      // Formato do perfil, não o do feed: a rota devolve `looks`, e o cliente é que
+      // traduz. Mock com a forma errada escondia o defeito em vez de provar o acerto.
+      json: async () => ({ name: "Bia", username: "biacosta", looks: [], next_page: null }),
     });
     vi.stubGlobal("fetch", chamou);
 
