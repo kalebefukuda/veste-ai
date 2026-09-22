@@ -116,3 +116,14 @@ class LookRepository:
             .group_by(Click.piece_id)
         )
         return {peca: total for peca, total in self.db.execute(consulta)}
+
+    # O perfil é o feed recortado por pessoa: mesmo join, mesma exigência de ocasião,
+    # mesma ordem. Um recorte que divergisse do feed mostraria look diferente do que a
+    # vitrine mostra.
+    def list_published_by_username(self, username: str) -> list[Look]:
+        consulta = (
+            self._publicados()
+            .where(func.lower(User.username) == username.lower())
+            .order_by(Look.created_at.desc())
+        )
+        return list(self.db.execute(consulta).unique().scalars())
