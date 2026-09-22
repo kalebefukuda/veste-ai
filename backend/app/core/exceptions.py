@@ -18,6 +18,11 @@ class LookNotFound(DomainError):
     code = "LOOK_NOT_FOUND"
 
 
+class ProfileNotFound(DomainError):
+    code = "PROFILE_NOT_FOUND"
+    detail = "Este perfil não existe"
+
+
 class LookWithoutPiece(DomainError):
     code = "LOOK_WITHOUT_PIECE"
     rule = "RN04"

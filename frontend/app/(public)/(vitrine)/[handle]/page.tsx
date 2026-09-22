@@ -79,7 +79,8 @@ export default async function PerfilPage({ params }: Props) {
       <div className="mx-auto max-w-7xl px-6 pt-10">
         <Vitrine
           inicial={perfil.looks}
-          proxima={null}
+          proxima={perfil.next_page}
+          handle={perfil.username}
           logado={usuario !== null}
           salvos={salvos}
           vazio={`${perfil.name} ainda não publicou nenhum look.`}

@@ -13,3 +13,5 @@ class ProfileOut(BaseModel):
     avatar: str | None = None
     bio: str | None = None
     looks: list[FeedLookOut] = []
+    # Mesma forma do feed: a tela decide se ainda há o que carregar sem receber total.
+    next_page: int | None = None

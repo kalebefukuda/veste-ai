@@ -120,10 +120,14 @@ class LookRepository:
     # O perfil é o feed recortado por pessoa: mesmo join, mesma exigência de ocasião,
     # mesma ordem. Um recorte que divergisse do feed mostraria look diferente do que a
     # vitrine mostra.
-    def list_published_by_username(self, username: str) -> list[Look]:
+    def list_published_by_username(
+        self, username: str, limit: int, offset: int
+    ) -> list[Look]:
         consulta = (
             self._publicados()
             .where(func.lower(User.username) == username.lower())
             .order_by(Look.created_at.desc())
+            .limit(limit)
+            .offset(offset)
         )
         return list(self.db.execute(consulta).unique().scalars())

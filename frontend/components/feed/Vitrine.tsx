@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import Coracao from "@/components/feed/Coracao";
 
-import { carregarMaisDoFeed, type LookPublico } from "@/lib/api";
+import { carregarMaisDoFeed, carregarMaisDoPerfil, type LookPublico } from "@/lib/api";
 import { acharCategoria } from "@/lib/categorias";
 import { lookPublico, perfilPublico, REGISTER } from "@/lib/routes";
 
@@ -19,6 +19,9 @@ type Props = {
   categoria?: string;
   salvos?: string[];
   vazio?: string;
+  // Quando a vitrine é o recorte de uma pessoa, pedir mais ao feed traria look de todo
+  // mundo dentro da página dela.
+  handle?: string;
 };
 
 export default function Vitrine({
@@ -29,6 +32,7 @@ export default function Vitrine({
   categoria,
   salvos = [],
   vazio,
+  handle,
 }: Props) {
   const recorte = `${busca ?? ""}|${categoria ?? ""}`;
   const [visao, setVisao] = useState({
@@ -57,7 +61,9 @@ export default function Vitrine({
     setCarregando(true);
 
     try {
-      const proximaPagina = await carregarMaisDoFeed(pagina, busca, categoria);
+      const proximaPagina = handle
+        ? await carregarMaisDoPerfil(handle, pagina)
+        : await carregarMaisDoFeed(pagina, busca, categoria);
       setVisao((atual) => ({
         ...atual,
         looks: [...atual.looks, ...proximaPagina.items],
