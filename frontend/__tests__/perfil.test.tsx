@@ -132,3 +132,29 @@ describe("caminho do card para o perfil", () => {
     expect(screen.getByText("Bia Costa")).toBeInTheDocument();
   });
 });
+
+// A API passou a paginar o perfil. Sem isto a tela mostraria só a primeira página e
+// não teria como pedir o resto — silenciosamente, que é o pior jeito de esconder.
+describe("mais looks no perfil", () => {
+  it("carrega a próxima página do próprio perfil, não do feed", async () => {
+    const { default: Vitrine } = await import("@/components/feed/Vitrine");
+    const userEvent = (await import("@testing-library/user-event")).default;
+    const { waitFor } = await import("@testing-library/react");
+
+    const user = userEvent.setup();
+    const chamou = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], next_page: null }),
+    });
+    vi.stubGlobal("fetch", chamou);
+
+    render(<Vitrine inicial={[LOOK]} proxima={2} logado handle="biacosta" />);
+
+    await user.click(screen.getByRole("button", { name: /carregar mais/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(String(chamou.mock.calls[0][0])).toContain("/api/profiles/biacosta");
+    expect(String(chamou.mock.calls[0][0])).toContain("page=2");
+  });
+});
