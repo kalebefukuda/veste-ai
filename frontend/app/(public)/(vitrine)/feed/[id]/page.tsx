@@ -4,10 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import FotoDoLook from "@/components/feed/FotoDoLook";
-import { FEED, saidaParaLoja } from "@/lib/routes";
+import { FEED, perfilPublico, saidaParaLoja } from "@/lib/routes";
 import { carregarLookPublico } from "@/lib/feed";
 
-import type { Peca } from "@/lib/api";
+import type { LookPublico, Peca } from "@/lib/api";
 
 type Props = { params: { id: string } };
 
@@ -58,30 +58,10 @@ export default async function LookPublicoPage({ params }: Props) {
             {look.title}
           </h1>
 
-          <div className="mt-5 flex items-center gap-3">
-            <span
-              aria-hidden
-              className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full
-                bg-navy text-xs font-bold text-white"
-            >
-              {look.creator.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={look.creator.avatar} alt="" className="h-full w-full object-cover" />
-              ) : (
-                iniciais(look.creator.name)
-              )}
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate font-semibold text-navy">
-                {look.creator.name}
-              </span>
-              {look.creator.username && (
-                <span className="block truncate text-sm text-navy/55">
-                  @{look.creator.username}
-                </span>
-              )}
-            </span>
-          </div>
+          {/* O handle existia e não levava a lugar nenhum. Clicar em quem montou é o
+              que fecha a navegação: do look para a pessoa, da pessoa para os looks
+              dela. Sem handle não há para onde ir, então continua texto. */}
+          <QuemMontou creator={look.creator} />
 
           {look.description && (
             <p className="mt-6 max-w-[52ch] leading-relaxed text-navy/75">{look.description}</p>
@@ -108,6 +88,45 @@ export default async function LookPublicoPage({ params }: Props) {
         </div>
       </div>
     </main>
+  );
+}
+
+function QuemMontou({ creator }: { creator: LookPublico["creator"] }) {
+  const identidade = (
+    <>
+      <span
+        aria-hidden
+        className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full
+          bg-navy text-xs font-bold text-white"
+      >
+        {creator.avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={creator.avatar} alt="" className="h-full w-full object-cover" />
+        ) : (
+          iniciais(creator.name)
+        )}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate font-semibold text-navy">{creator.name}</span>
+        {creator.username && (
+          <span className="block truncate text-sm text-navy/55">@{creator.username}</span>
+        )}
+      </span>
+    </>
+  );
+
+  if (!creator.username) {
+    return <div className="mt-5 flex items-center gap-3">{identidade}</div>;
+  }
+
+  return (
+    <Link
+      href={perfilPublico(creator.username)}
+      className="mt-5 flex w-fit items-center gap-3 rounded-2xl transition hover:opacity-80
+        focus-visible:ring-2 focus-visible:ring-purple/40 focus-visible:ring-offset-2"
+    >
+      {identidade}
+    </Link>
   );
 }
 

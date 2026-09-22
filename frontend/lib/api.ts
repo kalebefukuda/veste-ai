@@ -56,6 +56,14 @@ export type LookPublico = {
   pieces: Peca[];
 };
 
+export type Perfil = {
+  name: string;
+  username: string;
+  avatar?: string | null;
+  bio?: string | null;
+  looks: LookPublico[];
+};
+
 export type MetricasDaPeca = { id: string; name: string; clicks: number };
 
 export type MetricasDoLook = { clicks: number; pieces: MetricasDaPeca[] };

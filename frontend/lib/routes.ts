@@ -17,4 +17,8 @@ export const lookPublico = (id: string) => `${FEED}/${id}`;
 // RN08: a peça sai por aqui, não direto para a loja. É o ponto onde o clique conta.
 export const saidaParaLoja = (pecaId: string) => `/r/${pecaId}`;
 
+// `/@handle` e não `/handle`: com a arroba o perfil nunca disputa caminho com /feed,
+// /salvos ou qualquer rota que a gente venha a criar.
+export const perfilPublico = (handle: string) => `/@${handle}`;
+
 export const AFTER_AUTH = FEED;
