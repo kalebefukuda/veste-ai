@@ -7,8 +7,8 @@ from app.core.exceptions import DomainHTTPException, ProfileNotFound
 from app.database import get_db
 from app.repositories.look_repository import LookRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.feed import FeedLookOut
 from app.schemas.profile import ProfileOut
+from app.services import imagem
 from app.services.profile_service import ProfileService
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
@@ -42,6 +42,6 @@ def perfil(
         username=pessoa.username or "",
         avatar=pessoa.avatar,
         bio=pessoa.bio,
-        looks=[FeedLookOut.model_validate(look) for look in looks],
+        looks=[imagem.para_vitrine(look) for look in looks],
         next_page=proxima,
     )
