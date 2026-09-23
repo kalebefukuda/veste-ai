@@ -18,9 +18,9 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
-import FeedLayout from "@/app/(public)/feed/layout";
-import FeedPage from "@/app/(public)/feed/page";
-import LookPublicoPage, { generateMetadata } from "@/app/(public)/feed/[id]/page";
+import VitrineLayout from "@/app/(public)/(vitrine)/layout";
+import FeedPage from "@/app/(public)/(vitrine)/feed/page";
+import LookPublicoPage, { generateMetadata } from "@/app/(public)/(vitrine)/feed/[id]/page";
 import EditarLookPage from "@/app/(app)/looks/[id]/page";
 import HomePage from "@/app/page";
 import SalvosPage from "@/app/(app)/salvos/page";
@@ -142,7 +142,7 @@ describe("página do feed", () => {
     cookieStore.get.mockReturnValue({ value: "tok" });
     vi.stubGlobal("fetch", respondePorUrl({ "/users/me": USUARIO }));
 
-    render(await FeedLayout({ children: null }));
+    render(await VitrineLayout({ children: null }));
 
     expect(screen.getByRole("button", { name: /abrir menu da conta/i })).toBeInTheDocument();
   });

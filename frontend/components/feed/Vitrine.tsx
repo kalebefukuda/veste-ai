@@ -7,9 +7,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import Coracao from "@/components/feed/Coracao";
 
-import { carregarMaisDoFeed, type LookPublico } from "@/lib/api";
+import { carregarMaisDoFeed, carregarMaisDoPerfil, type LookPublico } from "@/lib/api";
 import { acharCategoria } from "@/lib/categorias";
-import { lookPublico, REGISTER } from "@/lib/routes";
+import { lookPublico, perfilPublico, REGISTER } from "@/lib/routes";
 
 type Props = {
   inicial: LookPublico[];
@@ -19,6 +19,9 @@ type Props = {
   categoria?: string;
   salvos?: string[];
   vazio?: string;
+  // Quando a vitrine é o recorte de uma pessoa, pedir mais ao feed traria look de todo
+  // mundo dentro da página dela.
+  handle?: string;
 };
 
 export default function Vitrine({
@@ -29,6 +32,7 @@ export default function Vitrine({
   categoria,
   salvos = [],
   vazio,
+  handle,
 }: Props) {
   const recorte = `${busca ?? ""}|${categoria ?? ""}`;
   const [visao, setVisao] = useState({
@@ -57,7 +61,9 @@ export default function Vitrine({
     setCarregando(true);
 
     try {
-      const proximaPagina = await carregarMaisDoFeed(pagina, busca, categoria);
+      const proximaPagina = handle
+        ? await carregarMaisDoPerfil(handle, pagina)
+        : await carregarMaisDoFeed(pagina, busca, categoria);
       setVisao((atual) => ({
         ...atual,
         looks: [...atual.looks, ...proximaPagina.items],
@@ -167,6 +173,41 @@ function Convite() {
   );
 }
 
+function QuemMontou({ creator }: { creator: LookPublico["creator"] }) {
+  const identidade = (
+    <>
+      <span
+        aria-hidden
+        className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full
+          bg-navy text-[10px] font-bold text-white"
+      >
+        {creator.avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={creator.avatar} alt="" className="h-full w-full object-cover" />
+        ) : (
+          iniciais(creator.name)
+        )}
+      </span>
+      <span className="truncate text-sm text-navy/60">{creator.name}</span>
+    </>
+  );
+
+  if (!creator.username) {
+    return <span className="mt-2 flex items-center gap-2">{identidade}</span>;
+  }
+
+  return (
+    <Link
+      href={perfilPublico(creator.username)}
+      className="mt-2 flex w-fit items-center gap-2 rounded-full transition
+        hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40
+        focus-visible:ring-offset-2"
+    >
+      {identidade}
+    </Link>
+  );
+}
+
 function iniciais(nome: string): string {
   const partes = nome.trim().split(/\s+/);
   return ((partes[0]?.[0] ?? "") + (partes.length > 1 ? partes[partes.length - 1][0] : ""))
@@ -234,23 +275,11 @@ function Card({ look, logado, salvo }: CardProps) {
         <p className="mt-3.5 font-semibold leading-snug tracking-[-0.01em] text-navy">
           {look.title}
         </p>
-
-        <span className="mt-2 flex items-center gap-2">
-          <span
-            aria-hidden
-            className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full
-              bg-navy text-[10px] font-bold text-white"
-          >
-            {look.creator.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={look.creator.avatar} alt="" className="h-full w-full object-cover" />
-            ) : (
-              iniciais(look.creator.name)
-            )}
-          </span>
-          <span className="truncate text-sm text-navy/60">{look.creator.name}</span>
-        </span>
       </Link>
+
+      {/* Fora do link do look, e não dentro: âncora dentro de âncora é HTML inválido,
+          e um clique acabaria disparando o outro. Quem tem handle leva ao perfil. */}
+      <QuemMontou creator={look.creator} />
     </li>
   );
 }

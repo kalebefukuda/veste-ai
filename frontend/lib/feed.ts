@@ -1,4 +1,4 @@
-import type { LookPublico, PaginaDoFeed } from "@/lib/api";
+import type { LookPublico, PaginaDoFeed, Perfil } from "@/lib/api";
 import { apiUrl, readSession } from "@/lib/session";
 
 const VAZIA: PaginaDoFeed = { items: [], next_page: null };
@@ -43,6 +43,14 @@ export async function carregarSalvos(): Promise<LookPublico[]> {
   });
 
   return resposta.ok ? resposta.json() : [];
+}
+
+export async function carregarPerfil(handle: string): Promise<Perfil | null> {
+  const resposta = await fetch(apiUrl(`/profiles/${encodeURIComponent(handle)}`), {
+    cache: "no-store",
+  });
+
+  return resposta.ok ? resposta.json() : null;
 }
 
 export async function carregarLookPublico(id: string): Promise<LookPublico | null> {

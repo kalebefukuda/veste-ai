@@ -56,6 +56,15 @@ export type LookPublico = {
   pieces: Peca[];
 };
 
+export type Perfil = {
+  name: string;
+  username: string;
+  avatar?: string | null;
+  bio?: string | null;
+  looks: LookPublico[];
+  next_page: number | null;
+};
+
 export type MetricasDaPeca = { id: string; name: string; clicks: number };
 
 export type MetricasDoLook = { clicks: number; pieces: MetricasDaPeca[] };
@@ -210,6 +219,21 @@ export function carregarMaisDoFeed(
   if (categoria) alvo.set("categoria", categoria);
 
   return send<PaginaDoFeed>("GET", `/api/feed?${alvo}`, undefined);
+}
+
+// O perfil pagina como o feed, mas a fonte é outra: pedir mais ao feed devolveria
+// look de todo mundo dentro da página de uma pessoa só.
+export async function carregarMaisDoPerfil(
+  handle: string,
+  page: number,
+): Promise<PaginaDoFeed> {
+  const perfil = await send<Perfil>(
+    "GET",
+    `/api/profiles/${encodeURIComponent(handle)}?page=${page}`,
+    undefined,
+  );
+
+  return { items: perfil.looks, next_page: perfil.next_page };
 }
 
 export function criarLook(title: string, description?: string): Promise<Look> {
