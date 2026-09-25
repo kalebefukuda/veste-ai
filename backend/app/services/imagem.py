@@ -9,12 +9,15 @@ from app.schemas.feed import FeedLookOut
 
 TAMANHO_MAXIMO = 5 * 1024 * 1024
 
-# O cabeçalho do arquivo é escrito por quem envia. A assinatura no começo dos bytes é
-# o que separa uma imagem de um executável renomeado.
-ASSINATURAS: dict[str, tuple[bytes, ...]] = {
-    "image/jpeg": (b"\xff\xd8\xff",),
-    "image/png": (b"\x89PNG\r\n\x1a\n",),
-    "image/webp": (b"RIFF",),
+# O cabeçalho do arquivo é escrito por quem envia. A assinatura nos bytes é o que
+# separa uma imagem de um executável renomeado. Cada par é (posição, conteúdo), e
+# todos precisam bater.
+ASSINATURAS: dict[str, tuple[tuple[int, bytes], ...]] = {
+    "image/jpeg": ((0, b"\xff\xd8\xff"),),
+    "image/png": ((0, b"\x89PNG\r\n\x1a\n"),),
+    # RIFF sozinho não diz WebP: AVI e WAV usam o mesmo contêiner. Quem identifica é o
+    # marcador nos bytes 8 a 11.
+    "image/webp": ((0, b"RIFF"), (8, b"WEBP")),
 }
 
 EXTENSOES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
@@ -27,7 +30,10 @@ def guardar(look: Look, conteudo: bytes, tipo: str) -> str:
     if len(conteudo) > TAMANHO_MAXIMO:
         raise ImageTooLarge()
 
-    if not any(conteudo.startswith(inicio) for inicio in ASSINATURAS[tipo]):
+    if not all(
+        conteudo[posicao : posicao + len(esperado)] == esperado
+        for posicao, esperado in ASSINATURAS[tipo]
+    ):
         raise InvalidImage()
 
     # `uuid` no nome para troca de foto não colidir com a anterior em cache, e prefixo

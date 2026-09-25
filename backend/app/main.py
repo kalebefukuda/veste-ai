@@ -10,6 +10,7 @@ from app.core.exceptions import DomainHTTPException, TooManyRequests
 from app.core.logging import RequestIdMiddleware, configure
 from app.core.rate_limit import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
+from app.core.tamanho_do_corpo import LimiteDeCorpoMiddleware
 from app.routers import auth, clicks, contact, feed, looks, profiles, saved, users
 
 configure()
@@ -20,6 +21,7 @@ app = FastAPI(title="VesteAi API", version="0.1.0")
 
 app.state.limiter = limiter
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(LimiteDeCorpoMiddleware)
 # Registrado por último para rodar primeiro: todo log de dentro já sai com o id.
 app.add_middleware(RequestIdMiddleware)
 

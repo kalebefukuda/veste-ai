@@ -124,9 +124,14 @@ async def enviar_imagem(
     service: Servico,
     arquivo: Annotated[UploadFile, File()],
 ) -> LookOut:
-    conteudo = await arquivo.read()
+    # Um byte a mais que o limite: se vier, já passou, e o resto não entra na memória
+    # do processo. Medir depois de ler tudo deixa o cliente escolher quanto carregamos.
+    conteudo = await arquivo.read(imagem.TAMANHO_MAXIMO + 1)
 
     try:
+        if len(conteudo) > imagem.TAMANHO_MAXIMO:
+            raise ImageTooLarge()
+
         look = service.set_image(look_id, conteudo, arquivo.content_type or "", user.id)
     except (
         LookNotFound,
