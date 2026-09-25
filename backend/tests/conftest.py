@@ -15,6 +15,8 @@ os.environ["BREVO_API_KEY"] = ""
 # Mesma razão para a Safe Browsing: sem isto, uma chave real no backend/.env
 # faria a suíte consultar o Google a cada peça cadastrada.
 os.environ["SAFE_BROWSING_API_KEY"] = ""
+# Mesma razão: com bucket configurado, a suíte tentaria falar com a AWS.
+os.environ["S3_BUCKET"] = ""
 os.environ.setdefault("CONTACT_DESTINATION", "destino-de-teste@exemplo.com")
 
 import subprocess  # noqa: E402

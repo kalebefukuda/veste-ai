@@ -305,3 +305,49 @@ describe("leitura dos looks no servidor", () => {
     expect(await carregarLook("look-1")).toMatchObject({ id: "look-1" });
   });
 });
+
+// A foto enviada é a peça que faltava: hoje o creator cola um endereço, e endereço
+// colado não é produto. Os dois caminhos convivem — quem já tem URL não perde nada.
+describe("foto do look", () => {
+  it("envia o arquivo escolhido e mostra a foto que voltou", async () => {
+    const user = userEvent.setup();
+    const chamou = responde({ ...RASCUNHO, image_url: "https://s3.exemplo/looks/x.jpg" });
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    const arquivo = new File(["conteudo"], "look.jpg", { type: "image/jpeg" });
+    await user.upload(screen.getByLabelText(/enviar foto/i), arquivo);
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(String(chamou.mock.calls[0][0])).toContain("/image");
+    expect(chamou.mock.calls[0][1].method).toBe("POST");
+    expect(toast.success).toHaveBeenCalledWith("Foto enviada.");
+  });
+
+  // Sem bucket configurado o backend responde 503. Dizer isso é melhor que um erro
+  // genérico — a pessoa precisa saber que não foi culpa do arquivo dela.
+  it("explica quando o envio ainda não está disponível", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      responde({ detail: "x", code: "STORAGE_UNAVAILABLE" }, false, 503),
+    );
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    const arquivo = new File(["conteudo"], "look.jpg", { type: "image/jpeg" });
+    await user.upload(screen.getByLabelText(/enviar foto/i), arquivo);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/ainda não está disponível/i);
+  });
+
+  it("explica a recusa de arquivo que não é imagem", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde({ detail: "x", code: "INVALID_IMAGE" }, false, 422));
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    const arquivo = new File(["conteudo"], "look.jpg", { type: "image/jpeg" });
+    await user.upload(screen.getByLabelText(/enviar foto/i), arquivo);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/JPEG, PNG ou WebP/i);
+  });
+});
