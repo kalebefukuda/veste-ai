@@ -129,3 +129,14 @@ def test_a_foto_enviada_serve_de_imagem_para_publicar(dono, look, com_bucket, s3
 
     # A pré-condição de imagem vale para foto enviada, não só para endereço colado.
     assert dono.post(f"/looks/{look}/publish").status_code == 200
+
+
+# RIFF sozinho não diz WebP: AVI e WAV usam o mesmo contêiner. O que identifica é o
+# marcador nos bytes 8 a 11.
+def test_recusa_riff_que_nao_e_webp(dono, look, com_bucket, s3_falso) -> None:
+    wav = b"RIFF" + b"0000" + b"WAVE" + b"0" * 64
+
+    resposta = enviar(dono, look, wav, "image/webp", "f.webp")
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "INVALID_IMAGE"
