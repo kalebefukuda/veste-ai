@@ -36,6 +36,13 @@ envia; um executável renomeado passaria. A assinatura no começo do arquivo é 
 separa imagem de qualquer outra coisa. Tipo fora da lista, assinatura que não bate ou
 arquivo acima de 5 MB são recusados com código próprio.
 
+**O corpo é recusado pelo tamanho declarado, antes de ser lido.** Um middleware
+compara o `Content-Length` com um limite folgado — 8 MB — e devolve 413 sem deixar o
+corpo entrar no processo. Folgado de propósito: foto de 5,5 MB tem de chegar à recusa
+amigável do upload, não a um 413 genérico. A leitura do arquivo também para no limite,
+em vez de carregar tudo para medir depois. Quem mentir no `Content-Length` ainda é
+contido por essa segunda camada — e, em produção, pelo limite do ALB.
+
 **Sem bucket configurado, 503 e não 500.** A funcionalidade existe e está desligada;
 dizer isso é melhor que estourar erro genérico ou fingir que guardou. A tela traduz
 para "o envio ainda não está disponível — cole um endereço por enquanto".
