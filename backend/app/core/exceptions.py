@@ -36,6 +36,21 @@ class LookWithoutCategory(DomainError):
     code = "LOOK_WITHOUT_CATEGORY"
 
 
+class StorageUnavailable(DomainError):
+    code = "STORAGE_UNAVAILABLE"
+    detail = "O envio de imagem ainda não está disponível"
+
+
+class InvalidImage(DomainError):
+    code = "INVALID_IMAGE"
+    detail = "Envie uma imagem JPEG, PNG ou WebP"
+
+
+class ImageTooLarge(DomainError):
+    code = "IMAGE_TOO_LARGE"
+    detail = "A imagem precisa ter no máximo 5 MB"
+
+
 class UnsafeLink(DomainError):
     code = "UNSAFE_LINK"
     detail = "Este link foi sinalizado como perigoso e não pode ser usado"

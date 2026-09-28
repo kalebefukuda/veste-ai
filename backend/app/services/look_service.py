@@ -14,6 +14,7 @@ from app.core.exceptions import (
 from app.models.look import PUBLICADO, Look, Piece
 from app.repositories.look_repository import LookRepository
 from app.schemas.look import LookCreate, LookUpdate, PieceCreate
+from app.services import imagem
 
 # O que a publicação exige, a edição não pode desfazer. Tabela e não uma sequência de
 # `if`: assim a próxima pré-condição entra aqui, e não em mais um lugar esquecível.
@@ -57,6 +58,11 @@ class LookService:
         # senão a edição desfaz o que a publicação exigiu.
         if look.status == PUBLICADO:
             for campo, erro in EXIGIDOS_NO_PUBLICADO.items():
+                # Apagar o endereço colado não deixa o look sem imagem se houver foto
+                # enviada: quem manda é ter imagem, não qual das duas colunas.
+                if campo == "image_url" and look.image_key:
+                    continue
+
                 if campo in campos and not campos[campo]:
                     raise erro()
 
@@ -67,6 +73,12 @@ class LookService:
 
     def delete(self, look_id: uuid.UUID, user_id: uuid.UUID) -> None:
         self.looks.delete(self._meu(look_id, user_id))
+
+    def set_image(self, look_id: uuid.UUID, conteudo: bytes, tipo: str, user_id: uuid.UUID) -> Look:
+        look = self._meu(look_id, user_id)
+        look.image_key = imagem.guardar(look, conteudo, tipo)
+
+        return look
 
     def add_piece(self, look_id: uuid.UUID, dados: PieceCreate, user_id: uuid.UUID) -> Piece:
         look = self._meu(look_id, user_id)
@@ -98,7 +110,8 @@ class LookService:
         if not look.pieces:
             raise LookWithoutPiece()
 
-        if not look.image_url:
+        # Vale foto enviada ou endereço colado: as duas põem imagem no look.
+        if not look.image_url and not look.image_key:
             raise LookWithoutImage()
 
         # Sem ocasião o look entra no feed fora de todo filtro: existiria só para quem

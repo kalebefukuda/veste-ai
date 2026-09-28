@@ -9,6 +9,7 @@ from app.database import get_db
 from app.repositories.look_repository import LookRepository
 from app.schemas.feed import FeedLookOut, FeedPage
 from app.schemas.look import Categoria
+from app.services import imagem
 from app.services.feed_service import FeedService
 
 router = APIRouter(prefix="/feed", tags=["feed"])
@@ -35,7 +36,7 @@ def listar(
     looks, proxima = service.page(page, per_page, q, categoria)
 
     return FeedPage(
-        items=[FeedLookOut.model_validate(look) for look in looks],
+        items=[imagem.para_vitrine(look) for look in looks],
         next_page=proxima,
     )
 
@@ -43,6 +44,6 @@ def listar(
 @router.get("/{look_id}")
 def detalhe(look_id: uuid.UUID, service: Servico) -> FeedLookOut:
     try:
-        return FeedLookOut.model_validate(service.look(look_id))
+        return imagem.para_vitrine(service.look(look_id))
     except LookNotFound as erro:
         raise DomainHTTPException(status.HTTP_404_NOT_FOUND, erro) from erro

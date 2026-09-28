@@ -1,24 +1,29 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user
 from app.core.exceptions import (
     DomainHTTPException,
+    ImageTooLarge,
+    InvalidImage,
     LookNotFound,
     LookWithoutCategory,
     LookWithoutImage,
     LookWithoutPiece,
     NotTheOwner,
+    StorageUnavailable,
     UnsafeLink,
 )
 from app.database import get_db
+from app.models.look import Look
 from app.models.user import User
 from app.repositories.look_repository import LookRepository
 from app.schemas.click import LookMetrics, PieceMetrics
 from app.schemas.look import LookCreate, LookOut, LookUpdate, PieceCreate, PieceOut
+from app.services import imagem
 from app.services.click_service import ClickService
 from app.services.look_service import LookService
 
@@ -45,23 +50,33 @@ def _http(erro: Exception) -> DomainHTTPException:
         return DomainHTTPException(status.HTTP_404_NOT_FOUND, erro)
     if isinstance(erro, NotTheOwner):
         return DomainHTTPException(status.HTTP_403_FORBIDDEN, erro)
+    # 503 e não 422: sem bucket configurado quem falhou foi a plataforma, não o envio.
+    if isinstance(erro, StorageUnavailable):
+        return DomainHTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, erro)
     return DomainHTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, erro)
+
+
+def _look_out(look: Look) -> LookOut:
+    saida = LookOut.model_validate(look)
+    saida.image_url = imagem.endereco(look)
+
+    return saida
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def criar(dados: LookCreate, user: Autenticado, service: Servico) -> LookOut:
-    return LookOut.model_validate(service.create(dados, user.id))
+    return _look_out(service.create(dados, user.id))
 
 
 @router.get("")
 def listar(user: Autenticado, service: Servico) -> list[LookOut]:
-    return [LookOut.model_validate(look) for look in service.list_mine(user.id)]
+    return [_look_out(look) for look in service.list_mine(user.id)]
 
 
 @router.get("/{look_id}")
 def detalhe(look_id: uuid.UUID, user: Autenticado, service: Servico) -> LookOut:
     try:
-        return LookOut.model_validate(service.get_mine(look_id, user.id))
+        return _look_out(service.get_mine(look_id, user.id))
     except (LookNotFound, NotTheOwner) as erro:
         raise _http(erro) from erro
 
@@ -71,7 +86,7 @@ def editar(
     look_id: uuid.UUID, dados: LookUpdate, user: Autenticado, service: Servico
 ) -> LookOut:
     try:
-        return LookOut.model_validate(service.update(look_id, dados, user.id))
+        return _look_out(service.update(look_id, dados, user.id))
     except (LookNotFound, NotTheOwner, LookWithoutImage, LookWithoutCategory) as erro:
         raise _http(erro) from erro
 
@@ -102,6 +117,34 @@ def metricas(look_id: uuid.UUID, user: Autenticado, service: Metricas) -> LookMe
     return LookMetrics(clicks=total, pieces=pecas)
 
 
+@router.post("/{look_id}/image")
+async def enviar_imagem(
+    look_id: uuid.UUID,
+    user: Autenticado,
+    service: Servico,
+    arquivo: Annotated[UploadFile, File()],
+) -> LookOut:
+    # Um byte a mais que o limite: se vier, já passou, e o resto não entra na memória
+    # do processo. Medir depois de ler tudo deixa o cliente escolher quanto carregamos.
+    conteudo = await arquivo.read(imagem.TAMANHO_MAXIMO + 1)
+
+    try:
+        if len(conteudo) > imagem.TAMANHO_MAXIMO:
+            raise ImageTooLarge()
+
+        look = service.set_image(look_id, conteudo, arquivo.content_type or "", user.id)
+    except (
+        LookNotFound,
+        NotTheOwner,
+        InvalidImage,
+        ImageTooLarge,
+        StorageUnavailable,
+    ) as erro:
+        raise _http(erro) from erro
+
+    return _look_out(look)
+
+
 @router.post("/{look_id}/pieces", status_code=status.HTTP_201_CREATED)
 def adicionar_peca(
     look_id: uuid.UUID, dados: PieceCreate, user: Autenticado, service: Servico
@@ -127,7 +170,7 @@ def remover_peca(
 @router.post("/{look_id}/publish")
 def publicar(look_id: uuid.UUID, user: Autenticado, service: Servico) -> LookOut:
     try:
-        return LookOut.model_validate(service.publish(look_id, user.id))
+        return _look_out(service.publish(look_id, user.id))
     except (
         LookNotFound,
         NotTheOwner,

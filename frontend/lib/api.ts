@@ -140,6 +140,18 @@ function messageFor(status: number, data: ApiError | null): string {
     return "Adicione ao menos uma peça com link de compra antes de publicar.";
   }
 
+  if (data?.code === "STORAGE_UNAVAILABLE") {
+    return "O envio de imagem ainda não está disponível. Cole um endereço por enquanto.";
+  }
+
+  if (data?.code === "INVALID_IMAGE") {
+    return "Envie uma imagem JPEG, PNG ou WebP.";
+  }
+
+  if (data?.code === "IMAGE_TOO_LARGE") {
+    return "A imagem precisa ter no máximo 5 MB.";
+  }
+
   if (data?.code === "LOOK_WITHOUT_CATEGORY") {
     return "Escolha a ocasião do look antes de publicar.";
   }
@@ -238,6 +250,26 @@ export async function carregarMaisDoPerfil(
 
 export function criarLook(title: string, description?: string): Promise<Look> {
   return send<Look>("POST", "/api/looks", { title, ...(description ? { description } : {}) });
+}
+
+// Multipart, então não passa pelo `send`, que serializa JSON.
+export async function enviarFotoDoLook(id: string, arquivo: File): Promise<Look> {
+  const corpo = new FormData();
+  corpo.append("arquivo", arquivo);
+
+  let resposta: Response;
+
+  try {
+    resposta = await fetch(`/api/looks/${id}/image`, { method: "POST", body: corpo });
+  } catch {
+    throw new Error("Não foi possível conectar. Verifique sua internet e tente de novo.");
+  }
+
+  const dados = await resposta.json().catch(() => null);
+
+  if (!resposta.ok) throw new Error(messageFor(resposta.status, dados));
+
+  return dados as Look;
 }
 
 export function atualizarLook(id: string, dados: Partial<Look>): Promise<Look> {

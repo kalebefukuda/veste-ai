@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models.user import User
 from app.repositories.saved_repository import SavedRepository
 from app.schemas.feed import FeedLookOut
+from app.services import imagem
 from app.services.saved_service import SavedService
 
 router = APIRouter(prefix="/saved", tags=["saved"])
@@ -26,7 +27,7 @@ Autenticado = Annotated[User, Depends(get_current_user)]
 
 @router.get("")
 def listar(user: Autenticado, service: Servico) -> list[FeedLookOut]:
-    return [FeedLookOut.model_validate(look) for look in service.list_mine(user.id)]
+    return [imagem.para_vitrine(look) for look in service.list_mine(user.id)]
 
 
 # Só os ids, para a vitrine saber quais corações preencher sem que o feed precise de

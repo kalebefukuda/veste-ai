@@ -66,3 +66,15 @@ def test_hsts_vai_em_producao(client: TestClient, monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr("app.core.security_headers.em_producao", lambda: True)
 
     assert "max-age=" in client.get("/health").headers.get("strict-transport-security", "")
+
+
+# Corpo grande demais é recusado antes de ser lido: sem isto, o processo carrega o que
+# o cliente mandar só para descobrir depois que era grande demais.
+def test_corpo_grande_demais_e_recusado_pelo_tamanho_declarado(client: TestClient) -> None:
+    resposta = client.post(
+        "/auth/login",
+        json={"email": "a@b.com", "password": "x"},
+        headers={"Content-Length": str(50 * 1024 * 1024)},
+    )
+
+    assert resposta.status_code == 413

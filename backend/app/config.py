@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     reset_token_expiration_minutes: int = 60
     brevo_api_key: str = ""
     safe_browsing_api_key: str = ""
+    # Sem bucket, o upload recusa com recado em vez de estourar — ADR-0025.
+    s3_bucket: str = ""
+    aws_region: str = "sa-east-1"
     email_sender: str = "nao-responda@vesteai.site"
     email_sender_name: str = "VesteAí"
     # Destino do canal do titular. Nunca aparece na interface: é o que permite ter

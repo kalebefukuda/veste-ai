@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import {
   adicionarPeca,
   atualizarLook,
+  enviarFotoDoLook,
   publicarLook,
   removerLook,
   removerPeca,
@@ -105,11 +106,50 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
             focus-visible:ring-purple/30"
         />
 
-        <label htmlFor="imagem" className="mt-6 block text-sm font-semibold text-navy">
-          Imagem do look
+        <label htmlFor="foto" className="mt-6 block text-sm font-semibold text-navy">
+          Foto do look
         </label>
         <p className="mt-1.5 text-sm text-navy/65">
-          Cole o endereço de uma imagem. A geração por IA ainda não está disponível.
+          Envie um arquivo JPEG, PNG ou WebP de até 5 MB. A geração por IA ainda não
+          está disponível.
+        </p>
+
+        {/* O envio dispara na escolha do arquivo, sem botão separado: escolher já é a
+            decisão, e um "enviar" depois seria um passo que não decide nada. */}
+        <input
+          id="foto"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          aria-label="Enviar foto do look"
+          disabled={ocupado !== null}
+          onChange={(e) => {
+            const arquivo = e.target.files?.[0];
+            if (!arquivo) return;
+
+            void executar("foto", async () => {
+              const atualizado = await enviarFotoDoLook(salvo.id, arquivo);
+              setSalvo(atualizado);
+              setImagem(atualizado.image_url ?? "");
+              toast.success("Foto enviada.");
+            });
+          }}
+          className="mt-3 block w-full max-w-xl cursor-pointer rounded-2xl border
+            border-navy/15 p-2 text-sm text-navy/70 file:mr-4 file:cursor-pointer
+            file:rounded-xl file:border-0 file:bg-navy file:px-4 file:py-2
+            file:text-sm file:font-semibold file:text-white hover:file:bg-navy/90
+            focus-visible:border-purple focus-visible:outline-none
+            focus-visible:ring-2 focus-visible:ring-purple/30 disabled:opacity-60"
+        />
+
+        {ocupado === "foto" && (
+          <p className="mt-2 text-sm text-navy/60">Enviando a foto…</p>
+        )}
+
+        <label htmlFor="imagem" className="mt-6 block text-sm font-semibold text-navy">
+          Ou cole um endereço
+        </label>
+        <p className="mt-1.5 text-sm text-navy/65">
+          Vale enquanto o envio de arquivo não estiver ligado.
         </p>
         <input
           id="imagem"
