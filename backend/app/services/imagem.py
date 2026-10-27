@@ -2,10 +2,17 @@
 
 import uuid
 
-from app.clients import armazenamento
-from app.core.exceptions import ImageTooLarge, InvalidImage
+from app.clients import armazenamento, gemini
+from app.core.exceptions import (
+    GenerationUnavailable,
+    ImageTooLarge,
+    InvalidImage,
+    NothingToCompose,
+    StorageUnavailable,
+)
 from app.models.look import Look
 from app.schemas.feed import FeedLookOut
+from app.schemas.look import ModeloDoLook
 
 TAMANHO_MAXIMO = 5 * 1024 * 1024
 
@@ -40,6 +47,40 @@ def guardar(look: Look, conteudo: bytes, tipo: str) -> str:
     # com o id do look para o bucket ficar legível.
     chave = f"looks/{look.id}/{uuid.uuid4()}.{EXTENSOES[tipo]}"
     armazenamento.guardar(chave, conteudo, tipo)
+
+    return chave
+
+
+def gerar_do_look(look: Look, modelo: ModeloDoLook | None = None) -> str:
+    # Antes de qualquer ida à rede: sem chave a funcionalidade não existe, e descobrir
+    # isso depois de buscar as fotos viraria "sem o que compor" — que culpa a pessoa
+    # por algo que é nosso.
+    if not gemini.disponivel():
+        raise GenerationUnavailable()
+
+    if not armazenamento.disponivel():
+        raise StorageUnavailable()
+
+    fotos = [
+        foto
+        for peca in look.pieces
+        if peca.image_url and (foto := gemini.buscar_foto(peca.image_url))
+    ]
+
+    # Sem peça com foto não há o que compor: o modelo devolveria alguém vestindo o que
+    # ele inventou, não o look da pessoa.
+    if not fotos:
+        raise NothingToCompose()
+
+    gerada = gemini.gerar(
+        fotos,
+        look.description or look.title,
+        genero=modelo.gender if modelo else None,
+        cabelo=modelo.hair_color if modelo else None,
+        comprimento=modelo.hair_length if modelo else None,
+    )
+    chave = f"looks/{look.id}/{uuid.uuid4()}.jpg"
+    armazenamento.guardar(chave, gerada, "image/jpeg")
 
     return chave
 

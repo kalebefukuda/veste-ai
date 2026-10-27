@@ -13,7 +13,7 @@ from app.core.exceptions import (
 )
 from app.models.look import PUBLICADO, Look, Piece
 from app.repositories.look_repository import LookRepository
-from app.schemas.look import LookCreate, LookUpdate, PieceCreate
+from app.schemas.look import LookCreate, LookUpdate, ModeloDoLook, PieceCreate
 from app.services import imagem
 
 # O que a publicação exige, a edição não pode desfazer. Tabela e não uma sequência de
@@ -77,6 +77,17 @@ class LookService:
     def set_image(self, look_id: uuid.UUID, conteudo: bytes, tipo: str, user_id: uuid.UUID) -> Look:
         look = self._meu(look_id, user_id)
         look.image_key = imagem.guardar(look, conteudo, tipo)
+
+        return look
+
+    def generate_image(
+        self, look_id: uuid.UUID, user_id: uuid.UUID, modelo: ModeloDoLook | None = None
+    ) -> Look:
+        look = self._meu(look_id, user_id)
+        look.image_key = imagem.gerar_do_look(look, modelo)
+        # A coluna existe desde a `0001` e nunca tinha sido escrita: é ela que separa
+        # foto de quem montou de imagem de máquina.
+        look.ai_generated = True
 
         return look
 

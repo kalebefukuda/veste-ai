@@ -29,6 +29,22 @@ LinkDeCompra = Annotated[str, AfterValidator(_link_de_loja)]
 Categoria = Literal["work", "casual", "social", "party", "beach", "sport"]
 
 
+# Preset do modelo: lista fechada pelo mesmo motivo da categoria — valor livre aqui
+# viraria texto arbitrário dentro do prompt, e o feed perderia a unidade que o formato
+# 3:4 garante do outro lado.
+Genero = Literal["feminino", "masculino"]
+CorDoCabelo = Literal["loiro", "castanho", "preto", "ruivo", "grisalho"]
+ComprimentoDoCabelo = Literal["curto", "medio", "longo"]
+
+
+class ModeloDoLook(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    gender: Genero | None = None
+    hair_color: CorDoCabelo | None = None
+    hair_length: ComprimentoDoCabelo | None = None
+
+
 class PieceCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

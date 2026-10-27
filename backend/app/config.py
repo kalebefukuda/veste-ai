@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     brevo_api_key: str = ""
     safe_browsing_api_key: str = ""
     # Sem bucket, o upload recusa com recado em vez de estourar — ADR-0025.
+    gemini_api_key: str = ""
     s3_bucket: str = ""
     aws_region: str = "sa-east-1"
     email_sender: str = "nao-responda@vesteai.site"
