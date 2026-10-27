@@ -140,8 +140,20 @@ function messageFor(status: number, data: ApiError | null): string {
     return "Adicione ao menos uma peça com link de compra antes de publicar.";
   }
 
+  if (data?.code === "GENERATION_UNAVAILABLE") {
+    return "A geração por IA ainda não está disponível.";
+  }
+
+  if (data?.code === "GENERATION_FAILED") {
+    return "Não deu para gerar agora. Tente de novo ou envie uma foto.";
+  }
+
+  if (data?.code === "NOTHING_TO_COMPOSE") {
+    return "Adicione ao menos uma peça com foto para gerar o look.";
+  }
+
   if (data?.code === "STORAGE_UNAVAILABLE") {
-    return "O envio de imagem ainda não está disponível. Cole um endereço por enquanto.";
+    return "O envio e a geração de imagem ainda não estão disponíveis.";
   }
 
   if (data?.code === "INVALID_IMAGE") {
@@ -248,8 +260,14 @@ export async function carregarMaisDoPerfil(
   return { items: perfil.looks, next_page: perfil.next_page };
 }
 
-export function criarLook(title: string, description?: string): Promise<Look> {
-  return send<Look>("POST", "/api/looks", { title, ...(description ? { description } : {}) });
+export type NovoLookDados = {
+  title: string;
+  description?: string;
+  category?: Categoria;
+};
+
+export function criarLook(dados: NovoLookDados): Promise<Look> {
+  return send<Look>("POST", "/api/looks", dados);
 }
 
 // Multipart, então não passa pelo `send`, que serializa JSON.
@@ -270,6 +288,16 @@ export async function enviarFotoDoLook(id: string, arquivo: File): Promise<Look>
   if (!resposta.ok) throw new Error(messageFor(resposta.status, dados));
 
   return dados as Look;
+}
+
+export type PresetDoModelo = {
+  gender?: "feminino" | "masculino";
+  hair_color?: "loiro" | "castanho" | "preto" | "ruivo" | "grisalho";
+  hair_length?: "curto" | "medio" | "longo";
+};
+
+export function gerarImagemDoLook(id: string, preset: PresetDoModelo = {}): Promise<Look> {
+  return send<Look>("POST", `/api/looks/${id}/generate`, preset);
 }
 
 export function atualizarLook(id: string, dados: Partial<Look>): Promise<Look> {
