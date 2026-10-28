@@ -1,4 +1,5 @@
 import base64
+import socket
 from collections.abc import Iterator
 
 import httpx
@@ -10,11 +11,12 @@ from tests.test_looks import DONO, LOOK, OUTRA, PECA, token
 
 JPEG = b"\xff\xd8\xff\xe0" + b"0" * 64
 GERADA = b"\xff\xd8\xff\xe0" + b"gerada" * 8
+GERADA_PNG = b"\x89PNG\r\n\x1a\n" + b"gerada" * 8
 
 FOTO_DA_PECA = "https://cdn.exemplo.com/sobretudo.jpg"
 
 
-def resposta_do_gemini(imagem: bytes) -> dict:
+def resposta_do_gemini(imagem: bytes, tipo: str = "image/jpeg") -> dict:
     return {
         "candidates": [
             {
@@ -22,7 +24,7 @@ def resposta_do_gemini(imagem: bytes) -> dict:
                     "parts": [
                         {
                             "inlineData": {
-                                "mimeType": "image/jpeg",
+                                "mimeType": tipo,
                                 "data": base64.b64encode(imagem).decode(),
                             }
                         }
@@ -31,6 +33,16 @@ def resposta_do_gemini(imagem: bytes) -> dict:
             }
         ]
     }
+
+
+def resolve_para(ip: str):
+    return lambda _host: [ip]
+
+
+# Nenhum teste depende do DNS de verdade: todo nome resolve para um endereço público.
+@pytest.fixture(autouse=True)
+def dns_publico(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(gemini, "_enderecos", resolve_para("93.184.216.34"))
 
 
 @pytest.fixture
@@ -295,3 +307,88 @@ def test_foto_grande_demais_para_de_ser_baixada_no_teto(monkeypatch: pytest.Monk
 
     assert gemini.buscar_foto(FOTO_DA_PECA) is None
     assert len(lidos) <= 6
+
+
+# O formato é escolha do modelo: gravar tudo como JPEG mentiria no tipo e na extensão.
+def test_a_imagem_gerada_guarda_o_formato_que_o_modelo_devolveu(
+    dono, look_com_peca_ilustrada, com_chave, rede_falsa, monkeypatch
+):
+    def devolve_png(url: str, **_: object) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=resposta_do_gemini(GERADA_PNG, "image/png"),
+            request=httpx.Request("POST", url),
+        )
+
+    monkeypatch.setattr(gemini.httpx, "post", devolve_png)
+
+    gerar(dono, look_com_peca_ilustrada)
+
+    assert rede_falsa["guardado"]["ContentType"] == "image/png"
+    assert str(rede_falsa["guardado"]["Key"]).endswith(".png")
+
+
+def test_resposta_que_nao_e_imagem_nao_vira_foto_do_look(
+    dono, look_com_peca_ilustrada, com_chave, rede_falsa, monkeypatch
+):
+    def devolve_texto(url: str, **_: object) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=resposta_do_gemini(b"<html>nao sou imagem</html>", "image/png"),
+            request=httpx.Request("POST", url),
+        )
+
+    monkeypatch.setattr(gemini.httpx, "post", devolve_texto)
+
+    resposta = gerar(dono, look_com_peca_ilustrada)
+
+    assert resposta.status_code == 502
+    assert resposta.json()["code"] == "GENERATION_FAILED"
+    assert "guardado" not in rede_falsa
+
+
+# Foto enviada à mão é de quem montou, mesmo que antes o look tivesse imagem gerada.
+def test_enviar_foto_depois_de_gerar_tira_a_marca_de_ia(
+    dono, look_com_peca_ilustrada, com_chave, rede_falsa
+):
+    gerar(dono, look_com_peca_ilustrada)
+
+    resposta = dono.post(
+        f"/looks/{look_com_peca_ilustrada}/image",
+        files={"arquivo": ("foto.jpg", JPEG, "image/jpeg")},
+    )
+
+    assert resposta.json()["ai_generated"] is False
+
+
+# A URL da foto é de quem cadastrou a peça: sem barreira, o servidor buscaria a rede
+# interna — inclusive as credenciais da task no endereço de metadados do Fargate.
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://169.254.170.2/v2/credentials",
+        "http://127.0.0.1:8000/health",
+        "http://10.0.0.5/foto.jpg",
+        "http://[::1]/foto.jpg",
+    ],
+)
+def test_foto_em_endereco_interno_nao_e_buscada(url: str, rede_falsa):
+    assert gemini.buscar_foto(url) is None
+    assert "buscadas" not in rede_falsa
+
+
+def test_nome_que_resolve_para_endereco_interno_nao_e_buscado(rede_falsa, monkeypatch):
+    monkeypatch.setattr(gemini, "_enderecos", resolve_para("10.0.0.5"))
+
+    assert gemini.buscar_foto("https://loja.exemplo/foto.jpg") is None
+    assert "buscadas" not in rede_falsa
+
+
+def test_nome_que_nao_resolve_fica_fora_da_composicao(rede_falsa, monkeypatch):
+    def nao_resolve(_host: str) -> list[str]:
+        raise socket.gaierror("nome desconhecido")
+
+    monkeypatch.setattr(gemini, "_enderecos", nao_resolve)
+
+    assert gemini.buscar_foto("https://nao-existe.exemplo/foto.jpg") is None
+    assert "buscadas" not in rede_falsa
