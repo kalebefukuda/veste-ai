@@ -62,7 +62,7 @@ export default async function EditarLookPage({ params }: { params: { id: string 
   const metricas = look.status === "published" ? await carregarMetricas(look.id) : null;
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14 lg:py-20">
+    <main className="mx-auto max-w-7xl px-6 py-14 lg:py-20">
       {/* Botão de verdade, com área de clique: texto pelado com uma seta digitada
           não parece clicável e não dá alvo no toque. */}
       <Link

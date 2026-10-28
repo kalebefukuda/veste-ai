@@ -20,6 +20,10 @@ def _cliente() -> Any:
     return boto3.client("s3", region_name=get_settings().aws_region)
 
 
+def disponivel() -> bool:
+    return bool(get_settings().s3_bucket)
+
+
 def guardar(chave: str, conteudo: bytes, tipo: str) -> None:
     bucket = get_settings().s3_bucket
 

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     reset_token_expiration_minutes: int = 60
     brevo_api_key: str = ""
     safe_browsing_api_key: str = ""
+    gemini_api_key: str = ""
     # Sem bucket, o upload recusa com recado em vez de estourar — ADR-0025.
     s3_bucket: str = ""
     aws_region: str = "sa-east-1"

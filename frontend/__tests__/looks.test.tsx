@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -102,9 +102,11 @@ describe("editor de look", () => {
     vi.stubGlobal("fetch", responde(peca));
     render(<EditorDeLook inicial={RASCUNHO} />);
 
+    // O formulário virou ação: aparece só depois de pedir.
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
     await user.type(screen.getByLabelText(/nome da peça/i), "Sobretudo");
     await user.type(screen.getByLabelText(/link de compra/i), "https://loja.com/x");
-    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+    await user.click(screen.getByRole("button", { name: /^adicionar$/i }));
 
     expect(await screen.findByText("Sobretudo")).toBeInTheDocument();
   });
@@ -337,7 +339,9 @@ describe("foto do look", () => {
     const arquivo = new File(["conteudo"], "look.jpg", { type: "image/jpeg" });
     await user.upload(screen.getByLabelText(/enviar foto/i), arquivo);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/ainda não está disponível/i);
+    const alerta = await screen.findByRole("alert");
+    expect(alerta).toHaveTextContent(/ainda não estão disponíveis/i);
+    expect(alerta).not.toHaveTextContent(/cole um endereço/i);
   });
 
   it("explica a recusa de arquivo que não é imagem", async () => {
@@ -350,4 +354,230 @@ describe("foto do look", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/JPEG, PNG ou WebP/i);
   });
+});
+
+// RF10 pede título, descrição e foto. A descrição existe no banco e na API desde o
+// primeiro dia, a página pública já a exibe, e o editor nunca teve onde escrevê-la.
+describe("descrição do look", () => {
+  it("salva a descrição junto do resto", async () => {
+    const user = userEvent.setup();
+    const chamou = responde({ ...RASCUNHO, description: "Camadas para o frio" });
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.type(screen.getByLabelText(/descrição/i), "Camadas para o frio");
+    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toEqual({
+      description: "Camadas para o frio",
+    });
+  });
+
+  it("descarta a descrição junto com o resto", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn());
+    render(<EditorDeLook inicial={{ ...RASCUNHO, description: "Original" }} />);
+
+    await user.clear(screen.getByLabelText(/descrição/i));
+    await user.type(screen.getByLabelText(/descrição/i), "Trocada");
+    await user.click(screen.getByRole("button", { name: /descartar/i }));
+
+    expect(screen.getByLabelText(/descrição/i)).toHaveValue("Original");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+// Pedir só o título era estranho: não é conteúdo suficiente para justificar uma tela.
+// A criação passa a recolher o que não depende de anexo — e o que depende (peça e
+// foto) fica para a composição, porque precisa de um look com id para pendurar.
+describe("criação de look", () => {
+  it("cria com título, descrição e ocasião numa requisição só", async () => {
+    const user = userEvent.setup();
+    const chamou = responde(RASCUNHO);
+    vi.stubGlobal("fetch", chamou);
+    const { default: NovoLook } = await import("@/components/looks/NovoLook");
+    render(<NovoLook />);
+
+    await user.type(screen.getByLabelText(/título/i), "Inverno urbano");
+    await user.type(screen.getByLabelText(/descrição/i), "Camadas para o frio");
+    await user.click(screen.getByRole("radio", { name: /trabalho/i }));
+    await user.click(screen.getByRole("button", { name: /criar look/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toEqual({
+      title: "Inverno urbano",
+      description: "Camadas para o frio",
+      category: "work",
+    });
+  });
+});
+
+describe("excluir pelo card", () => {
+  // Excluir só existia dentro do editor. Quem tem rascunho vazio na lista precisava
+  // abrir cada um para se livrar dele.
+  it("apaga o look a partir da lista, com confirmação", async () => {
+    const user = userEvent.setup();
+    const chamou = vi.fn().mockResolvedValue({ ok: true, status: 204, json: async () => ({}) });
+    vi.stubGlobal("fetch", chamou);
+    const { default: MeusLooks } = await import("@/components/looks/MeusLooks");
+    render(<MeusLooks looks={[RASCUNHO]} />);
+
+    await user.click(screen.getByRole("button", { name: /excluir inverno urbano/i }));
+
+    expect(screen.getByText(/não dá para desfazer/i)).toBeInTheDocument();
+    expect(chamou).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /excluir mesmo assim/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalledWith("/api/looks/look-1", {
+      method: "DELETE",
+    }));
+  });
+});
+
+const COM_FOTO: Look = {
+  ...RASCUNHO,
+  pieces: [
+    { id: "p1", name: "Sobretudo", purchase_url: "https://l/x", image_url: "https://l/f.jpg" },
+  ],
+};
+
+describe("composição do look", () => {
+  // O formulário de peça ocupava a tela o tempo todo, mesmo sem ninguém querer
+  // adicionar nada. Vira ação: some até ser chamado.
+  it("só mostra o formulário de peça quando você pede", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    expect(screen.queryByLabelText(/nome da peça/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+
+    expect(screen.getByLabelText(/nome da peça/i)).toBeInTheDocument();
+  });
+
+  // Diálogo e não formulário embutido: a peça nasce por cima da composição, sem
+  // empurrar a foto e a lista para fora da tela.
+  it("abre a peça como diálogo e devolve o foco ao primeiro campo", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+
+    expect(screen.getByRole("dialog", { name: /nova peça/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/nome da peça/i)).toHaveFocus();
+  });
+
+  it("fecha o diálogo com Esc sem gravar nada", async () => {
+    const chamou = vi.fn();
+    vi.stubGlobal("fetch", chamou);
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(chamou).not.toHaveBeenCalled();
+  });
+
+  it("fecha o formulário depois que a peça entra", async () => {
+    const user = userEvent.setup();
+    const peca = { id: "p9", name: "Brinco argola", purchase_url: "https://loja.com/b" };
+    vi.stubGlobal("fetch", responde(peca));
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+    await user.type(screen.getByLabelText(/nome da peça/i), "Brinco argola");
+    await user.type(screen.getByLabelText(/link de compra/i), "https://loja.com/b");
+    await user.click(screen.getByRole("button", { name: /^adicionar$/i }));
+
+    expect(await screen.findByText("Brinco argola")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByLabelText(/nome da peça/i)).not.toBeInTheDocument(),
+    );
+  });
+
+  // O diferencial da RFC: o modelo veste as peças anexadas.
+  it("gera o modelo a partir das peças", async () => {
+    const user = userEvent.setup();
+    const chamou = responde({ ...RASCUNHO, image_url: "https://s3/x.jpg", ai_generated: true });
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+
+    await waitFor(() => expect(String(chamou.mock.calls[0][0])).toContain("/generate"));
+    expect(toast.success).toHaveBeenCalledWith("Imagem gerada.");
+  });
+
+  // Sem preset cada geração inventa uma pessoa diferente vestindo o mesmo look. O que
+  // a tela escolhe tem que chegar inteiro no pedido.
+  it("leva o preset escolhido no pedido", async () => {
+    const user = userEvent.setup();
+    const chamou = responde({ ...RASCUNHO, image_url: "https://s3/x.jpg" });
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("radio", { name: /mulher/i }));
+    await user.click(screen.getByRole("radio", { name: /loiro/i }));
+    await user.click(screen.getByRole("radio", { name: /longo/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toEqual({
+      gender: "feminino",
+      hair_color: "loiro",
+      hair_length: "longo",
+    });
+  });
+
+  // As fotos das peças são o que a IA recebe de referência. Mostrar quais entram é o
+  // que separa "gerar" de caixa-preta.
+  it("mostra no diálogo as peças que servem de referência", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+
+    const dialogo = screen.getByRole("dialog", { name: /gerar modelo/i });
+
+    expect(within(dialogo).getByAltText("Sobretudo")).toBeInTheDocument();
+  });
+
+  // O resultado aparece onde a pessoa está olhando, e ela decide se tenta de novo.
+  it("mostra a imagem gerada sem fechar o diálogo", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde({ ...RASCUNHO, image_url: "https://s3/gerada.jpg" }));
+    render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+
+    expect(await screen.findByAltText(/modelo gerado/i)).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /gerar modelo/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /gerar outra/i })).toBeInTheDocument();
+  });
+
+  // O botão fica sempre à vista: é o diferencial da RFC, e sumir com ele fazia
+  // parecer que não existe. Sem peça com foto ele recusa e diz o que falta.
+  it("mostra gerar desabilitado e diz o que falta", () => {
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    expect(screen.getByRole("button", { name: /gerar modelo/i })).toBeDisabled();
+    expect(screen.getByText(/ao menos uma peça com foto/i)).toBeInTheDocument();
+  });
+});
+
+// O hover é do card inteiro, não do link: a lixeira fica fora do link (âncora dentro
+// de âncora é inválido), e com o grupo no link passar nela apagava o destaque.
+it("o destaque do card responde também à lixeira", async () => {
+  const { default: MeusLooks } = await import("@/components/looks/MeusLooks");
+  const { container } = render(<MeusLooks looks={[RASCUNHO]} />);
+
+  expect(container.querySelector("li")?.className).toMatch(/\bgroup\b/);
+  expect(container.querySelector("li a")?.className).not.toMatch(/(^|\s)hover:/);
 });

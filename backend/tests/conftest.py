@@ -17,6 +17,9 @@ os.environ["BREVO_API_KEY"] = ""
 os.environ["SAFE_BROWSING_API_KEY"] = ""
 # Mesma razão: com bucket configurado, a suíte tentaria falar com a AWS.
 os.environ["S3_BUCKET"] = ""
+# Agora existe uma chave real no backend/.env: sem isto, a suíte geraria imagem
+# de verdade, cobrando cota e demorando 30s por teste.
+os.environ["GEMINI_API_KEY"] = ""
 os.environ.setdefault("CONTACT_DESTINATION", "destino-de-teste@exemplo.com")
 
 import subprocess  # noqa: E402

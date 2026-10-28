@@ -1,11 +1,22 @@
 """Onde a imagem de um look mora, e como ela vira endereço para a tela."""
 
+import logging
 import uuid
 
-from app.clients import armazenamento
-from app.core.exceptions import ImageTooLarge, InvalidImage
+from app.clients import armazenamento, gemini
+from app.core.exceptions import (
+    GenerationFailed,
+    GenerationUnavailable,
+    ImageTooLarge,
+    InvalidImage,
+    NothingToCompose,
+    StorageUnavailable,
+)
 from app.models.look import Look
 from app.schemas.feed import FeedLookOut
+from app.schemas.look import ModeloDoLook
+
+logger = logging.getLogger(__name__)
 
 TAMANHO_MAXIMO = 5 * 1024 * 1024
 
@@ -23,6 +34,20 @@ ASSINATURAS: dict[str, tuple[tuple[int, bytes], ...]] = {
 EXTENSOES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 
+def _tipo_pelos_bytes(conteudo: bytes) -> str | None:
+    return next(
+        (
+            tipo
+            for tipo, assinatura in ASSINATURAS.items()
+            if all(
+                conteudo[posicao : posicao + len(esperado)] == esperado
+                for posicao, esperado in assinatura
+            )
+        ),
+        None,
+    )
+
+
 def guardar(look: Look, conteudo: bytes, tipo: str) -> str:
     if tipo not in ASSINATURAS:
         raise InvalidImage()
@@ -30,16 +55,54 @@ def guardar(look: Look, conteudo: bytes, tipo: str) -> str:
     if len(conteudo) > TAMANHO_MAXIMO:
         raise ImageTooLarge()
 
-    if not all(
-        conteudo[posicao : posicao + len(esperado)] == esperado
-        for posicao, esperado in ASSINATURAS[tipo]
-    ):
+    if _tipo_pelos_bytes(conteudo) != tipo:
         raise InvalidImage()
 
     # `uuid` no nome para troca de foto não colidir com a anterior em cache, e prefixo
     # com o id do look para o bucket ficar legível.
     chave = f"looks/{look.id}/{uuid.uuid4()}.{EXTENSOES[tipo]}"
     armazenamento.guardar(chave, conteudo, tipo)
+
+    return chave
+
+
+def gerar_do_look(look: Look, modelo: ModeloDoLook | None = None) -> str:
+    # Antes de qualquer ida à rede: sem chave a funcionalidade não existe, e descobrir
+    # isso depois de buscar as fotos viraria "sem o que compor" — que culpa a pessoa
+    # por algo que é nosso.
+    if not gemini.disponivel():
+        raise GenerationUnavailable()
+
+    if not armazenamento.disponivel():
+        raise StorageUnavailable()
+
+    fotos = [
+        foto
+        for peca in look.pieces
+        if peca.image_url and (foto := gemini.buscar_foto(peca.image_url))
+    ]
+
+    # Sem peça com foto não há o que compor: o modelo devolveria alguém vestindo o que
+    # ele inventou, não o look da pessoa.
+    if not fotos:
+        raise NothingToCompose()
+
+    gerada = gemini.gerar(
+        fotos,
+        look.description or look.title,
+        genero=modelo.gender if modelo else None,
+        cabelo=modelo.hair_color if modelo else None,
+        comprimento=modelo.hair_length if modelo else None,
+    )
+    # O formato é escolha do modelo, e o que vale são os bytes, não o rótulo da resposta.
+    tipo = _tipo_pelos_bytes(gerada)
+
+    if tipo is None:
+        logger.warning("Gemini devolveu conteúdo que não é imagem conhecida")
+        raise GenerationFailed()
+
+    chave = f"looks/{look.id}/{uuid.uuid4()}.{EXTENSOES[tipo]}"
+    armazenamento.guardar(chave, gerada, tipo)
 
     return chave
 

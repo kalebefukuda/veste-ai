@@ -36,6 +36,21 @@ class LookWithoutCategory(DomainError):
     code = "LOOK_WITHOUT_CATEGORY"
 
 
+class GenerationUnavailable(DomainError):
+    code = "GENERATION_UNAVAILABLE"
+    detail = "A geração por IA ainda não está disponível"
+
+
+class GenerationFailed(DomainError):
+    code = "GENERATION_FAILED"
+    detail = "Não foi possível gerar a imagem agora. Tente de novo ou envie uma foto"
+
+
+class NothingToCompose(DomainError):
+    code = "NOTHING_TO_COMPOSE"
+    detail = "Adicione ao menos uma peça com foto para gerar o look"
+
+
 class StorageUnavailable(DomainError):
     code = "STORAGE_UNAVAILABLE"
     detail = "O envio de imagem ainda não está disponível"

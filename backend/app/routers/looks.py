@@ -7,12 +7,15 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user
 from app.core.exceptions import (
     DomainHTTPException,
+    GenerationFailed,
+    GenerationUnavailable,
     ImageTooLarge,
     InvalidImage,
     LookNotFound,
     LookWithoutCategory,
     LookWithoutImage,
     LookWithoutPiece,
+    NothingToCompose,
     NotTheOwner,
     StorageUnavailable,
     UnsafeLink,
@@ -22,7 +25,14 @@ from app.models.look import Look
 from app.models.user import User
 from app.repositories.look_repository import LookRepository
 from app.schemas.click import LookMetrics, PieceMetrics
-from app.schemas.look import LookCreate, LookOut, LookUpdate, PieceCreate, PieceOut
+from app.schemas.look import (
+    LookCreate,
+    LookOut,
+    LookUpdate,
+    ModeloDoLook,
+    PieceCreate,
+    PieceOut,
+)
 from app.services import imagem
 from app.services.click_service import ClickService
 from app.services.look_service import LookService
@@ -50,9 +60,12 @@ def _http(erro: Exception) -> DomainHTTPException:
         return DomainHTTPException(status.HTTP_404_NOT_FOUND, erro)
     if isinstance(erro, NotTheOwner):
         return DomainHTTPException(status.HTTP_403_FORBIDDEN, erro)
-    # 503 e não 422: sem bucket configurado quem falhou foi a plataforma, não o envio.
-    if isinstance(erro, StorageUnavailable):
+    # 503 e não 422: sem bucket ou sem chave quem falhou foi a plataforma, não o envio.
+    if isinstance(erro, (StorageUnavailable, GenerationUnavailable)):
         return DomainHTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, erro)
+    # 502 porque quem recusou foi o serviço de terceiro, e a tela oferece tentar de novo.
+    if isinstance(erro, GenerationFailed):
+        return DomainHTTPException(status.HTTP_502_BAD_GATEWAY, erro)
     return DomainHTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, erro)
 
 
@@ -143,6 +156,27 @@ async def enviar_imagem(
         raise _http(erro) from erro
 
     return _look_out(look)
+
+
+# RF17 e o diferencial da RFC: o modelo veste as peças que a pessoa anexou.
+@router.post("/{look_id}/generate")
+def gerar_imagem(
+    look_id: uuid.UUID,
+    user: Autenticado,
+    service: Servico,
+    modelo: ModeloDoLook | None = None,
+) -> LookOut:
+    try:
+        return _look_out(service.generate_image(look_id, user.id, modelo))
+    except (
+        LookNotFound,
+        NotTheOwner,
+        NothingToCompose,
+        GenerationUnavailable,
+        GenerationFailed,
+        StorageUnavailable,
+    ) as erro:
+        raise _http(erro) from erro
 
 
 @router.post("/{look_id}/pieces", status_code=status.HTTP_201_CREATED)

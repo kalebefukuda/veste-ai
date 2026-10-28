@@ -77,10 +77,10 @@ O CI roda o mesmo comando de teste acrescido de `--cov-fail-under`. O limiar viv
   privada). Imagens em S3, bucket privado com URL pré-assinada. Segredos no AWS
   Secrets Manager, referenciados no campo `secrets` da task definition — nunca em
   `environment`.
-- **Infraestrutura:** Terraform em `infra/` — **ainda não existe no repositório**. O
-  desenho é que mudança de infra seja mudança de código: entra por PR, com
-  `terraform plan` no pipeline. `terraform apply` é sempre manual e com aval, porque
-  cria recurso que cobra.
+- **Infraestrutura:** Terraform em `infra/` — existe no repositório e **nunca foi
+  aplicado**: não há `.tfstate`, e nenhum recurso na AWS. Mudança de infra é mudança de
+  código: entra por PR, com `terraform fmt` e `validate` no pipeline. `terraform apply`
+  é sempre manual e com aval, porque cria recurso que cobra.
 
 ## Fronteiras de camada — não violar
 
