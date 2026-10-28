@@ -77,6 +77,7 @@ class LookService:
     def set_image(self, look_id: uuid.UUID, conteudo: bytes, tipo: str, user_id: uuid.UUID) -> Look:
         look = self._meu(look_id, user_id)
         look.image_key = imagem.guardar(look, conteudo, tipo)
+        look.ai_generated = False
 
         return look
 

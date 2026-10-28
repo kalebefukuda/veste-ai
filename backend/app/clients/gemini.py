@@ -1,7 +1,10 @@
 """Geração da imagem do look. A chave e o formato do pedido não saem desta camada."""
 
 import base64
+import ipaddress
 import logging
+import socket
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -35,8 +38,34 @@ def disponivel() -> bool:
     return bool(get_settings().gemini_api_key)
 
 
+def _enderecos(host: str) -> list[str]:
+    return [str(info[4][0]) for info in socket.getaddrinfo(host, None)]
+
+
+def _so_internet_publica(url: str) -> bool:
+    host = urlsplit(url).hostname
+
+    if not host:
+        return False
+
+    try:
+        enderecos = [ipaddress.ip_address(host)]
+    except ValueError:
+        try:
+            enderecos = [ipaddress.ip_address(ip) for ip in _enderecos(host)]
+        except (OSError, UnicodeError, ValueError):
+            return False
+
+    return bool(enderecos) and all(endereco.is_global for endereco in enderecos)
+
+
 def buscar_foto(url: str) -> tuple[bytes, str] | None:
     """Baixa a foto de uma peça para servir de entrada ao modelo."""
+    # A URL é de quem cadastrou a peça: sem essa barreira o servidor buscaria a rede interna.
+    if not _so_internet_publica(url):
+        logger.info("Foto de peça fora da internet pública, seguindo sem ela: %s", url)
+        return None
+
     conteudo = bytearray()
 
     try:
