@@ -85,7 +85,7 @@ variable "api_image_tag" {
 }
 
 variable "final_snapshot_identifier" {
-  description = "Snapshot tirado antes de destruir o banco. Vazio destrói sem snapshot e perde os dados."
+  description = "Prefixo do snapshot tirado antes de destruir o banco. Vazio destrói sem snapshot e perde os dados."
   type        = string
   default     = "vesteai-final"
 }

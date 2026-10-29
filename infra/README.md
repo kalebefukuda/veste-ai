@@ -27,11 +27,16 @@ terraform apply                 # cria recurso que cobra
 |---|---|---|
 | VPC, sub-redes, security groups | ✅ | ✅ |
 | ECR, S3, Secrets Manager, IAM | ✅ | ✅ |
-| ALB, RDS, service Fargate | — | ✅ |
+| ALB, certificado, RDS, service Fargate | — | ✅ |
 | Custo aproximado | ~US$ 2,40/mês | ~US$ 57/mês |
 
-Desligar não destrói o que é lento de reconstruir: o endpoint do banco, o certificado
-validado e as imagens do ECR continuam de pé.
+Desligar **destrói o banco e o certificado**. Continuam de pé a rede, o ECR com as
+imagens, o bucket de fotos e os segredos.
+
+- **Banco.** Antes de sumir, ele deixa um snapshot `vesteai-final-<sufixo>`, com um sufixo
+  novo a cada desligamento. Religar cria um banco **novo e vazio**: os dados ficam no
+  snapshot, e trazê-los de volta não está automatizado.
+- **Certificado.** Religar emite outro, que espera de novo a validação por DNS do passo 4.
 
 ## Ordem do primeiro provisionamento
 
