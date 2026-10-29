@@ -135,3 +135,12 @@ argumentação.
   Calculator com os dois cenários lado a lado, que é pré-requisito do primeiro `apply`.
 - **O KPI de 200 usuários simultâneos continua sem prova.** Uma task de 0.25 vCPU não
   sustenta isso por decreto — exige teste de carga.
+
+> **Atualização de 27/10/2026 — região fechada em `sa-east-1`.** Escolha do autor: São
+> Paulo, com os dados das contas no Brasil. A objeção de custo perdeu força com o
+> calendário: o runtime só precisa ficar ligado de novembro até a divulgação das notas
+> em dezembro, cerca de um mês e meio — na faixa de US$ 57 a 85, dentro dos US$ 120 se
+> o saldo ainda for esse. Conferir o saldo no console antes de ligar `enable_runtime`.
+> A modelagem no Pricing Calculator deixa de ser pré-requisito do primeiro `apply`: a
+> fase 1, com `enable_runtime = false`, não cria nada que cobre por hora. O estado do
+> Terraform foi decidido no mesmo dia, no ADR-0026.

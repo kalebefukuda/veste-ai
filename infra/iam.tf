@@ -115,6 +115,8 @@ data "aws_iam_policy_document" "task_execution_secrets" {
       aws_secretsmanager_secret.jwt.arn,
       aws_secretsmanager_secret.brevo_api_key.arn,
       aws_secretsmanager_secret.contact_destination.arn,
+      aws_secretsmanager_secret.gemini_api_key.arn,
+      aws_secretsmanager_secret.safe_browsing_api_key.arn,
     ]
   }
 }

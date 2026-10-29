@@ -4,8 +4,6 @@ variable "project" {
   default     = "vesteai"
 }
 
-# Decisão reaberta: us-east-1 custa ~35% menos e rende ~1 mês a mais de crédito.
-# Pendente da modelagem no AWS Pricing Calculator — ver ADR-0002.
 variable "region" {
   description = "Região da AWS."
   type        = string
@@ -87,7 +85,7 @@ variable "api_image_tag" {
 }
 
 variable "final_snapshot_identifier" {
-  description = "Snapshot tirado antes de destruir o banco. Vazio destrói sem snapshot e perde os dados."
+  description = "Prefixo do snapshot tirado antes de destruir o banco. Vazio destrói sem snapshot e perde os dados."
   type        = string
   default     = "vesteai-final"
 }

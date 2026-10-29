@@ -58,3 +58,31 @@ resource "aws_secretsmanager_secret_version" "contact_destination" {
     ignore_changes = [secret_string]
   }
 }
+
+resource "aws_secretsmanager_secret" "gemini_api_key" {
+  name_prefix = "${var.project}/gemini-api-key-"
+}
+
+# O valor real é colado no console, pelo mesmo motivo da chave do Brevo.
+resource "aws_secretsmanager_secret_version" "gemini_api_key" {
+  secret_id     = aws_secretsmanager_secret.gemini_api_key.id
+  secret_string = "definir-no-console"
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
+
+resource "aws_secretsmanager_secret" "safe_browsing_api_key" {
+  name_prefix = "${var.project}/safe-browsing-api-key-"
+}
+
+# O valor real é colado no console, pelo mesmo motivo da chave do Brevo.
+resource "aws_secretsmanager_secret_version" "safe_browsing_api_key" {
+  secret_id     = aws_secretsmanager_secret.safe_browsing_api_key.id
+  secret_string = "definir-no-console"
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}

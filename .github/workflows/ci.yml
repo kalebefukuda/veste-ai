@@ -158,6 +158,11 @@ jobs:
           terraform init -backend=false -input=false
           terraform validate
 
+      - name: Init and validate the state bootstrap
+        run: |
+          terraform -chdir=bootstrap init -backend=false -input=false
+          terraform -chdir=bootstrap validate
+
   sonarcloud:
     name: sonarcloud — static analysis
     runs-on: ubuntu-latest
