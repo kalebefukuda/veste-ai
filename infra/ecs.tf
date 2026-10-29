@@ -68,6 +68,11 @@ resource "aws_ecs_task_definition" "api" {
         name      = "CONTACT_DESTINATION",
         valueFrom = aws_secretsmanager_secret.contact_destination.arn
       },
+      { name = "GEMINI_API_KEY", valueFrom = aws_secretsmanager_secret.gemini_api_key.arn },
+      {
+        name      = "SAFE_BROWSING_API_KEY",
+        valueFrom = aws_secretsmanager_secret.safe_browsing_api_key.arn
+      },
     ]
 
     logConfiguration = {
