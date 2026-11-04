@@ -86,9 +86,9 @@ A ordem, o que cada passo depende e a variável `enable_runtime` — que decide 
 cobrada por hora existe — estão no runbook em
 [`infra/README.md`](https://github.com/kalebefukuda/veste-ai/blob/dev/infra/README.md).
 
-Duas coisas a decidir **antes** do primeiro `apply`:
+O estado do Terraform mora num bucket S3 privado, criptografado, versionado e com trava,
+criado por `infra/bootstrap/` antes de tudo — a decisão está no ADR-0026.
 
-1. **Onde mora o estado do Terraform.** Hoje é local e está no `.gitignore`. Perder o
-   arquivo de estado significa recurso órfão consumindo crédito sem ninguém enxergar.
-2. **O domínio.** Ele destrava três coisas de uma vez: o certificado do ACM, o
-   remetente verificado do e-mail e o domínio próprio como diferencial da linha.
+Falta decidir **antes** do primeiro `apply` o **domínio**. Ele destrava três coisas de uma
+vez: o certificado do ACM, o remetente verificado do e-mail e o domínio próprio como
+diferencial da linha.

@@ -36,7 +36,7 @@ imagens, o bucket de fotos e os segredos.
 - **Banco.** Antes de sumir, ele deixa um snapshot `vesteai-final-<sufixo>`, com um sufixo
   novo a cada desligamento. Religar cria um banco **novo e vazio**: os dados ficam no
   snapshot, e trazê-los de volta não está automatizado.
-- **Certificado.** Religar emite outro, que espera de novo a validação por DNS do passo 4.
+- **Certificado.** Religar emite outro, que espera de novo a validação por DNS do passo 5.
 
 ## Ordem do primeiro provisionamento
 
@@ -70,12 +70,7 @@ Depois do primeiro deploy o pipeline assume: ele empurra a imagem marcada com o 
 commit e registra uma revisão nova da task definition. Por isso o service ignora
 mudanças em `task_definition` — senão o Terraform desfaria o deploy.
 
-**4. Validar o certificado, se houver domínio.** Com `domain_name` preenchido, o
-`apply` cria o certificado e **para**, esperando a validação por DNS. Rode
-`terraform output acm_validation_records`, crie os registros no seu provedor de DNS, e
-o `apply` conclui sozinho. Sem domínio, o ALB serve HTTP e este passo não existe.
-
-**5. Preencher os segredos no console.** O Terraform cria estes segredos com o
+**4. Preencher os segredos no console.** O Terraform cria estes segredos com o
 placeholder `definir-no-console` e `ignore_changes`, de propósito: chave em `.tf` ou
 `.tfvars` acabaria no arquivo de estado. Abra o Secrets Manager e substitua cada valor
 pelo real.
@@ -100,7 +95,14 @@ pelo real.
 > Safe Browsing, a checagem de link fica desligada em silêncio, porque ela não bloqueia
 > quando falha.
 
-**6. Ligar o runtime.** Com `enable_runtime = true`, sobem ALB, RDS e o service.
+**5. Ligar o runtime.** Com `enable_runtime = true`, sobem ALB, RDS e o service. O
+service só sobe depois que todo segredo tem valor, o que inclui o `DATABASE_URL`, escrito
+quando o RDS fica pronto.
+
+Com `domain_name` preenchido, este mesmo `apply` cria o certificado e **para**, esperando
+a validação por DNS. Rode `terraform output acm_validation_records`, crie os registros no
+seu provedor de DNS, e o `apply` conclui sozinho. Sem domínio, o ALB serve HTTP e essa
+espera não existe.
 
 ## O que este Terraform não faz
 

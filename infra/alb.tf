@@ -37,7 +37,7 @@ resource "aws_acm_certificate" "this" {
 }
 
 # O ALB recusa certificado que não esteja ISSUED, então o apply espera aqui até o
-# registro DNS de validação existir — ver o passo de bootstrap em infra/README.md.
+# registro DNS de validação existir — ver o passo de ligar o runtime em infra/README.md.
 resource "aws_acm_certificate_validation" "this" {
   count = var.enable_runtime && var.domain_name != "" ? 1 : 0
 
