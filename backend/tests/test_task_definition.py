@@ -7,6 +7,8 @@ TASK = Path(__file__).resolve().parents[2] / "infra" / "ecs.tf"
 
 # `value` é texto plano no console da AWS; `valueFrom` aponta para o Secrets Manager.
 VARIAVEL = re.compile(r'name\s*=\s*"([A-Z0-9_]+)",?\s*(value|valueFrom)\s*=')
+SEGREDO = re.compile(r"aws_secretsmanager_secret\.(\w+)\.arn")
+ESPERA = re.compile(r"depends_on\s*=\s*\[([^\]]*)\]")
 
 CREDENCIAIS = (
     "DATABASE_URL",
@@ -40,3 +42,14 @@ def test_toda_credencial_vai_pelo_secrets_manager() -> None:
     fora = [nome for nome in CREDENCIAIS if variaveis.get(nome) != "valueFrom"]
 
     assert not fora, f"fora do Secrets Manager: {fora}"
+
+
+# O service sobe a task na hora, e segredo ainda sem valor a derruba antes do primeiro request.
+def test_o_servico_so_sobe_com_valor_em_todo_segredo() -> None:
+    texto = TASK.read_text()
+    esperados = {f"aws_secretsmanager_secret_version.{nome}" for nome in SEGREDO.findall(texto)}
+    espera = set(re.findall(r"[\w.]+", " ".join(ESPERA.findall(texto))))
+
+    faltando = sorted(esperados - espera)
+
+    assert not faltando, f"o service não espera {faltando}"
