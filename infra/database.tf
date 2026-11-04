@@ -3,6 +3,13 @@ resource "aws_db_subnet_group" "this" {
   subnet_ids = aws_subnet.private[*].id
 }
 
+# Nasce e morre com o banco: cada desligamento deixa um snapshot com nome próprio.
+resource "random_id" "final_snapshot" {
+  count = var.enable_runtime ? 1 : 0
+
+  byte_length = 4
+}
+
 resource "aws_db_instance" "this" {
   count = var.enable_runtime ? 1 : 0
 
@@ -26,6 +33,6 @@ resource "aws_db_instance" "this" {
   backup_retention_period = 7
   # Padrão seguro: desligar o ambiente tira snapshot antes de destruir.
   skip_final_snapshot       = var.final_snapshot_identifier == ""
-  final_snapshot_identifier = var.final_snapshot_identifier == "" ? null : var.final_snapshot_identifier
+  final_snapshot_identifier = var.final_snapshot_identifier == "" ? null : "${var.final_snapshot_identifier}-${random_id.final_snapshot[0].hex}"
   apply_immediately         = true
 }

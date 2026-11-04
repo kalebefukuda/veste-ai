@@ -52,7 +52,7 @@ resource "aws_ecs_task_definition" "api" {
     # Credencial vai em `secrets`; `environment` é texto plano visível no console.
     environment = concat([
       { name = "FRONTEND_ORIGIN", value = var.frontend_origin },
-      { name = "AWS_S3_BUCKET", value = aws_s3_bucket.images.bucket },
+      { name = "S3_BUCKET", value = aws_s3_bucket.images.bucket },
       # Fixo, não variável: esta task definition *é* produção. Uma variável aqui seria
       # uma chance de esquecer, e esquecer significa a API sem HSTS sem ninguém notar.
       { name = "ENV", value = "production" },
@@ -67,6 +67,11 @@ resource "aws_ecs_task_definition" "api" {
       {
         name      = "CONTACT_DESTINATION",
         valueFrom = aws_secretsmanager_secret.contact_destination.arn
+      },
+      { name = "GEMINI_API_KEY", valueFrom = aws_secretsmanager_secret.gemini_api_key.arn },
+      {
+        name      = "SAFE_BROWSING_API_KEY",
+        valueFrom = aws_secretsmanager_secret.safe_browsing_api_key.arn
       },
     ]
 
@@ -107,5 +112,14 @@ resource "aws_ecs_service" "api" {
     ignore_changes = [task_definition]
   }
 
-  depends_on = [aws_lb_listener.http]
+  # A task lê os segredos na largada; o DATABASE_URL só ganha valor depois do RDS.
+  depends_on = [
+    aws_lb_listener.http,
+    aws_secretsmanager_secret_version.db_url,
+    aws_secretsmanager_secret_version.jwt,
+    aws_secretsmanager_secret_version.brevo_api_key,
+    aws_secretsmanager_secret_version.contact_destination,
+    aws_secretsmanager_secret_version.gemini_api_key,
+    aws_secretsmanager_secret_version.safe_browsing_api_key,
+  ]
 }
