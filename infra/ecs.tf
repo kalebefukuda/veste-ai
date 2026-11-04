@@ -112,5 +112,14 @@ resource "aws_ecs_service" "api" {
     ignore_changes = [task_definition]
   }
 
-  depends_on = [aws_lb_listener.http]
+  # A task lê os segredos na largada; o DATABASE_URL só ganha valor depois do RDS.
+  depends_on = [
+    aws_lb_listener.http,
+    aws_secretsmanager_secret_version.db_url,
+    aws_secretsmanager_secret_version.jwt,
+    aws_secretsmanager_secret_version.brevo_api_key,
+    aws_secretsmanager_secret_version.contact_destination,
+    aws_secretsmanager_secret_version.gemini_api_key,
+    aws_secretsmanager_secret_version.safe_browsing_api_key,
+  ]
 }
