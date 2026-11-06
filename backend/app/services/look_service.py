@@ -81,6 +81,18 @@ class LookService:
 
         return look
 
+    def remove_image(self, look_id: uuid.UUID, user_id: uuid.UUID) -> Look:
+        look = self._meu(look_id, user_id)
+
+        if look.status == PUBLICADO:
+            raise LookWithoutImage()
+
+        look.image_key = None
+        look.image_url = None
+        look.ai_generated = False
+
+        return look
+
     def generate_image(
         self, look_id: uuid.UUID, user_id: uuid.UUID, modelo: ModeloDoLook | None = None
     ) -> Look:

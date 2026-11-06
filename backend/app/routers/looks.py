@@ -165,6 +165,14 @@ async def enviar_imagem(
     return _look_out(look)
 
 
+@router.delete("/{look_id}/image")
+def remover_foto(look_id: uuid.UUID, user: Autenticado, service: Servico) -> LookOut:
+    try:
+        return _look_out(service.remove_image(look_id, user.id))
+    except (LookNotFound, NotTheOwner, LookWithoutImage) as erro:
+        raise _http(erro) from erro
+
+
 # RF17 e o diferencial da RFC: o modelo veste as peças que a pessoa anexou.
 @router.post("/{look_id}/generate")
 @limiter.limit(LIMIT_GENERATE)
