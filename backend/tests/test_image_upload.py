@@ -140,3 +140,51 @@ def test_recusa_riff_que_nao_e_webp(dono, look, com_bucket, s3_falso) -> None:
 
     assert resposta.status_code == 422
     assert resposta.json()["code"] == "INVALID_IMAGE"
+
+
+def test_o_dono_remove_a_foto_do_rascunho(dono, look, com_bucket, s3_falso) -> None:
+    enviar(dono, look, JPEG)
+
+    resposta = dono.delete(f"/looks/{look}/image")
+
+    assert resposta.status_code == 200
+    assert resposta.json()["image_url"] is None
+    assert resposta.json()["ai_generated"] is False
+    assert dono.get(f"/looks/{look}").json()["image_url"] is None
+
+
+def test_remover_a_foto_apaga_tambem_o_endereco_colado(dono, look) -> None:
+    dono.patch(f"/looks/{look}", json={"image_url": "https://cdn.exemplo.com/look.jpg"})
+
+    assert dono.delete(f"/looks/{look}/image").json()["image_url"] is None
+
+
+# Mesma pré-condição da publicação: look publicado sem imagem sairia em branco no feed.
+def test_nao_remove_a_foto_de_look_publicado(dono, look, com_bucket, s3_falso) -> None:
+    from tests.test_looks import PECA
+
+    dono.post(f"/looks/{look}/pieces", json=PECA)
+    dono.patch(f"/looks/{look}", json={"category": "work"})
+    enviar(dono, look, JPEG)
+    dono.post(f"/looks/{look}/publish")
+
+    resposta = dono.delete(f"/looks/{look}/image")
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "LOOK_WITHOUT_IMAGE"
+    assert dono.get(f"/looks/{look}").json()["image_url"] is not None
+
+
+def test_rn07_nao_remove_foto_de_look_alheio(client: TestClient) -> None:
+    do_dono = {"Authorization": f"Bearer {token(client, DONO)}"}
+    look = client.post("/looks", json=LOOK, headers=do_dono).json()["id"]
+
+    client.headers["Authorization"] = f"Bearer {token(client, OUTRA)}"
+
+    assert client.delete(f"/looks/{look}/image").status_code == 403
+
+
+def test_rn01_visitante_nao_remove_foto(client: TestClient, look: str) -> None:
+    client.headers.pop("Authorization", None)
+
+    assert client.delete(f"/looks/{look}/image").status_code == 401
