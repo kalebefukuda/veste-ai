@@ -77,7 +77,7 @@ resource "aws_vpc_security_group_ingress_rule" "alb_http" {
   from_port         = 80
   to_port           = 80
   ip_protocol       = "tcp"
-  description       = "HTTP, redirecionado para HTTPS quando há certificado"
+  description       = "HTTP; com certificado, vira redirect para HTTPS"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "alb_https" {
@@ -95,7 +95,7 @@ resource "aws_vpc_security_group_egress_rule" "alb_all" {
   security_group_id = aws_security_group.alb.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
-  description       = "Saída livre para alcançar as tasks"
+  description       = "Livre para chegar nas tasks"
 }
 
 # A task fica em sub-rede pública com IP público para alcançar ECR e Secrets
@@ -114,14 +114,14 @@ resource "aws_vpc_security_group_ingress_rule" "api_from_alb" {
   from_port                    = 8000
   to_port                      = 8000
   ip_protocol                  = "tcp"
-  description                  = "Somente o ALB alcança a API"
+  description                  = "Somente o ALB chega na API"
 }
 
 resource "aws_vpc_security_group_egress_rule" "api_all" {
   security_group_id = aws_security_group.api.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
-  description       = "Saída para ECR, Secrets Manager, S3 e Gemini"
+  description       = "Para ECR, Secrets Manager, S3 e Gemini"
 }
 
 resource "aws_security_group" "db" {
@@ -138,5 +138,5 @@ resource "aws_vpc_security_group_ingress_rule" "db_from_api" {
   from_port                    = 5432
   to_port                      = 5432
   ip_protocol                  = "tcp"
-  description                  = "Somente a API alcança o banco"
+  description                  = "Somente a API chega no banco"
 }
