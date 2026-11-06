@@ -51,6 +51,15 @@ class NothingToCompose(DomainError):
     detail = "Adicione ao menos uma peça com foto para gerar o look"
 
 
+class PiecesWithoutPhoto(DomainError):
+    code = "PIECES_WITHOUT_PHOTO"
+    detail = "Toda peça precisa de foto para gerar o look com IA"
+
+    def __init__(self, pieces: list[str]) -> None:
+        super().__init__()
+        self.pieces = pieces
+
+
 class StorageUnavailable(DomainError):
     code = "STORAGE_UNAVAILABLE"
     detail = "O envio de imagem ainda não está disponível"

@@ -49,9 +49,13 @@ def handle_rate_limit(request: Request, exc: RateLimitExceeded) -> JSONResponse:
 def handle_domain_error(request: Request, exc: DomainHTTPException) -> JSONResponse:
     body = {"detail": exc.error.detail, "code": exc.error.code}
     rule = getattr(exc.error, "rule", None)
+    pieces = getattr(exc.error, "pieces", None)
 
     if rule:
         body["rule"] = rule
+
+    if pieces:
+        body["pieces"] = pieces
 
     return JSONResponse(status_code=exc.status_code, content=body)
 

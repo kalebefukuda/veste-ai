@@ -1,9 +1,11 @@
 import base64
+import io
 import socket
 from collections.abc import Iterator
 
 import httpx
 import pytest
+from botocore.exceptions import ClientError
 from fastapi.testclient import TestClient
 
 from app.clients import armazenamento, gemini
@@ -86,9 +88,16 @@ def rede_falsa(monkeypatch: pytest.MonkeyPatch) -> dict:
     monkeypatch.setattr(httpx.HTTPTransport, "handle_request", fake_get)
     monkeypatch.setattr(gemini.httpx, "post", fake_post)
 
+    objetos: dict[str, tuple[bytes, str]] = {}
+
     class ClienteFalso:
         def put_object(self, **kwargs: object) -> None:
             enviado["guardado"] = kwargs
+            objetos[str(kwargs["Key"])] = (kwargs["Body"], str(kwargs["ContentType"]))  # type: ignore[assignment]
+
+        def get_object(self, Bucket: str, Key: str) -> dict:  # noqa: N803
+            corpo, tipo = objetos[Key]
+            return {"Body": io.BytesIO(corpo), "ContentType": tipo}
 
         def generate_presigned_url(self, _o: str, Params: dict, ExpiresIn: int) -> str:  # noqa: N803
             return f"https://s3.exemplo/{Params['Key']}"
@@ -152,16 +161,46 @@ def test_visitante_nao_gera(client: TestClient, look_com_peca_ilustrada, com_cha
     assert gerar(client, look_com_peca_ilustrada).status_code == 401
 
 
-# Sem peça com foto não há o que compor: gerar a partir do nada devolveria um modelo
-# vestindo o que a IA inventou, não o look da pessoa.
-def test_recusa_look_sem_peca_com_foto(dono: TestClient, com_chave, rede_falsa):
+# Sem peça não há o que compor: gerar a partir do nada devolveria um modelo vestindo o
+# que a IA inventou, não o look da pessoa.
+def test_recusa_look_sem_peca(dono: TestClient, com_chave, rede_falsa):
     look = dono.post("/looks", json=LOOK).json()["id"]
-    dono.post(f"/looks/{look}/pieces", json=PECA)
 
     resposta = gerar(dono, look)
 
     assert resposta.status_code == 422
     assert resposta.json()["code"] == "NOTHING_TO_COMPOSE"
+
+
+# O modelo veste todas as peças do look: uma sem foto deixaria a imagem mentindo sobre
+# o que se compra ali. A resposta diz quais faltam, e o Gemini nem é chamado.
+def test_uma_peca_sem_foto_barra_a_geracao(dono, look_com_peca_ilustrada, com_chave, rede_falsa):
+    sem_foto = dono.post(f"/looks/{look_com_peca_ilustrada}/pieces", json=PECA).json()["id"]
+
+    resposta = gerar(dono, look_com_peca_ilustrada)
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "PIECES_WITHOUT_PHOTO"
+    assert resposta.json()["pieces"] == [sem_foto]
+    assert "url" not in rede_falsa
+
+
+# A foto enviada sai do bucket direto para o modelo; só a peça antiga, com endereço
+# colado, ainda é baixada da loja.
+def test_foto_enviada_vai_do_bucket_para_o_modelo(
+    dono, look_com_peca_ilustrada, com_chave, rede_falsa
+):
+    peca = dono.post(f"/looks/{look_com_peca_ilustrada}/pieces", json=PECA).json()["id"]
+    dono.post(
+        f"/looks/{look_com_peca_ilustrada}/pieces/{peca}/image",
+        files={"arquivo": ("f.jpg", JPEG, "image/jpeg")},
+    )
+
+    assert gerar(dono, look_com_peca_ilustrada).status_code == 200
+
+    partes = rede_falsa["json"]["contents"][0]["parts"]  # type: ignore[index]
+    assert sum("inlineData" in p for p in partes) == 2
+    assert rede_falsa["buscadas"] == [FOTO_DA_PECA]
 
 
 def test_sem_chave_configurada_recusa_com_recado(dono, look_com_peca_ilustrada):
@@ -392,3 +431,28 @@ def test_nome_que_nao_resolve_fica_fora_da_composicao(rede_falsa, monkeypatch):
 
     assert gemini.buscar_foto("https://nao-existe.exemplo/foto.jpg") is None
     assert "buscadas" not in rede_falsa
+
+
+# Bucket que não devolve a foto é falha nossa, não da pessoa: 503, nunca 500.
+def test_bucket_que_nao_devolve_a_foto_responde_503(
+    dono, look_com_peca_ilustrada, com_chave, rede_falsa, monkeypatch
+):
+    peca = dono.post(f"/looks/{look_com_peca_ilustrada}/pieces", json=PECA).json()["id"]
+    dono.post(
+        f"/looks/{look_com_peca_ilustrada}/pieces/{peca}/image",
+        files={"arquivo": ("f.jpg", JPEG, "image/jpeg")},
+    )
+
+    class SemObjeto:
+        def get_object(self, **_: object) -> dict:
+            raise ClientError({"Error": {"Code": "NoSuchKey"}}, "GetObject")
+
+        def generate_presigned_url(self, _o: str, Params: dict, ExpiresIn: int) -> str:  # noqa: N803
+            return f"https://s3.exemplo/{Params['Key']}"
+
+    monkeypatch.setattr(armazenamento, "_cliente", lambda: SemObjeto())
+
+    resposta = gerar(dono, look_com_peca_ilustrada)
+
+    assert resposta.status_code == 503
+    assert resposta.json()["code"] == "STORAGE_UNAVAILABLE"

@@ -13,8 +13,11 @@ from app.core.exceptions import GenerationFailed, GenerationUnavailable
 
 logger = logging.getLogger(__name__)
 
-MODELO = "gemini-2.5-flash-image"
-ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODELO}:generateContent"
+MODELO = "gemini-3.1-flash-lite-image"
+ENDPOINT = (
+    "https://aiplatform.googleapis.com/v1/projects/{projeto}/locations/global"
+    f"/publishers/google/models/{MODELO}:generateContent"
+)
 
 # A RFC exige geração em menos de 30 segundos; o cliente desiste nesse ponto.
 TIMEOUT = 30.0
@@ -112,7 +115,8 @@ def gerar(
     cabelo: str | None = None,
     comprimento: str | None = None,
 ) -> bytes:
-    chave = get_settings().gemini_api_key
+    settings = get_settings()
+    chave = settings.gemini_api_key
 
     if not chave:
         logger.warning("GEMINI_API_KEY ausente: geração recusada")
@@ -130,9 +134,9 @@ def gerar(
     try:
         # No cabeçalho: na URL a chave sairia no log do httpx e na mensagem de erro.
         resposta = httpx.post(
-            ENDPOINT,
+            ENDPOINT.format(projeto=settings.gemini_project),
             headers={"x-goog-api-key": chave},
-            json={"contents": [{"parts": partes}]},
+            json={"contents": [{"role": "user", "parts": partes}]},
             timeout=TIMEOUT,
         )
         resposta.raise_for_status()

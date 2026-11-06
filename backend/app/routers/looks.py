@@ -17,6 +17,7 @@ from app.core.exceptions import (
     LookWithoutPiece,
     NothingToCompose,
     NotTheOwner,
+    PiecesWithoutPhoto,
     StorageUnavailable,
     UnsafeLink,
 )
@@ -72,9 +73,20 @@ def _http(erro: Exception) -> DomainHTTPException:
 
 def _look_out(look: Look) -> LookOut:
     saida = LookOut.model_validate(look)
-    saida.image_url = imagem.endereco(look)
+    imagem.resolver_enderecos(saida, look)
 
     return saida
+
+
+# Um byte a mais que o limite: se vier, já passou, e o resto não entra na memória do
+# processo. Medir depois de ler tudo deixa o cliente escolher quanto carregamos.
+async def _ler_com_teto(arquivo: UploadFile) -> bytes:
+    conteudo = await arquivo.read(imagem.TAMANHO_MAXIMO + 1)
+
+    if len(conteudo) > imagem.TAMANHO_MAXIMO:
+        raise ImageTooLarge()
+
+    return conteudo
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -138,14 +150,8 @@ async def enviar_imagem(
     service: Servico,
     arquivo: Annotated[UploadFile, File()],
 ) -> LookOut:
-    # Um byte a mais que o limite: se vier, já passou, e o resto não entra na memória
-    # do processo. Medir depois de ler tudo deixa o cliente escolher quanto carregamos.
-    conteudo = await arquivo.read(imagem.TAMANHO_MAXIMO + 1)
-
     try:
-        if len(conteudo) > imagem.TAMANHO_MAXIMO:
-            raise ImageTooLarge()
-
+        conteudo = await _ler_com_teto(arquivo)
         look = service.set_image(look_id, conteudo, arquivo.content_type or "", user.id)
     except (
         LookNotFound,
@@ -157,6 +163,14 @@ async def enviar_imagem(
         raise _http(erro) from erro
 
     return _look_out(look)
+
+
+@router.delete("/{look_id}/image")
+def remover_foto(look_id: uuid.UUID, user: Autenticado, service: Servico) -> LookOut:
+    try:
+        return _look_out(service.remove_image(look_id, user.id))
+    except (LookNotFound, NotTheOwner, LookWithoutImage) as erro:
+        raise _http(erro) from erro
 
 
 # RF17 e o diferencial da RFC: o modelo veste as peças que a pessoa anexou.
@@ -175,6 +189,7 @@ def gerar_imagem(
         LookNotFound,
         NotTheOwner,
         NothingToCompose,
+        PiecesWithoutPhoto,
         GenerationUnavailable,
         GenerationFailed,
         StorageUnavailable,
@@ -190,6 +205,34 @@ def adicionar_peca(
         return PieceOut.model_validate(service.add_piece(look_id, dados, user.id))
     except (LookNotFound, NotTheOwner, UnsafeLink) as erro:
         raise _http(erro) from erro
+
+
+@router.post("/{look_id}/pieces/{piece_id}/image")
+async def enviar_foto_da_peca(
+    look_id: uuid.UUID,
+    piece_id: uuid.UUID,
+    user: Autenticado,
+    service: Servico,
+    arquivo: Annotated[UploadFile, File()],
+) -> PieceOut:
+    try:
+        conteudo = await _ler_com_teto(arquivo)
+        peca = service.set_piece_image(
+            look_id, piece_id, conteudo, arquivo.content_type or "", user.id
+        )
+    except (
+        LookNotFound,
+        NotTheOwner,
+        InvalidImage,
+        ImageTooLarge,
+        StorageUnavailable,
+    ) as erro:
+        raise _http(erro) from erro
+
+    saida = PieceOut.model_validate(peca)
+    saida.image_url = imagem.endereco(peca)
+
+    return saida
 
 
 @router.delete("/{look_id}/pieces/{piece_id}", status_code=status.HTTP_204_NO_CONTENT)

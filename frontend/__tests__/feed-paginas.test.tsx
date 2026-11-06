@@ -230,7 +230,7 @@ describe("proxy público do feed", () => {
 
 // RN09: a métrica é do creator, e o lugar dela é a tela onde ele edita o próprio look.
 describe("métricas do creator", () => {
-  it("mostra o total e o número por peça", async () => {
+  it("resume os cliques ao lado do título e em cada peça", async () => {
     cookieStore.get.mockReturnValue({ value: "tok" });
     vi.stubGlobal(
       "fetch",
@@ -242,10 +242,12 @@ describe("métricas do creator", () => {
 
     render(await EditarLookPage({ params: { id: "look-1" } }));
 
-    // Dois "7": o total do look e o da única peça. É justamente o par que o painel
-    // promete — agregado em cima, detalhe embaixo.
-    expect(screen.getAllByText("7")).toHaveLength(2);
-    expect(screen.getByText(/cliques em links de compra/i)).toBeInTheDocument();
+    // Resumo, e não painel: o total numa linha ao lado do título e o de cada peça no
+    // próprio card, para o look continuar logo abaixo do título.
+    expect(screen.getByText("7 cliques nos links")).toBeInTheDocument();
+    const peca = screen.getByText("Sobretudo bordô").closest("li") as HTMLElement;
+    expect(within(peca).getByText("7 cliques")).toBeInTheDocument();
+    expect(screen.queryByText(/cliques em links de compra/i)).not.toBeInTheDocument();
   });
 
   // Rascunho não tem público, então o painel de cliques só mentiria zero.

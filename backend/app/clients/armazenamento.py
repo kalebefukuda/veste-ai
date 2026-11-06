@@ -41,6 +41,16 @@ def guardar(chave: str, conteudo: bytes, tipo: str) -> None:
         raise StorageUnavailable() from erro
 
 
+def ler(chave: str) -> tuple[bytes, str]:
+    try:
+        objeto = _cliente().get_object(Bucket=get_settings().s3_bucket, Key=chave)
+    except (BotoCoreError, ClientError) as erro:
+        logger.warning("S3 não devolveu %s: %s", chave, erro)
+        raise StorageUnavailable() from erro
+
+    return objeto["Body"].read(), objeto.get("ContentType", "image/jpeg")
+
+
 def endereco_temporario(chave: str) -> str | None:
     bucket = get_settings().s3_bucket
 

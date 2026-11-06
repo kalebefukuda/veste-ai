@@ -513,7 +513,7 @@ describe("composição do look", () => {
     expect(toast.success).toHaveBeenCalledWith("Imagem gerada.");
   });
 
-  it("avisa no diálogo quando a geração bate no limite", async () => {
+  it("avisa junto da foto quando a geração bate no limite", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", responde({ code: "TOO_MANY_REQUESTS", detail: "x" }, false, 429));
     render(<EditorDeLook inicial={COM_FOTO} />);
@@ -521,13 +521,12 @@ describe("composição do look", () => {
     await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
     await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
 
-    const dialogo = screen.getByRole("dialog", { name: /gerar modelo/i });
-    expect(await within(dialogo).findByRole("alert")).toHaveTextContent(
+    expect(await screen.findByRole("alert")).toHaveTextContent(
       "Muitas tentativas. Tente de novo daqui a pouco.",
     );
   });
 
-  // O corpo do diálogo rola, e o aviso nasce no fim dele: abaixo da dobra num notebook.
+  // O aviso nasce embaixo do quadro da foto: abaixo da dobra num notebook.
   it("leva o aviso de erro da geração para a vista", async () => {
     const user = userEvent.setup();
     const rolar = vi.fn();
@@ -538,7 +537,7 @@ describe("composição do look", () => {
     await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
     await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
 
-    const aviso = await within(screen.getByRole("dialog")).findByRole("alert");
+    const aviso = await screen.findByRole("alert");
     await waitFor(() => expect(rolar.mock.contexts).toContain(aviso));
   });
 
@@ -577,18 +576,55 @@ describe("composição do look", () => {
     expect(within(dialogo).getByAltText("Sobretudo")).toBeInTheDocument();
   });
 
-  // O resultado aparece onde a pessoa está olhando, e ela decide se tenta de novo.
-  it("mostra a imagem gerada sem fechar o diálogo", async () => {
+  // A imagem nasce no quadro grande do look, não numa miniatura dentro do diálogo.
+  it("fecha o diálogo e gera no quadro da foto", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal("fetch", responde({ ...RASCUNHO, image_url: "https://s3/gerada.jpg" }));
+    let soltar = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise((resolve) => {
+            soltar = () =>
+              resolve({
+                ok: true,
+                status: 200,
+                json: async () => ({ ...COM_FOTO, image_url: "https://s3/gerada.jpg" }),
+              });
+          }),
+      ),
+    );
     render(<EditorDeLook inicial={COM_FOTO} />);
 
     await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
     await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
 
-    expect(await screen.findByAltText(/modelo gerado/i)).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: /gerar modelo/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /gerar outra/i })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText(/gerando o modelo/i)).toBeInTheDocument();
+
+    soltar();
+
+    expect(await screen.findByAltText(/foto do look/i)).toHaveAttribute(
+      "src",
+      "https://s3/gerada.jpg",
+    );
+    expect(screen.queryByText(/gerando o modelo/i)).not.toBeInTheDocument();
+  });
+
+  // Gerar outra é reabrir o diálogo; ter de remarcar o modelo a cada vez seria castigo.
+  it("lembra o modelo escolhido ao reabrir o diálogo", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde({ ...COM_FOTO, image_url: "https://s3/gerada.jpg" }));
+    render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("radio", { name: /mulher/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Imagem gerada."));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+
+    expect(screen.getByRole("radio", { name: /mulher/i })).toBeChecked();
   });
 
   // O botão fica sempre à vista: é o diferencial da RFC, e sumir com ele fazia
@@ -609,4 +645,173 @@ it("o destaque do card responde também à lixeira", async () => {
 
   expect(container.querySelector("li")?.className).toMatch(/\bgroup\b/);
   expect(container.querySelector("li a")?.className).not.toMatch(/(^|\s)hover:/);
+});
+
+describe("foto da peça", () => {
+  const SEM_FOTO: Look = {
+    ...RASCUNHO,
+    pieces: [
+      { id: "p1", name: "Sobretudo", purchase_url: "https://l/x", image_url: "https://l/f.jpg" },
+      { id: "p2", name: "Bota", purchase_url: "https://l/b" },
+    ],
+  };
+
+  // A foto agora mora no nosso bucket: colar endereço de loja trazia risco e link quebrado.
+  it("pede a foto como arquivo, sem campo de endereço", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+
+    expect(screen.getByLabelText(/foto da peça/i)).toHaveAttribute("type", "file");
+    expect(screen.queryByPlaceholderText(/foto\.jpg/i)).not.toBeInTheDocument();
+  });
+
+  it("cria a peça e envia a foto escolhida em seguida", async () => {
+    const user = userEvent.setup();
+    const peca = { id: "p7", name: "Boné", purchase_url: "https://loja.com/bone" };
+    const chamou = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 201, json: async () => peca })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ ...peca, image_url: "https://s3.exemplo/bone.jpg" }),
+      });
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+    await user.type(screen.getByLabelText(/nome da peça/i), "Boné");
+    await user.type(screen.getByLabelText(/link de compra/i), "https://loja.com/bone");
+    await user.upload(
+      screen.getByLabelText(/foto da peça/i),
+      new File(["bone"], "bone.jpg", { type: "image/jpeg" }),
+    );
+    await user.click(screen.getByRole("button", { name: /^adicionar$/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalledTimes(2));
+    expect(String(chamou.mock.calls[1][0])).toContain("/looks/look-1/pieces/p7/image");
+    expect(chamou.mock.calls[1][1].body).toBeInstanceOf(FormData);
+    expect(await screen.findByText("Boné")).toBeInTheDocument();
+    expect(screen.queryByText(/falta a foto/i)).not.toBeInTheDocument();
+  });
+
+  // Sem foto a peça entra no look, mas o modelo não tem o que vestir dela: a tela diz
+  // isso na própria peça e oferece o envio ali mesmo.
+  it("marca a peça sem foto e deixa enviar pelo card", async () => {
+    const user = userEvent.setup();
+    const chamou = responde({ id: "p2", name: "Bota", purchase_url: "https://l/b", image_url: "https://s3.exemplo/bota.jpg" });
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={SEM_FOTO} />);
+
+    expect(screen.getByText(/falta a foto/i)).toBeInTheDocument();
+
+    await user.upload(
+      screen.getByLabelText(/enviar foto de bota/i),
+      new File(["bota"], "bota.jpg", { type: "image/jpeg" }),
+    );
+
+    await waitFor(() => expect(String(chamou.mock.calls[0][0])).toContain("/pieces/p2/image"));
+    await waitFor(() => expect(screen.queryByText(/falta a foto/i)).not.toBeInTheDocument());
+  });
+
+  // O modelo veste todas as peças: uma sem foto bloqueia a geração, e a tela diz qual.
+  it("bloqueia a geração enquanto faltar foto e diz de qual peça", () => {
+    render(<EditorDeLook inicial={SEM_FOTO} />);
+
+    expect(screen.getByRole("button", { name: /gerar modelo/i })).toBeDisabled();
+    expect(screen.getByText(/envie a foto de bota/i)).toBeInTheDocument();
+  });
+
+  it("explica a recusa da geração por peça sem foto", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      responde({ code: "PIECES_WITHOUT_PHOTO", detail: "x", pieces: ["p1"] }, false, 422),
+    );
+    render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/toda peça precisa de foto/i);
+  });
+});
+
+describe("ajustes do editor", () => {
+  // Link de busca do Google não quebra linha: inteiro no card ele empurrava a página
+  // para o lado. O card mostra a loja, como a página pública já faz.
+  it("mostra só o domínio da loja no card da peça", () => {
+    const longo: Look = {
+      ...RASCUNHO,
+      pieces: [
+        {
+          id: "p1",
+          name: "Camiseta",
+          purchase_url: "https://www.google.com/search?q=camiseta+branca&sca_esv=88edd551f3a1552a",
+          image_url: "https://l/f.jpg",
+        },
+      ],
+    };
+    render(<EditorDeLook inicial={longo} />);
+
+    expect(screen.getByText("google.com")).toBeInTheDocument();
+    expect(screen.queryByText(/search\?q=/)).not.toBeInTheDocument();
+  });
+
+  // O nome do arquivo não diz se a foto é a certa; a miniatura diz.
+  it("mostra a prévia da foto escolhida no diálogo da peça", async () => {
+    const user = userEvent.setup();
+    const criar = vi.fn(() => "blob:previa");
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: criar, revokeObjectURL: vi.fn() }));
+    render(<EditorDeLook inicial={RASCUNHO} />);
+
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+    await user.upload(
+      screen.getByLabelText(/foto da peça/i),
+      new File(["camiseta"], "camiseta.webp", { type: "image/webp" }),
+    );
+
+    expect(screen.getByAltText(/prévia da foto da peça/i)).toHaveAttribute("src", "blob:previa");
+    expect(screen.getByText(/trocar foto/i)).toBeInTheDocument();
+  });
+
+  // O 502 genérico é do envio de e-mail; a geração tem frase própria.
+  it("explica a falha da geração com a frase da geração", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde({ code: "GENERATION_FAILED", detail: "x" }, false, 502));
+    render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/não deu para gerar agora/i);
+  });
+});
+
+describe("remover a foto do look", () => {
+  const COM_IMAGEM: Look = { ...RASCUNHO, image_url: "https://s3/look.jpg", ai_generated: true };
+
+  it("remove a foto do rascunho pelo quadro", async () => {
+    const user = userEvent.setup();
+    const chamou = responde({ ...RASCUNHO, image_url: null });
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={COM_IMAGEM} />);
+
+    await user.click(screen.getByRole("button", { name: /remover foto do look/i }));
+
+    await waitFor(() => expect(chamou).toHaveBeenCalled());
+    expect(String(chamou.mock.calls[0][0])).toBe("/api/looks/look-1/image");
+    expect(chamou.mock.calls[0][1].method).toBe("DELETE");
+    expect(await screen.findByText(/clique para enviar a foto do look/i)).toBeInTheDocument();
+    expect(toast.success).toHaveBeenCalledWith("Foto removida.");
+  });
+
+  // Look publicado sem imagem sairia em branco no feed: a API recusa, e a tela nem oferece.
+  it("não oferece remover a foto de look publicado", () => {
+    render(<EditorDeLook inicial={{ ...COM_IMAGEM, status: "published" }} />);
+
+    expect(screen.queryByRole("button", { name: /remover foto/i })).not.toBeInTheDocument();
+  });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Camera,
   ExternalLink,
   ImagePlus,
   Mars,
@@ -20,9 +21,11 @@ import { Button } from "@/components/ui/Button";
 import {
   adicionarPeca,
   atualizarLook,
+  enviarFotoDaPeca,
   enviarFotoDoLook,
   gerarImagemDoLook,
   publicarLook,
+  removerFotoDoLook,
   removerLook,
   removerPeca,
   type Look,
@@ -31,6 +34,7 @@ import {
   type PresetDoModelo,
 } from "@/lib/api";
 import { CATEGORIAS, type Categoria } from "@/lib/categorias";
+import { dominio } from "@/lib/dominio";
 import { lookPublico, MEUS_LOOKS } from "@/lib/routes";
 
 const CAMPO =
@@ -38,7 +42,15 @@ const CAMPO =
   "placeholder:text-navy/35 focus-visible:border-purple focus-visible:outline-none " +
   "focus-visible:ring-2 focus-visible:ring-purple/30";
 
-export default function EditorDeLook({ inicial }: { inicial: Look }) {
+// RN09: os cliques chegam só para o creator e só com o look publicado; sem eles, o card
+// da peça não fala de cliques.
+export default function EditorDeLook({
+  inicial,
+  cliques,
+}: {
+  inicial: Look;
+  cliques?: Record<string, number>;
+}) {
   const router = useRouter();
   // `salvo` é o que o servidor tem; os campos são o rascunho na tela. A distância
   // entre os dois é o que habilita salvar e descartar.
@@ -52,7 +64,9 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
   const [confirmando, setConfirmando] = useState(false);
   const [adicionando, setAdicionando] = useState(false);
   const [compondo, setCompondo] = useState(false);
-  const [geradaAgora, setGeradaAgora] = useState<string | null>(null);
+  const [preset, setPreset] = useState<PresetDoModelo>({});
+  const [falhaEm, setFalhaEm] = useState<string | null>(null);
+  const avisoDaFoto = useRef<HTMLParagraphElement>(null);
 
   const fecharDialogo = useCallback(() => {
     setAdicionando(false);
@@ -73,13 +87,22 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
       router.refresh();
     } catch (falha) {
       setErro((falha as Error).message);
+      setFalhaEm(nome);
     } finally {
       setOcupado(null);
     }
   }
 
   const publicado = salvo.status === "published";
-  const podeGerar = salvo.pieces.some((p) => p.image_url);
+  const erroDaFoto = erro && falhaEm && NA_FOTO.has(falhaEm) ? erro : null;
+
+  useEffect(() => {
+    if (erroDaFoto) avisoDaFoto.current?.scrollIntoView({ block: "nearest" });
+  }, [erroDaFoto]);
+
+  // O modelo veste todas as peças: uma sem foto deixaria a imagem mentir sobre o look.
+  const semFoto = salvo.pieces.filter((p) => !p.image_url);
+  const podeGerar = salvo.pieces.length > 0 && semFoto.length === 0;
   const sujo =
     titulo !== salvo.title ||
     descricao !== (salvo.description ?? "") ||
@@ -108,68 +131,107 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
   }
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:items-start lg:gap-14">
+    // `minmax(0, …)`: sem o zero, um texto que não quebra linha alarga a coluna e empurra
+    // a página para o lado.
+    <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start lg:gap-14">
       {/* Fixa e mais larga que a coluna do cadastro: a foto é o produto, e acompanha
           as etapas em vez de acabar no meio do caminho. */}
       <div className="lg:sticky lg:top-6">
-        {/* O quadrado é o próprio seletor de arquivo: clicar na foto é o gesto óbvio,
-            e um campo de upload solto no meio do formulário não era. */}
-        <label
-          className="group relative block aspect-[3/4] w-full cursor-pointer overflow-hidden
-            rounded-[2rem] border border-navy/12 bg-navy/[0.04] transition
-            hover:border-purple/40 focus-within:ring-2 focus-within:ring-purple
-            focus-within:ring-offset-2"
-        >
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            aria-label="Enviar foto do look"
-            disabled={ocupado !== null}
-            onChange={(e) => {
-              const arquivo = e.target.files?.[0];
-              if (!arquivo) return;
+        <div className="relative">
+          {/* O quadrado é o próprio seletor de arquivo: clicar na foto é o gesto óbvio,
+              e um campo de upload solto no meio do formulário não era. */}
+          <label
+            className="group relative block aspect-[3/4] w-full cursor-pointer overflow-hidden
+              rounded-[2rem] border border-navy/12 bg-navy/[0.04] transition
+              hover:border-purple/40 focus-within:ring-2 focus-within:ring-purple
+              focus-within:ring-offset-2"
+          >
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-label="Enviar foto do look"
+              disabled={ocupado !== null}
+              onChange={(e) => {
+                const arquivo = e.target.files?.[0];
+                if (!arquivo) return;
 
-              void executar("foto", async () => {
-                const atualizado = await enviarFotoDoLook(salvo.id, arquivo);
-                setSalvo(atualizado);
-                setImagem(atualizado.image_url ?? "");
-                toast.success("Foto enviada.");
-              });
-            }}
-            className="sr-only"
-          />
+                void executar("foto", async () => {
+                  const atualizado = await enviarFotoDoLook(salvo.id, arquivo);
+                  setSalvo(atualizado);
+                  setImagem(atualizado.image_url ?? "");
+                  toast.success("Foto enviada.");
+                });
+              }}
+              className="sr-only"
+            />
 
-          {imagem ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imagem} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="grid h-full w-full place-content-center place-items-center gap-3 px-8 text-center">
-              <ImagePlus size={28} aria-hidden className="text-navy/35" />
-              <span className="text-sm font-semibold text-navy/70">
-                Clique para enviar a foto do look
+            {imagem ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imagem} alt="Foto do look" className="h-full w-full object-cover" />
+            ) : (
+              <span className="grid h-full w-full place-content-center place-items-center gap-3 px-8 text-center">
+                <ImagePlus size={28} aria-hidden className="text-navy/35" />
+                <span className="text-sm font-semibold text-navy/70">
+                  Clique para enviar a foto do look
+                </span>
+                <span className="max-w-[28ch] text-sm leading-relaxed text-navy/50">
+                  JPEG, PNG ou WebP de até 5 MB. Ou gere o modelo a partir das peças.
+                </span>
               </span>
-              <span className="max-w-[28ch] text-sm leading-relaxed text-navy/50">
-                JPEG, PNG ou WebP de até 5 MB. Ou gere o modelo a partir das peças.
-              </span>
-            </span>
-          )}
+            )}
 
-          {imagem && (
-            <span
-              className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t
-                from-navy/80 to-transparent px-5 pb-4 pt-10 text-sm font-semibold text-white
-                opacity-0 transition group-hover:opacity-100"
+            {imagem && (
+              <span
+                className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t
+                  from-navy/80 to-transparent px-5 pb-4 pt-10 text-sm font-semibold text-white
+                  opacity-0 transition group-hover:opacity-100"
+              >
+                Clique para trocar a foto
+              </span>
+            )}
+
+            {ocupado && NA_FOTO.has(ocupado) && (
+              <span
+                role="status"
+                className="absolute inset-0 grid place-content-center place-items-center gap-2
+                  bg-white/80 px-8 text-center text-navy backdrop-blur-sm"
+              >
+                {ocupado === "gerar" && (
+                  <Sparkles size={26} aria-hidden className="mb-1 text-purple motion-safe:animate-pulse" />
+                )}
+                <span className="text-sm font-semibold">{NA_FOTO.get(ocupado)}</span>
+                {ocupado === "gerar" && (
+                  <span className="text-sm text-navy/60">Isso leva alguns segundos.</span>
+                )}
+              </span>
+            )}
+          </label>
+
+          {/* Fora do label: botão dentro dele abriria o seletor de arquivo. Publicado não
+              remove, porque o feed exige imagem — trocar continua valendo. */}
+          {imagem && !publicado && (
+            <button
+              type="button"
+              aria-label="Remover foto do look"
+              title="Remover foto"
+              disabled={ocupado !== null}
+              onClick={() =>
+                void executar("tirar-foto", async () => {
+                  const atualizado = await removerFotoDoLook(salvo.id);
+                  setSalvo(atualizado);
+                  setImagem(atualizado.image_url ?? "");
+                  toast.success("Foto removida.");
+                })
+              }
+              className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full
+                bg-white/90 text-navy/70 shadow-sm shadow-navy/10 backdrop-blur transition
+                hover:bg-white hover:text-navy focus-visible:ring-2 focus-visible:ring-purple/40
+                focus-visible:ring-offset-2 disabled:opacity-50"
             >
-              Clique para trocar a foto
-            </span>
+              <Trash2 size={18} aria-hidden />
+            </button>
           )}
-
-          {ocupado === "foto" && (
-            <span className="absolute inset-0 grid place-items-center bg-white/80 text-sm font-semibold text-navy">
-              Enviando a foto…
-            </span>
-          )}
-        </label>
+        </div>
 
         <div>
           {/* Sempre à vista, desabilitado enquanto não há o que vestir: sumir com ele
@@ -181,7 +243,6 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
             disabled={!podeGerar || ocupado !== null}
             className="mt-4 text-sm"
             onClick={() => {
-              setGeradaAgora(null);
               setErro(null);
               setCompondo(true);
             }}
@@ -191,10 +252,18 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
           </Button>
 
           <p className="mt-2 text-sm leading-relaxed text-navy/60">
-            {podeGerar
-              ? "O modelo veste as peças que você anexou, em foto de estúdio 3:4."
-              : "Cadastre ao menos uma peça com foto para o modelo ter o que vestir."}
+            {avisoDaGeracao(salvo.pieces.length, semFoto)}
           </p>
+
+          {erroDaFoto && (
+            <p
+              ref={avisoDaFoto}
+              role="alert"
+              className="mt-3 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy"
+            >
+              {erroDaFoto}
+            </p>
+          )}
         </div>
       </div>
 
@@ -322,21 +391,61 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
                   key={p.id}
                   className="flex items-center gap-4 rounded-2xl border border-navy/10 p-3"
                 >
-                  <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-navy/[0.05]">
-                    {p.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                  {p.image_url ? (
+                    <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-navy/[0.05]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p.image_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <ExternalLink size={16} aria-hidden className="text-navy/30" />
-                    )}
-                  </span>
+                    </span>
+                  ) : (
+                    // Sem foto, o espaço da miniatura vira o próprio envio: é ali que falta.
+                    <label
+                      className="grid h-14 w-14 shrink-0 cursor-pointer place-items-center rounded-xl
+                        border border-dashed border-rose/60 bg-rose/[0.06] text-navy/60 transition
+                        hover:border-purple/50 hover:text-purple focus-within:ring-2
+                        focus-within:ring-purple focus-within:ring-offset-2"
+                    >
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        aria-label={`Enviar foto de ${p.name}`}
+                        disabled={ocupado !== null}
+                        onChange={(e) => {
+                          const arquivo = e.target.files?.[0];
+                          if (!arquivo) return;
+
+                          void executar(`foto-${p.id}`, async () => {
+                            const atualizada = await enviarFotoDaPeca(salvo.id, p.id, arquivo);
+                            setSalvo({
+                              ...salvo,
+                              pieces: salvo.pieces.map((x) => (x.id === p.id ? atualizada : x)),
+                            });
+                            toast.success(`Foto de ${p.name} enviada.`);
+                          });
+                        }}
+                        className="sr-only"
+                      />
+                      <Camera size={18} aria-hidden />
+                    </label>
+                  )}
 
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-navy">{p.name}</span>
-                    <span className="mt-0.5 block truncate text-sm text-navy/55">
-                      {p.store ?? p.purchase_url}
-                    </span>
+                    {p.image_url ? (
+                      <span className="mt-0.5 block truncate text-sm text-navy/55">
+                        {p.store ?? dominio(p.purchase_url)}
+                      </span>
+                    ) : (
+                      <span className="mt-0.5 block text-sm font-medium text-navy">
+                        Falta a foto
+                      </span>
+                    )}
                   </span>
+
+                  {cliques && (
+                    <span className="shrink-0 text-sm text-navy/60">
+                      {`${cliques[p.id] ?? 0} ${cliques[p.id] === 1 ? "clique" : "cliques"}`}
+                    </span>
+                  )}
 
                   {p.price && (
                     <span className="shrink-0 text-sm font-semibold text-navy">
@@ -384,7 +493,7 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
         {/* Publicar e excluir são as duas saídas da tela: separá-los em blocos
             distantes fazia procurar a segunda. */}
         <section className="mt-10 border-t border-navy/10 pt-8">
-          {erro && !adicionando && !compondo && (
+          {erro && !erroDaFoto && !adicionando && !compondo && (
             <p
               role="alert"
               className="mb-5 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy"
@@ -489,19 +598,19 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
       {compondo && (
         <DialogoDeGeracao
           pecas={salvo.pieces}
-          erro={erro}
-          gerando={ocupado === "gerar"}
-          gerada={geradaAgora}
+          preset={preset}
+          onPreset={setPreset}
           onFechar={fecharGeracao}
-          onGerar={(preset) =>
+          onGerar={() => {
+            // A imagem nasce no quadro grande, onde ela vai morar; o diálogo só escolhe.
+            setCompondo(false);
             void executar("gerar", async () => {
               const atualizado = await gerarImagemDoLook(salvo.id, preset);
               setSalvo(atualizado);
               setImagem(atualizado.image_url ?? "");
-              setGeradaAgora(atualizado.image_url ?? "");
               toast.success("Imagem gerada.");
-            })
-          }
+            });
+          }}
         />
       )}
 
@@ -510,12 +619,30 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
           erro={erro}
           salvando={ocupado === "peca"}
           onFechar={fecharDialogo}
-          onEnviar={(dados) =>
+          onEnviar={(dados, arquivo) =>
             void executar("peca", async () => {
               const nova = await adicionarPeca(salvo.id, dados);
-              setSalvo({ ...salvo, pieces: [...salvo.pieces, nova] });
+              let peca = nova;
+              let falhaNaFoto: string | null = null;
+
+              // A peça já existe quando a foto sobe: se o envio falhar, ela fica no look
+              // marcada sem foto, e reenviar é um clique no próprio card.
+              if (arquivo) {
+                try {
+                  peca = await enviarFotoDaPeca(salvo.id, nova.id, arquivo);
+                } catch (falha) {
+                  falhaNaFoto = (falha as Error).message;
+                }
+              }
+
+              setSalvo({ ...salvo, pieces: [...salvo.pieces, peca] });
               setAdicionando(false);
-              toast.success(`${nova.name} entrou no look.`);
+
+              if (falhaNaFoto) {
+                toast.error(`${nova.name} entrou no look, mas a foto não: ${falhaNaFoto}`);
+              } else {
+                toast.success(`${nova.name} entrou no look.`);
+              }
             })
           }
         />
@@ -524,18 +651,34 @@ export default function EditorDeLook({ inicial }: { inicial: Look }) {
   );
 }
 
-const PECA_VAZIA = { name: "", purchase_url: "", store: "", image_url: "", price: "" };
+const PECA_VAZIA = { name: "", purchase_url: "", store: "", price: "" };
 
-// Campo vazio não pode virar `""` no corpo: o backend valida `image_url` como link e
-// `price` como número, e string vazia reprova nos dois.
+const NA_FOTO = new Map([
+  ["foto", "Enviando a foto…"],
+  ["gerar", "Gerando o modelo…"],
+  ["tirar-foto", "Removendo a foto…"],
+]);
+
+// Campo vazio não pode virar `""` no corpo: o backend valida `price` como número, e
+// string vazia reprova.
 function soOPreenchido(peca: typeof PECA_VAZIA): PecaNova {
   return {
     name: peca.name,
     purchase_url: peca.purchase_url,
     ...(peca.store ? { store: peca.store } : {}),
-    ...(peca.image_url ? { image_url: peca.image_url } : {}),
     ...(peca.price ? { price: peca.price } : {}),
   };
+}
+
+function avisoDaGeracao(total: number, semFoto: Peca[]): string {
+  if (total === 0) return "Cadastre ao menos uma peça com foto para o modelo ter o que vestir.";
+
+  if (semFoto.length > 0) {
+    const nomes = semFoto.map((p) => p.name).join(", ");
+    return `Envie a foto de ${nomes}: o modelo veste todas as peças do look.`;
+  }
+
+  return "O modelo veste as peças que você anexou, em foto de estúdio 3:4.";
 }
 
 // A casca é a mesma nos dois diálogos: sobreposição, Esc, clique fora e a faixa de
@@ -631,33 +774,23 @@ const COMPRIMENTOS = [
 // o mesmo look, e a vitrine perde a unidade que o 3:4 garante do outro lado.
 function DialogoDeGeracao({
   pecas,
-  erro,
-  gerando,
-  gerada,
+  preset,
+  onPreset,
   onFechar,
   onGerar,
 }: {
   pecas: Peca[];
-  erro: string | null;
-  gerando: boolean;
-  gerada: string | null;
+  preset: PresetDoModelo;
+  onPreset: (preset: PresetDoModelo) => void;
   onFechar: () => void;
-  onGerar: (preset: PresetDoModelo) => void;
+  onGerar: () => void;
 }) {
-  const [preset, setPreset] = useState<PresetDoModelo>({});
-  const aviso = useRef<HTMLParagraphElement>(null);
-
-  // O aviso nasce no fim do corpo rolável: sem isto fica abaixo da dobra.
-  useEffect(() => {
-    if (erro) aviso.current?.scrollIntoView({ block: "nearest" });
-  }, [erro]);
-
   const referencias = pecas.flatMap((peca) =>
     peca.image_url ? [{ id: peca.id, nome: peca.name, url: peca.image_url }] : [],
   );
 
   return (
-    <Dialogo titulo="Gerar modelo com IA" travado={gerando} onFechar={onFechar}>
+    <Dialogo titulo="Gerar modelo com IA" travado={false} onFechar={onFechar}>
       <div className="max-h-[60vh] overflow-y-auto px-6 py-6 sm:px-8">
         {/* Mostrar o que entra de referência é o que separa gerar de caixa-preta. */}
         <p className="text-sm font-semibold text-navy">
@@ -689,7 +822,7 @@ function DialogoDeGeracao({
                   name="genero"
                   value={valor}
                   checked={preset.gender === valor}
-                  onChange={() => setPreset({ ...preset, gender: valor })}
+                  onChange={() => onPreset({ ...preset, gender: valor })}
                   className="peer sr-only"
                 />
                 <span className={ESCOLHA}>
@@ -712,7 +845,7 @@ function DialogoDeGeracao({
                   name="cabelo"
                   value={valor}
                   checked={preset.hair_color === valor}
-                  onChange={() => setPreset({ ...preset, hair_color: valor })}
+                  onChange={() => onPreset({ ...preset, hair_color: valor })}
                   className="peer sr-only"
                 />
                 <span className={ESCOLHA}>
@@ -735,7 +868,7 @@ function DialogoDeGeracao({
                   name="comprimento"
                   value={valor}
                   checked={preset.hair_length === valor}
-                  onChange={() => setPreset({ ...preset, hair_length: valor })}
+                  onChange={() => onPreset({ ...preset, hair_length: valor })}
                   className="peer sr-only"
                 />
                 <span className={ESCOLHA}>{rotulo}</span>
@@ -748,59 +881,16 @@ function DialogoDeGeracao({
           Deixar em branco vale: aí o modelo fica por conta da IA. O enquadramento é
           sempre o mesmo — estúdio, corpo inteiro, 3:4.
         </p>
-
-        {/* O resultado aparece onde a pessoa está olhando, e é daqui que ela decide
-            tentar de novo. */}
-        {(gerando || gerada) && (
-          <div className="mt-6 grid aspect-[3/4] max-h-[40vh] place-items-center overflow-hidden rounded-2xl border border-navy/12 bg-navy/[0.04]">
-            {gerando ? (
-              <span className="flex flex-col items-center gap-3 text-sm font-semibold text-navy/70">
-                <Sparkles size={22} aria-hidden className="motion-safe:animate-pulse" />
-                Gerando… isso leva alguns segundos
-              </span>
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={gerada ?? ""}
-                alt="Modelo gerado"
-                className="h-full w-full object-cover"
-              />
-            )}
-          </div>
-        )}
-
-        {erro && (
-          <p
-            ref={aviso}
-            role="alert"
-            className="mt-5 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy"
-          >
-            {erro}
-          </p>
-        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-navy/10 bg-navy/[0.02] px-6 py-4 sm:px-8">
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={gerando}
-          onClick={onFechar}
-          className="text-sm"
-        >
-          {gerada ? "Usar esta" : "Cancelar"}
+        <Button type="button" variant="ghost" onClick={onFechar} className="text-sm">
+          Cancelar
         </Button>
 
-        <Button
-          type="button"
-          loading={gerando}
-          loadingLabel="Gerando…"
-          disabled={gerando}
-          onClick={() => onGerar(preset)}
-          className="text-sm"
-        >
+        <Button type="button" onClick={onGerar} className="text-sm">
           <Sparkles size={16} aria-hidden />
-          {gerada ? "Gerar outra" : "Gerar imagem"}
+          Gerar imagem
         </Button>
       </div>
     </Dialogo>
@@ -816,10 +906,24 @@ function DialogoDePeca({
   erro: string | null;
   salvando: boolean;
   onFechar: () => void;
-  onEnviar: (dados: PecaNova) => void;
+  onEnviar: (dados: PecaNova, arquivo: File | null) => void;
 }) {
   const [peca, setPeca] = useState(PECA_VAZIA);
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [previa, setPrevia] = useState<string | null>(null);
   const primeiro = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!arquivo || typeof URL.createObjectURL !== "function") {
+      setPrevia(null);
+      return;
+    }
+
+    const endereco = URL.createObjectURL(arquivo);
+    setPrevia(endereco);
+
+    return () => URL.revokeObjectURL(endereco);
+  }, [arquivo]);
 
   useEffect(() => {
     primeiro.current?.focus();
@@ -830,7 +934,7 @@ function DialogoDePeca({
       <form
         onSubmit={(evento) => {
           evento.preventDefault();
-          onEnviar(soOPreenchido(peca));
+          onEnviar(soOPreenchido(peca), arquivo);
         }}
       >
         <div className="px-6 py-6 sm:px-8">
@@ -864,16 +968,42 @@ function DialogoDePeca({
           <label htmlFor="peca-foto" className="mt-5 block text-sm font-semibold text-navy">
             Foto da peça <span className="font-normal text-navy/55">opcional</span>
           </label>
-          <input
-            id="peca-foto"
-            type="url"
-            value={peca.image_url}
-            onChange={(e) => setPeca({ ...peca, image_url: e.target.value })}
-            placeholder="https://loja.com/foto.jpg"
-            className={`mt-2 ${CAMPO}`}
-          />
+          {/* O quadro é o próprio seletor, com a miniatura do que foi escolhido: o nome
+              do arquivo não diz se a foto é a certa. */}
+          <label
+            className="mt-2 flex cursor-pointer items-center gap-4 rounded-2xl border border-dashed
+              border-navy/20 p-3 transition hover:border-purple/50 focus-within:ring-2
+              focus-within:ring-purple focus-within:ring-offset-2"
+          >
+            {/* Sem `capture`: no celular o sistema oferece câmera e galeria, e forçar a
+                câmera tiraria a foto de catálogo que a pessoa já tem salva. */}
+            <input
+              id="peca-foto"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+              className="sr-only"
+            />
+            <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-navy/[0.05]">
+              {previa ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={previa} alt="Prévia da foto da peça" className="h-full w-full object-cover" />
+              ) : (
+                <ImagePlus size={20} aria-hidden className="text-navy/40" />
+              )}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-navy">
+                {arquivo ? "Trocar foto" : "Escolher foto"}
+              </span>
+              <span className="mt-0.5 block truncate text-sm text-navy/55">
+                {arquivo ? arquivo.name : "JPEG, PNG ou WebP, até 5 MB"}
+              </span>
+            </span>
+          </label>
           <p className="mt-2 text-sm leading-relaxed text-navy/60">
-            É esta foto que a IA usa de referência para vestir o modelo.
+            É esta foto que a IA usa de referência para vestir o modelo. Sem ela, a peça
+            entra no look, mas a geração por IA fica bloqueada.
           </p>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-2">

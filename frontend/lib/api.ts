@@ -132,6 +132,11 @@ function messageFor(status: number, data: ApiError | null): string {
     return "Muitas tentativas. Tente de novo daqui a pouco.";
   }
 
+  // Antes do 502 genérico, que é do envio de e-mail: a geração também responde 502.
+  if (data?.code === "GENERATION_FAILED") {
+    return "Não deu para gerar agora. Tente de novo ou envie uma foto.";
+  }
+
   if (status === 502) {
     return "Não conseguimos enviar agora. Tente de novo em alguns minutos.";
   }
@@ -144,12 +149,12 @@ function messageFor(status: number, data: ApiError | null): string {
     return "A geração por IA ainda não está disponível.";
   }
 
-  if (data?.code === "GENERATION_FAILED") {
-    return "Não deu para gerar agora. Tente de novo ou envie uma foto.";
-  }
-
   if (data?.code === "NOTHING_TO_COMPOSE") {
     return "Adicione ao menos uma peça com foto para gerar o look.";
+  }
+
+  if (data?.code === "PIECES_WITHOUT_PHOTO") {
+    return "Toda peça precisa de foto para gerar o look. Envie a foto das peças marcadas.";
   }
 
   if (data?.code === "STORAGE_UNAVAILABLE") {
@@ -271,14 +276,14 @@ export function criarLook(dados: NovoLookDados): Promise<Look> {
 }
 
 // Multipart, então não passa pelo `send`, que serializa JSON.
-export async function enviarFotoDoLook(id: string, arquivo: File): Promise<Look> {
+async function enviarArquivo<T>(caminho: string, arquivo: File): Promise<T> {
   const corpo = new FormData();
   corpo.append("arquivo", arquivo);
 
   let resposta: Response;
 
   try {
-    resposta = await fetch(`/api/looks/${id}/image`, { method: "POST", body: corpo });
+    resposta = await fetch(caminho, { method: "POST", body: corpo });
   } catch {
     throw new Error("Não foi possível conectar. Verifique sua internet e tente de novo.");
   }
@@ -287,8 +292,17 @@ export async function enviarFotoDoLook(id: string, arquivo: File): Promise<Look>
 
   if (!resposta.ok) throw new Error(messageFor(resposta.status, dados));
 
-  return dados as Look;
+  return dados as T;
 }
+
+export const enviarFotoDoLook = (id: string, arquivo: File) =>
+  enviarArquivo<Look>(`/api/looks/${id}/image`, arquivo);
+
+export const enviarFotoDaPeca = (lookId: string, pecaId: string, arquivo: File) =>
+  enviarArquivo<Peca>(`/api/looks/${lookId}/pieces/${pecaId}/image`, arquivo);
+
+export const removerFotoDoLook = (id: string) =>
+  send<Look>("DELETE", `/api/looks/${id}/image`, undefined);
 
 export type PresetDoModelo = {
   gender?: "feminino" | "masculino";
