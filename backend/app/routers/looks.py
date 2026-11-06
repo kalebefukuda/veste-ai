@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Request, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user
@@ -20,6 +20,7 @@ from app.core.exceptions import (
     StorageUnavailable,
     UnsafeLink,
 )
+from app.core.rate_limit import LIMIT_GENERATE, limiter
 from app.database import get_db
 from app.models.look import Look
 from app.models.user import User
@@ -160,7 +161,9 @@ async def enviar_imagem(
 
 # RF17 e o diferencial da RFC: o modelo veste as peças que a pessoa anexou.
 @router.post("/{look_id}/generate")
+@limiter.limit(LIMIT_GENERATE)
 def gerar_imagem(
+    request: Request,
     look_id: uuid.UUID,
     user: Autenticado,
     service: Servico,
