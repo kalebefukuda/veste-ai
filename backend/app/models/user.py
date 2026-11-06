@@ -40,5 +40,9 @@ class User(Base):
     # requisição autenticada, e `selectin` aqui faria cada uma delas puxar todos os
     # looks e, por tabela, todas as peças. Só o export percorre isto.
     looks: Mapped[list["Look"]] = relationship(
-        back_populates="creator", order_by="Look.created_at.desc()"
+        back_populates="creator",
+        order_by="Look.created_at.desc()",
+        # Quem apaga é o ON DELETE CASCADE; sem isto o ORM anula `user_id` antes e estoura.
+        cascade="all, delete",
+        passive_deletes=True,
     )
