@@ -7,7 +7,7 @@ import { apiUrl, readSession } from "@/lib/session";
 // autorização difícil de enxergar na revisão.
 export async function encaminhar(
   caminho: string,
-  init: { method: string; body?: unknown } = { method: "GET" },
+  init: { method: string; body?: unknown; headers?: Record<string, string> } = { method: "GET" },
 ): Promise<NextResponse> {
   const token = readSession();
 
@@ -18,6 +18,7 @@ export async function encaminhar(
   const resposta = await fetch(apiUrl(caminho), {
     method: init.method,
     headers: {
+      ...init.headers,
       Authorization: `Bearer ${token}`,
       ...(init.body === undefined ? {} : { "Content-Type": "application/json" }),
     },
