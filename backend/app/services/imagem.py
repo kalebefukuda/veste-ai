@@ -10,11 +10,12 @@ from app.core.exceptions import (
     ImageTooLarge,
     InvalidImage,
     NothingToCompose,
+    PiecesWithoutPhoto,
     StorageUnavailable,
 )
-from app.models.look import Look
+from app.models.look import Look, Piece
 from app.schemas.feed import FeedLookOut
-from app.schemas.look import ModeloDoLook
+from app.schemas.look import LookOut, ModeloDoLook
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ def _tipo_pelos_bytes(conteudo: bytes) -> str | None:
     )
 
 
-def guardar(look: Look, conteudo: bytes, tipo: str) -> str:
+def guardar(pasta: str, conteudo: bytes, tipo: str) -> str:
     if tipo not in ASSINATURAS:
         raise InvalidImage()
 
@@ -58,12 +59,19 @@ def guardar(look: Look, conteudo: bytes, tipo: str) -> str:
     if _tipo_pelos_bytes(conteudo) != tipo:
         raise InvalidImage()
 
-    # `uuid` no nome para troca de foto não colidir com a anterior em cache, e prefixo
-    # com o id do look para o bucket ficar legível.
-    chave = f"looks/{look.id}/{uuid.uuid4()}.{EXTENSOES[tipo]}"
+    # `uuid` no nome para troca de foto não colidir com a anterior em cache, e a pasta
+    # com os ids do look e da peça para o bucket ficar legível.
+    chave = f"{pasta}/{uuid.uuid4()}.{EXTENSOES[tipo]}"
     armazenamento.guardar(chave, conteudo, tipo)
 
     return chave
+
+
+def _foto_da_peca(peca: Piece) -> tuple[bytes, str] | None:
+    if peca.image_key:
+        return armazenamento.ler(peca.image_key)
+
+    return gemini.buscar_foto(peca.image_url) if peca.image_url else None
 
 
 def gerar_do_look(look: Look, modelo: ModeloDoLook | None = None) -> str:
@@ -76,14 +84,19 @@ def gerar_do_look(look: Look, modelo: ModeloDoLook | None = None) -> str:
     if not armazenamento.disponivel():
         raise StorageUnavailable()
 
-    fotos = [
-        foto
-        for peca in look.pieces
-        if peca.image_url and (foto := gemini.buscar_foto(peca.image_url))
-    ]
+    # Sem peça não há o que compor: o modelo devolveria alguém vestindo o que ele
+    # inventou, não o look da pessoa.
+    if not look.pieces:
+        raise NothingToCompose()
 
-    # Sem peça com foto não há o que compor: o modelo devolveria alguém vestindo o que
-    # ele inventou, não o look da pessoa.
+    # O modelo veste todas as peças; uma sem foto deixaria a imagem mentir sobre o look.
+    sem_foto = [str(peca.id) for peca in look.pieces if not (peca.image_key or peca.image_url)]
+
+    if sem_foto:
+        raise PiecesWithoutPhoto(sem_foto)
+
+    fotos = [foto for peca in look.pieces if (foto := _foto_da_peca(peca))]
+
     if not fotos:
         raise NothingToCompose()
 
@@ -108,18 +121,25 @@ def gerar_do_look(look: Look, modelo: ModeloDoLook | None = None) -> str:
 
 
 # Chave enviada ganha endereço assinado; endereço colado à mão continua como está. Os
-# looks que já existiam não podem parar de ter foto por causa da coluna nova.
-def endereco(look: Look) -> str | None:
-    if look.image_key:
-        return armazenamento.endereco_temporario(look.image_key)
+# looks e as peças que já existiam não podem parar de ter foto por causa da coluna nova.
+def endereco(origem: Look | Piece) -> str | None:
+    if origem.image_key:
+        return armazenamento.endereco_temporario(origem.image_key)
 
-    return look.image_url
+    return origem.image_url
 
 
-# Fábrica única do que a vitrine mostra: o endereço assinado tem de ser resolvido em
-# toda tela que devolve look, e esquecer uma deixaria a foto enviada invisível nela.
+# Ponto único: o endereço assinado tem de ser resolvido em toda tela que devolve look,
+# e esquecer uma deixaria a foto enviada — do look ou da peça — invisível nela.
+def resolver_enderecos(saida: LookOut | FeedLookOut, look: Look) -> None:
+    saida.image_url = endereco(look)
+
+    for saida_da_peca, peca in zip(saida.pieces, look.pieces, strict=True):
+        saida_da_peca.image_url = endereco(peca)
+
+
 def para_vitrine(look: Look) -> FeedLookOut:
     saida = FeedLookOut.model_validate(look)
-    saida.image_url = endereco(look)
+    resolver_enderecos(saida, look)
 
     return saida

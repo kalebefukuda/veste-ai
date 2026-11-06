@@ -64,6 +64,7 @@ class Piece(Base):
     price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     purchase_url: Mapped[str] = mapped_column(Text)
     image_url: Mapped[str | None] = mapped_column(Text)
+    image_key: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()")
     )

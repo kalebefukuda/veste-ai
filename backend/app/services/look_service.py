@@ -76,7 +76,7 @@ class LookService:
 
     def set_image(self, look_id: uuid.UUID, conteudo: bytes, tipo: str, user_id: uuid.UUID) -> Look:
         look = self._meu(look_id, user_id)
-        look.image_key = imagem.guardar(look, conteudo, tipo)
+        look.image_key = imagem.guardar(f"looks/{look.id}", conteudo, tipo)
         look.ai_generated = False
 
         return look
@@ -102,12 +102,31 @@ class LookService:
 
         return self.looks.add_piece(look, Piece(**dados.model_dump()))
 
-    def remove_piece(self, look_id: uuid.UUID, piece_id: uuid.UUID, user_id: uuid.UUID) -> None:
-        look = self._meu(look_id, user_id)
+    def _minha_peca(self, look: Look, piece_id: uuid.UUID) -> Piece:
         peca = self.looks.get_piece(piece_id)
 
         if peca is None or peca.look_id != look.id:
             raise LookNotFound()
+
+        return peca
+
+    def set_piece_image(
+        self,
+        look_id: uuid.UUID,
+        piece_id: uuid.UUID,
+        conteudo: bytes,
+        tipo: str,
+        user_id: uuid.UUID,
+    ) -> Piece:
+        look = self._meu(look_id, user_id)
+        peca = self._minha_peca(look, piece_id)
+        peca.image_key = imagem.guardar(f"looks/{look.id}/pieces/{peca.id}", conteudo, tipo)
+
+        return peca
+
+    def remove_piece(self, look_id: uuid.UUID, piece_id: uuid.UUID, user_id: uuid.UUID) -> None:
+        look = self._meu(look_id, user_id)
+        peca = self._minha_peca(look, piece_id)
 
         # RN04 vale também na remoção: tirar a última peça deixaria um look publicado
         # no ar sem nenhum caminho de compra, que é o que a regra existe para impedir.
