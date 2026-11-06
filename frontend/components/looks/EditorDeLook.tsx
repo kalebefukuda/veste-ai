@@ -645,6 +645,12 @@ function DialogoDeGeracao({
   onGerar: (preset: PresetDoModelo) => void;
 }) {
   const [preset, setPreset] = useState<PresetDoModelo>({});
+  const aviso = useRef<HTMLParagraphElement>(null);
+
+  // O aviso nasce no fim do corpo rolável: sem isto fica abaixo da dobra.
+  useEffect(() => {
+    if (erro) aviso.current?.scrollIntoView({ block: "nearest" });
+  }, [erro]);
 
   const referencias = pecas.flatMap((peca) =>
     peca.image_url ? [{ id: peca.id, nome: peca.name, url: peca.image_url }] : [],
@@ -764,7 +770,11 @@ function DialogoDeGeracao({
         )}
 
         {erro && (
-          <p role="alert" className="mt-5 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy">
+          <p
+            ref={aviso}
+            role="alert"
+            className="mt-5 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy"
+          >
             {erro}
           </p>
         )}
