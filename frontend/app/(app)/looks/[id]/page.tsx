@@ -7,47 +7,12 @@ import EditorDeLook from "@/components/looks/EditorDeLook";
 import { MEUS_LOOKS } from "@/lib/routes";
 import { carregarLook, carregarMetricas } from "@/lib/looks";
 
-import type { MetricasDoLook } from "@/lib/api";
-
 export const metadata: Metadata = {
   title: "Editar look — VesteAí",
 };
 
-// Componente síncrono, com os dados vindos da página: componente assíncrono
-// aninhado funciona no servidor mas não renderiza em teste, e o painel ficaria sem
-// prova.
-function Cliques({ metricas }: { metricas: MetricasDoLook }) {
-  return (
-    <section className="mt-10 rounded-3xl border border-navy/12 bg-navy/[0.02] p-6">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <span className="text-3xl font-bold tracking-[-0.03em] text-navy">
-          {metricas.clicks}
-        </span>
-        <span className="text-sm font-semibold text-navy/70">
-          {metricas.clicks === 1 ? "clique em link de compra" : "cliques em links de compra"}
-        </span>
-      </div>
-
-      {metricas.pieces.length > 0 && (
-        <ul className="mt-5 space-y-2">
-          {metricas.pieces.map((peca) => (
-            <li
-              key={peca.id}
-              className="flex items-center justify-between gap-4 border-t border-navy/10 pt-2
-                text-sm"
-            >
-              <span className="min-w-0 truncate text-navy/75">{peca.name}</span>
-              <span className="shrink-0 font-semibold text-navy">{peca.clicks}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <p className="mt-5 text-sm leading-relaxed text-navy/55">
-        Conta quando alguém sai daqui para a loja. Só você vê estes números.
-      </p>
-    </section>
-  );
+function totalDeCliques(total: number): string {
+  return `${total} ${total === 1 ? "clique" : "cliques"} nos links`;
 }
 
 export default async function EditarLookPage({ params }: { params: { id: string } }) {
@@ -62,26 +27,26 @@ export default async function EditarLookPage({ params }: { params: { id: string 
   const metricas = look.status === "published" ? await carregarMetricas(look.id) : null;
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-14 lg:py-20">
-      {/* Botão de verdade, com área de clique: texto pelado com uma seta digitada
-          não parece clicável e não dá alvo no toque. */}
-      <Link
-        href={MEUS_LOOKS}
-        className="group inline-flex items-center gap-2 rounded-full border border-navy/15
-          py-2 pl-3 pr-4 text-sm font-semibold text-navy/70 transition hover:border-purple
-          hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40
-          focus-visible:ring-offset-2"
-      >
-        <ArrowLeft
-          size={16}
-          aria-hidden
-          className="transition motion-safe:group-hover:-translate-x-0.5"
-        />
-        Seus looks
-      </Link>
-
-      <div className="mt-8 flex flex-wrap items-center gap-3">
-        <h1 className="text-3xl font-bold leading-[1.1] tracking-[-0.03em] text-navy sm:text-4xl">
+    <main className="mx-auto max-w-7xl px-6 py-6 lg:py-8">
+      {/* Voltar, título, estado e cliques numa linha só: o topo é do look, não da
+          navegação. */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Botão de verdade, com área de toque de 44 px; o nome vai no aria-label. */}
+        <Link
+          href={MEUS_LOOKS}
+          aria-label="Seus looks"
+          title="Voltar para seus looks"
+          className="group grid h-11 w-11 shrink-0 place-items-center rounded-full border
+            border-navy/15 text-navy/70 transition hover:border-purple hover:text-purple
+            focus-visible:ring-2 focus-visible:ring-purple/40 focus-visible:ring-offset-2"
+        >
+          <ArrowLeft
+            size={18}
+            aria-hidden
+            className="transition motion-safe:group-hover:-translate-x-0.5"
+          />
+        </Link>
+        <h1 className="text-2xl font-bold leading-[1.1] tracking-[-0.03em] text-navy sm:text-3xl">
           {look.title}
         </h1>
         <span
@@ -93,12 +58,23 @@ export default async function EditarLookPage({ params }: { params: { id: string 
         >
           {look.status === "published" ? "Publicado" : "Rascunho"}
         </span>
+        {metricas && (
+          <span className="text-sm text-navy/60">
+            <span className="font-semibold text-navy">{totalDeCliques(metricas.clicks)}</span>
+            <span className="sr-only">. Só você vê este número.</span>
+          </span>
+        )}
       </div>
 
-      {metricas && <Cliques metricas={metricas} />}
-
-      <div className="mt-10">
-        <EditorDeLook inicial={look} />
+      <div className="mt-6">
+        <EditorDeLook
+          inicial={look}
+          cliques={
+            metricas
+              ? Object.fromEntries(metricas.pieces.map((p) => [p.id, p.clicks]))
+              : undefined
+          }
+        />
       </div>
     </main>
   );

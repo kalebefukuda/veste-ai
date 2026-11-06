@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import FotoDoLook from "@/components/feed/FotoDoLook";
 import { FEED, perfilPublico, saidaParaLoja } from "@/lib/routes";
+import { dominio } from "@/lib/dominio";
 import { carregarLookPublico } from "@/lib/feed";
 
 import type { LookPublico, Peca } from "@/lib/api";
@@ -128,14 +129,6 @@ function QuemMontou({ creator }: { creator: LookPublico["creator"] }) {
       {identidade}
     </Link>
   );
-}
-
-function dominio(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
 }
 
 function ItemDaPeca({ peca }: { peca: Peca }) {
