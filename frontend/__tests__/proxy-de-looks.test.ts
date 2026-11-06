@@ -5,6 +5,7 @@ vi.mock("next/headers", () => ({ cookies: () => cookieStore }));
 
 import { GET as detalhe, PATCH as editar, DELETE as remover } from "@/app/api/looks/[id]/route";
 import { POST as gerar } from "@/app/api/looks/[id]/generate/route";
+import { DELETE as removerFoto } from "@/app/api/looks/[id]/image/route";
 import { DELETE as removerPeca } from "@/app/api/looks/[id]/pieces/[pieceId]/route";
 import { POST as enviarFotoDaPeca } from "@/app/api/looks/[id]/pieces/[pieceId]/image/route";
 import { POST as adicionarPeca } from "@/app/api/looks/[id]/pieces/route";
@@ -97,6 +98,15 @@ describe("as rotas de look chamam o caminho certo", () => {
     chamou = espiar();
     await remover(pedido(), ctx);
     expect(chamou.mock.calls[0][1].method).toBe("DELETE");
+  });
+
+  it("remove a foto do look pelo id", async () => {
+    const chamou = espiar();
+    await removerFoto(pedido(), { params: { id: "abc" } });
+
+    expect(chamou.mock.calls[0][0]).toContain("/looks/abc/image");
+    expect(chamou.mock.calls[0][1].method).toBe("DELETE");
+    expect(chamou.mock.calls[0][1].headers.Authorization).toBe("Bearer tok");
   });
 
   it("adiciona peça, remove peça e publica", async () => {
