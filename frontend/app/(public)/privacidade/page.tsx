@@ -7,7 +7,7 @@ import ContatoForm from "@/components/privacidade/ContatoForm";
 export const metadata: Metadata = {
   title: "Política de Privacidade — VesteAí",
   description:
-    "Quais dados o VesteAí coleta, com que finalidade, sob qual base legal da LGPD e como exercer seus direitos.",
+    "Quais dados o VesteAí coleta, com quem compartilha, com que finalidade, sob qual base legal da LGPD e como exercer seus direitos.",
 };
 
 const DADOS = [
@@ -30,6 +30,29 @@ const DADOS = [
     dado: "E-mail e texto enviados no formulário desta página",
     finalidade: "Atender ao seu pedido e responder no prazo",
     base: "Cumprimento de obrigação legal — art. 7º, II",
+  },
+];
+
+const COMPARTILHAMENTO = [
+  {
+    servico: "Brevo",
+    uso: "Envia os e-mails da plataforma. Recebe nome e e-mail para as mensagens de boas-vindas e de recuperação de senha, e o e-mail e o texto enviados pelo formulário desta página.",
+  },
+  {
+    servico: "Amazon Web Services (AWS)",
+    uso: "Hospeda a API, o banco de dados e as imagens dos looks, na região de São Paulo (sa-east-1). É onde ficam os dados da conta e o que você publica.",
+  },
+  {
+    servico: "Google Gemini",
+    uso: "Gera a imagem do look por IA, só quando você pede. Recebe as fotos das peças, a descrição do look (ou o título, se não houver descrição) e, se você escolher, o gênero e o cabelo do modelo.",
+  },
+  {
+    servico: "Google Safe Browsing",
+    uso: "Confere o link de compra quando uma peça é cadastrada. Recebe só o endereço do link, para checar se ele é conhecido por malware ou phishing.",
+  },
+  {
+    servico: "Vercel",
+    uso: "Hospeda o site: as páginas que você abre são entregues por ela.",
   },
 ];
 
@@ -123,6 +146,31 @@ export default function PrivacidadePage() {
           plataforma consegue lê-las.
         </p>
 
+        <section aria-labelledby="compartilhamento">
+          <h2
+            id="compartilhamento"
+            className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy"
+          >
+            Com quem compartilhamos
+          </h2>
+          <p className="mt-4 leading-relaxed text-navy/65">
+            Para funcionar, o VesteAí depende dos serviços abaixo. Cada um recebe só o
+            que a própria tarefa exige:
+          </p>
+          <dl className="mt-6 space-y-5">
+            {COMPARTILHAMENTO.map((item) => (
+              <div key={item.servico}>
+                <dt className="font-semibold text-navy">{item.servico}</dt>
+                <dd className="mt-1 leading-relaxed text-navy/65">{item.uso}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-6 leading-relaxed text-navy/65">
+            Ao seguir um link de compra, você sai do VesteAí e vai para o site da loja; a
+            partir dali vale a política de privacidade dela.
+          </p>
+        </section>
+
         <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
           Seus direitos
         </h2>
@@ -161,9 +209,9 @@ export default function PrivacidadePage() {
           removidos. O que você envia pelo formulário desta página fica guardado
           apenas na caixa de quem responde, pelo tempo necessário para atender ao
           pedido e comprovar que ele foi atendido — não entra no banco da
-          plataforma nem se liga à sua conta. Esta página descreve o tratamento que
-          a plataforma faz hoje; qualquer coleta nova — métricas de clique, por
-          exemplo — só entra aqui quando passar a existir de fato.
+          plataforma nem se liga à sua conta. O clique num link de compra é contado
+          sem guardar quem clicou. Esta página descreve o tratamento que a
+          plataforma faz hoje e é atualizada quando ele muda.
         </p>
 
         <h2 className="mt-14 text-2xl font-bold tracking-[-0.02em] text-navy">
@@ -177,8 +225,8 @@ export default function PrivacidadePage() {
           consentimento prévio.
         </p>
 
-        <p className="mt-16 border-t border-navy/10 pt-8 text-sm text-navy/50">
-          Última atualização em setembro de 2026.
+        <p className="mt-16 border-t border-navy/10 pt-8 text-sm text-navy/65">
+          Última atualização em novembro de 2026.
         </p>
       </main>
     </>
