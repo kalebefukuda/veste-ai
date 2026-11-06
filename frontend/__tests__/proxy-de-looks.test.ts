@@ -6,6 +6,7 @@ vi.mock("next/headers", () => ({ cookies: () => cookieStore }));
 import { GET as detalhe, PATCH as editar, DELETE as remover } from "@/app/api/looks/[id]/route";
 import { POST as gerar } from "@/app/api/looks/[id]/generate/route";
 import { DELETE as removerPeca } from "@/app/api/looks/[id]/pieces/[pieceId]/route";
+import { POST as enviarFotoDaPeca } from "@/app/api/looks/[id]/pieces/[pieceId]/image/route";
 import { POST as adicionarPeca } from "@/app/api/looks/[id]/pieces/route";
 import { POST as publicar } from "@/app/api/looks/[id]/publish/route";
 import { GET as listar, POST as criar } from "@/app/api/looks/route";
@@ -144,4 +145,38 @@ it("repassa resposta sem corpo que não seja 204", async () => {
 
   expect(resposta.status).toBe(201);
   expect(await resposta.text()).toBe("");
+});
+
+// Multipart não passa pelo `encaminhar`, que monta JSON: o arquivo tem de chegar à API
+// do jeito que saiu do navegador, e com o Bearer.
+describe("envio da foto da peça", () => {
+  it("repassa o arquivo para a peça certa, com o token", async () => {
+    const chamou = vi.fn().mockResolvedValue({ status: 200, text: async () => "{}" });
+    vi.stubGlobal("fetch", chamou);
+    const corpo = new FormData();
+    corpo.append("arquivo", new File(["x"], "f.jpg", { type: "image/jpeg" }));
+
+    await enviarFotoDaPeca(
+      new Request("http://localhost/x", { method: "POST", body: corpo }),
+      { params: { id: "abc", pieceId: "p1" } },
+    );
+
+    expect(chamou.mock.calls[0][0]).toContain("/looks/abc/pieces/p1/image");
+    expect(chamou.mock.calls[0][1].headers.Authorization).toBe("Bearer tok");
+    expect(chamou.mock.calls[0][1].body.get("arquivo")).toBeTruthy();
+  });
+
+  it("recusa sem sessão, sem chegar a chamar a API", async () => {
+    cookieStore.get.mockReturnValue(undefined);
+    const chamou = vi.fn();
+    vi.stubGlobal("fetch", chamou);
+
+    const resposta = await enviarFotoDaPeca(
+      new Request("http://localhost/x", { method: "POST", body: new FormData() }),
+      { params: { id: "abc", pieceId: "p1" } },
+    );
+
+    expect(resposta.status).toBe(401);
+    expect(chamou).not.toHaveBeenCalled();
+  });
 });
