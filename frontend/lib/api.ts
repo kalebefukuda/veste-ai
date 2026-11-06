@@ -301,6 +301,9 @@ export const enviarFotoDoLook = (id: string, arquivo: File) =>
 export const enviarFotoDaPeca = (lookId: string, pecaId: string, arquivo: File) =>
   enviarArquivo<Peca>(`/api/looks/${lookId}/pieces/${pecaId}/image`, arquivo);
 
+export const removerFotoDoLook = (id: string) =>
+  send<Look>("DELETE", `/api/looks/${id}/image`, undefined);
+
 export type PresetDoModelo = {
   gender?: "feminino" | "masculino";
   hair_color?: "loiro" | "castanho" | "preto" | "ruivo" | "grisalho";

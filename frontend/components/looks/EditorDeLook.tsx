@@ -25,6 +25,7 @@ import {
   enviarFotoDoLook,
   gerarImagemDoLook,
   publicarLook,
+  removerFotoDoLook,
   removerLook,
   removerPeca,
   type Look,
@@ -63,7 +64,9 @@ export default function EditorDeLook({
   const [confirmando, setConfirmando] = useState(false);
   const [adicionando, setAdicionando] = useState(false);
   const [compondo, setCompondo] = useState(false);
-  const [geradaAgora, setGeradaAgora] = useState<string | null>(null);
+  const [preset, setPreset] = useState<PresetDoModelo>({});
+  const [falhaEm, setFalhaEm] = useState<string | null>(null);
+  const avisoDaFoto = useRef<HTMLParagraphElement>(null);
 
   const fecharDialogo = useCallback(() => {
     setAdicionando(false);
@@ -84,12 +87,19 @@ export default function EditorDeLook({
       router.refresh();
     } catch (falha) {
       setErro((falha as Error).message);
+      setFalhaEm(nome);
     } finally {
       setOcupado(null);
     }
   }
 
   const publicado = salvo.status === "published";
+  const erroDaFoto = erro && falhaEm && NA_FOTO.has(falhaEm) ? erro : null;
+
+  useEffect(() => {
+    if (erroDaFoto) avisoDaFoto.current?.scrollIntoView({ block: "nearest" });
+  }, [erroDaFoto]);
+
   // O modelo veste todas as peças: uma sem foto deixaria a imagem mentir sobre o look.
   const semFoto = salvo.pieces.filter((p) => !p.image_url);
   const podeGerar = salvo.pieces.length > 0 && semFoto.length === 0;
@@ -127,64 +137,101 @@ export default function EditorDeLook({
       {/* Fixa e mais larga que a coluna do cadastro: a foto é o produto, e acompanha
           as etapas em vez de acabar no meio do caminho. */}
       <div className="lg:sticky lg:top-6">
-        {/* O quadrado é o próprio seletor de arquivo: clicar na foto é o gesto óbvio,
-            e um campo de upload solto no meio do formulário não era. */}
-        <label
-          className="group relative block aspect-[3/4] w-full cursor-pointer overflow-hidden
-            rounded-[2rem] border border-navy/12 bg-navy/[0.04] transition
-            hover:border-purple/40 focus-within:ring-2 focus-within:ring-purple
-            focus-within:ring-offset-2"
-        >
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            aria-label="Enviar foto do look"
-            disabled={ocupado !== null}
-            onChange={(e) => {
-              const arquivo = e.target.files?.[0];
-              if (!arquivo) return;
+        <div className="relative">
+          {/* O quadrado é o próprio seletor de arquivo: clicar na foto é o gesto óbvio,
+              e um campo de upload solto no meio do formulário não era. */}
+          <label
+            className="group relative block aspect-[3/4] w-full cursor-pointer overflow-hidden
+              rounded-[2rem] border border-navy/12 bg-navy/[0.04] transition
+              hover:border-purple/40 focus-within:ring-2 focus-within:ring-purple
+              focus-within:ring-offset-2"
+          >
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-label="Enviar foto do look"
+              disabled={ocupado !== null}
+              onChange={(e) => {
+                const arquivo = e.target.files?.[0];
+                if (!arquivo) return;
 
-              void executar("foto", async () => {
-                const atualizado = await enviarFotoDoLook(salvo.id, arquivo);
-                setSalvo(atualizado);
-                setImagem(atualizado.image_url ?? "");
-                toast.success("Foto enviada.");
-              });
-            }}
-            className="sr-only"
-          />
+                void executar("foto", async () => {
+                  const atualizado = await enviarFotoDoLook(salvo.id, arquivo);
+                  setSalvo(atualizado);
+                  setImagem(atualizado.image_url ?? "");
+                  toast.success("Foto enviada.");
+                });
+              }}
+              className="sr-only"
+            />
 
-          {imagem ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imagem} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="grid h-full w-full place-content-center place-items-center gap-3 px-8 text-center">
-              <ImagePlus size={28} aria-hidden className="text-navy/35" />
-              <span className="text-sm font-semibold text-navy/70">
-                Clique para enviar a foto do look
+            {imagem ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imagem} alt="Foto do look" className="h-full w-full object-cover" />
+            ) : (
+              <span className="grid h-full w-full place-content-center place-items-center gap-3 px-8 text-center">
+                <ImagePlus size={28} aria-hidden className="text-navy/35" />
+                <span className="text-sm font-semibold text-navy/70">
+                  Clique para enviar a foto do look
+                </span>
+                <span className="max-w-[28ch] text-sm leading-relaxed text-navy/50">
+                  JPEG, PNG ou WebP de até 5 MB. Ou gere o modelo a partir das peças.
+                </span>
               </span>
-              <span className="max-w-[28ch] text-sm leading-relaxed text-navy/50">
-                JPEG, PNG ou WebP de até 5 MB. Ou gere o modelo a partir das peças.
-              </span>
-            </span>
-          )}
+            )}
 
-          {imagem && (
-            <span
-              className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t
-                from-navy/80 to-transparent px-5 pb-4 pt-10 text-sm font-semibold text-white
-                opacity-0 transition group-hover:opacity-100"
+            {imagem && (
+              <span
+                className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t
+                  from-navy/80 to-transparent px-5 pb-4 pt-10 text-sm font-semibold text-white
+                  opacity-0 transition group-hover:opacity-100"
+              >
+                Clique para trocar a foto
+              </span>
+            )}
+
+            {ocupado && NA_FOTO.has(ocupado) && (
+              <span
+                role="status"
+                className="absolute inset-0 grid place-content-center place-items-center gap-2
+                  bg-white/80 px-8 text-center text-navy backdrop-blur-sm"
+              >
+                {ocupado === "gerar" && (
+                  <Sparkles size={26} aria-hidden className="mb-1 text-purple motion-safe:animate-pulse" />
+                )}
+                <span className="text-sm font-semibold">{NA_FOTO.get(ocupado)}</span>
+                {ocupado === "gerar" && (
+                  <span className="text-sm text-navy/60">Isso leva alguns segundos.</span>
+                )}
+              </span>
+            )}
+          </label>
+
+          {/* Fora do label: botão dentro dele abriria o seletor de arquivo. Publicado não
+              remove, porque o feed exige imagem — trocar continua valendo. */}
+          {imagem && !publicado && (
+            <button
+              type="button"
+              aria-label="Remover foto do look"
+              title="Remover foto"
+              disabled={ocupado !== null}
+              onClick={() =>
+                void executar("tirar-foto", async () => {
+                  const atualizado = await removerFotoDoLook(salvo.id);
+                  setSalvo(atualizado);
+                  setImagem(atualizado.image_url ?? "");
+                  toast.success("Foto removida.");
+                })
+              }
+              className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full
+                bg-white/90 text-navy/70 shadow-sm shadow-navy/10 backdrop-blur transition
+                hover:bg-white hover:text-navy focus-visible:ring-2 focus-visible:ring-purple/40
+                focus-visible:ring-offset-2 disabled:opacity-50"
             >
-              Clique para trocar a foto
-            </span>
+              <Trash2 size={18} aria-hidden />
+            </button>
           )}
-
-          {ocupado === "foto" && (
-            <span className="absolute inset-0 grid place-items-center bg-white/80 text-sm font-semibold text-navy">
-              Enviando a foto…
-            </span>
-          )}
-        </label>
+        </div>
 
         <div>
           {/* Sempre à vista, desabilitado enquanto não há o que vestir: sumir com ele
@@ -196,7 +243,6 @@ export default function EditorDeLook({
             disabled={!podeGerar || ocupado !== null}
             className="mt-4 text-sm"
             onClick={() => {
-              setGeradaAgora(null);
               setErro(null);
               setCompondo(true);
             }}
@@ -208,6 +254,16 @@ export default function EditorDeLook({
           <p className="mt-2 text-sm leading-relaxed text-navy/60">
             {avisoDaGeracao(salvo.pieces.length, semFoto)}
           </p>
+
+          {erroDaFoto && (
+            <p
+              ref={avisoDaFoto}
+              role="alert"
+              className="mt-3 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy"
+            >
+              {erroDaFoto}
+            </p>
+          )}
         </div>
       </div>
 
@@ -437,7 +493,7 @@ export default function EditorDeLook({
         {/* Publicar e excluir são as duas saídas da tela: separá-los em blocos
             distantes fazia procurar a segunda. */}
         <section className="mt-10 border-t border-navy/10 pt-8">
-          {erro && !adicionando && !compondo && (
+          {erro && !erroDaFoto && !adicionando && !compondo && (
             <p
               role="alert"
               className="mb-5 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy"
@@ -542,19 +598,19 @@ export default function EditorDeLook({
       {compondo && (
         <DialogoDeGeracao
           pecas={salvo.pieces}
-          erro={erro}
-          gerando={ocupado === "gerar"}
-          gerada={geradaAgora}
+          preset={preset}
+          onPreset={setPreset}
           onFechar={fecharGeracao}
-          onGerar={(preset) =>
+          onGerar={() => {
+            // A imagem nasce no quadro grande, onde ela vai morar; o diálogo só escolhe.
+            setCompondo(false);
             void executar("gerar", async () => {
               const atualizado = await gerarImagemDoLook(salvo.id, preset);
               setSalvo(atualizado);
               setImagem(atualizado.image_url ?? "");
-              setGeradaAgora(atualizado.image_url ?? "");
               toast.success("Imagem gerada.");
-            })
-          }
+            });
+          }}
         />
       )}
 
@@ -596,6 +652,12 @@ export default function EditorDeLook({
 }
 
 const PECA_VAZIA = { name: "", purchase_url: "", store: "", price: "" };
+
+const NA_FOTO = new Map([
+  ["foto", "Enviando a foto…"],
+  ["gerar", "Gerando o modelo…"],
+  ["tirar-foto", "Removendo a foto…"],
+]);
 
 // Campo vazio não pode virar `""` no corpo: o backend valida `price` como número, e
 // string vazia reprova.
@@ -712,33 +774,23 @@ const COMPRIMENTOS = [
 // o mesmo look, e a vitrine perde a unidade que o 3:4 garante do outro lado.
 function DialogoDeGeracao({
   pecas,
-  erro,
-  gerando,
-  gerada,
+  preset,
+  onPreset,
   onFechar,
   onGerar,
 }: {
   pecas: Peca[];
-  erro: string | null;
-  gerando: boolean;
-  gerada: string | null;
+  preset: PresetDoModelo;
+  onPreset: (preset: PresetDoModelo) => void;
   onFechar: () => void;
-  onGerar: (preset: PresetDoModelo) => void;
+  onGerar: () => void;
 }) {
-  const [preset, setPreset] = useState<PresetDoModelo>({});
-  const aviso = useRef<HTMLParagraphElement>(null);
-
-  // O aviso nasce no fim do corpo rolável: sem isto fica abaixo da dobra.
-  useEffect(() => {
-    if (erro) aviso.current?.scrollIntoView({ block: "nearest" });
-  }, [erro]);
-
   const referencias = pecas.flatMap((peca) =>
     peca.image_url ? [{ id: peca.id, nome: peca.name, url: peca.image_url }] : [],
   );
 
   return (
-    <Dialogo titulo="Gerar modelo com IA" travado={gerando} onFechar={onFechar}>
+    <Dialogo titulo="Gerar modelo com IA" travado={false} onFechar={onFechar}>
       <div className="max-h-[60vh] overflow-y-auto px-6 py-6 sm:px-8">
         {/* Mostrar o que entra de referência é o que separa gerar de caixa-preta. */}
         <p className="text-sm font-semibold text-navy">
@@ -770,7 +822,7 @@ function DialogoDeGeracao({
                   name="genero"
                   value={valor}
                   checked={preset.gender === valor}
-                  onChange={() => setPreset({ ...preset, gender: valor })}
+                  onChange={() => onPreset({ ...preset, gender: valor })}
                   className="peer sr-only"
                 />
                 <span className={ESCOLHA}>
@@ -793,7 +845,7 @@ function DialogoDeGeracao({
                   name="cabelo"
                   value={valor}
                   checked={preset.hair_color === valor}
-                  onChange={() => setPreset({ ...preset, hair_color: valor })}
+                  onChange={() => onPreset({ ...preset, hair_color: valor })}
                   className="peer sr-only"
                 />
                 <span className={ESCOLHA}>
@@ -816,7 +868,7 @@ function DialogoDeGeracao({
                   name="comprimento"
                   value={valor}
                   checked={preset.hair_length === valor}
-                  onChange={() => setPreset({ ...preset, hair_length: valor })}
+                  onChange={() => onPreset({ ...preset, hair_length: valor })}
                   className="peer sr-only"
                 />
                 <span className={ESCOLHA}>{rotulo}</span>
@@ -829,59 +881,16 @@ function DialogoDeGeracao({
           Deixar em branco vale: aí o modelo fica por conta da IA. O enquadramento é
           sempre o mesmo — estúdio, corpo inteiro, 3:4.
         </p>
-
-        {/* O resultado aparece onde a pessoa está olhando, e é daqui que ela decide
-            tentar de novo. */}
-        {(gerando || gerada) && (
-          <div className="mt-6 grid aspect-[3/4] max-h-[40vh] place-items-center overflow-hidden rounded-2xl border border-navy/12 bg-navy/[0.04]">
-            {gerando ? (
-              <span className="flex flex-col items-center gap-3 text-sm font-semibold text-navy/70">
-                <Sparkles size={22} aria-hidden className="motion-safe:animate-pulse" />
-                Gerando… isso leva alguns segundos
-              </span>
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={gerada ?? ""}
-                alt="Modelo gerado"
-                className="h-full w-full object-cover"
-              />
-            )}
-          </div>
-        )}
-
-        {erro && (
-          <p
-            ref={aviso}
-            role="alert"
-            className="mt-5 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy"
-          >
-            {erro}
-          </p>
-        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-navy/10 bg-navy/[0.02] px-6 py-4 sm:px-8">
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={gerando}
-          onClick={onFechar}
-          className="text-sm"
-        >
-          {gerada ? "Usar esta" : "Cancelar"}
+        <Button type="button" variant="ghost" onClick={onFechar} className="text-sm">
+          Cancelar
         </Button>
 
-        <Button
-          type="button"
-          loading={gerando}
-          loadingLabel="Gerando…"
-          disabled={gerando}
-          onClick={() => onGerar(preset)}
-          className="text-sm"
-        >
+        <Button type="button" onClick={onGerar} className="text-sm">
           <Sparkles size={16} aria-hidden />
-          {gerada ? "Gerar outra" : "Gerar imagem"}
+          Gerar imagem
         </Button>
       </div>
     </Dialogo>
