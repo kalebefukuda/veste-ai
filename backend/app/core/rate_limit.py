@@ -16,6 +16,8 @@ LIMIT_DELETE_ACCOUNT = "5/minute"
 # Formulário público que dispara e-mail: sem freio vira máquina de spam e queima a
 # cota diária da conta, derrubando a recuperação de senha junto.
 LIMIT_CONTACT = "3/hour"
+# Por hora porque o freio é de custo: cada geração gasta cota paga do Gemini e até 30 s.
+LIMIT_GENERATE = "10/hour"
 
 
 # Atrás do ALB o peer TCP é sempre o load balancer: sem ler o X-Forwarded-For, todos os

@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import PerfilForm from "@/components/configuracoes/PerfilForm";
@@ -10,6 +11,7 @@ const replace = vi.fn();
 const refresh = vi.fn();
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh, push }) }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const USUARIO = { id: "1", name: "Mariana", email: "mari@exemplo.com", plan: "free", bio: "Antiga" };
 
@@ -17,6 +19,7 @@ beforeEach(() => {
   replace.mockClear();
   refresh.mockClear();
   push.mockClear();
+  vi.mocked(toast.success).mockClear();
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -130,6 +133,20 @@ describe("excluir a conta", () => {
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
     expect(JSON.parse(chamou.mock.calls[0][1].body)).toEqual({ password: "senha-bem-longa" });
+  });
+
+  it("confirma que a conta e os dados foram apagados", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 204, json: async () => null }));
+    render(<ExcluirConta />);
+
+    await user.click(screen.getByRole("button", { name: /excluir minha conta/i }));
+    await user.type(screen.getByLabelText(/senha/i), "senha-bem-longa");
+    await user.click(screen.getByRole("button", { name: /^excluir$/i }));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Conta excluída. Seus dados foram apagados."),
+    );
   });
 
   it("mostra o erro e mantém a conta quando a senha está errada", async () => {

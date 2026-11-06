@@ -4,6 +4,7 @@ const cookieStore = { get: vi.fn(), set: vi.fn(), delete: vi.fn() };
 vi.mock("next/headers", () => ({ cookies: () => cookieStore }));
 
 import { GET as detalhe, PATCH as editar, DELETE as remover } from "@/app/api/looks/[id]/route";
+import { POST as gerar } from "@/app/api/looks/[id]/generate/route";
 import { DELETE as removerPeca } from "@/app/api/looks/[id]/pieces/[pieceId]/route";
 import { POST as adicionarPeca } from "@/app/api/looks/[id]/pieces/route";
 import { POST as publicar } from "@/app/api/looks/[id]/publish/route";
@@ -109,6 +110,21 @@ describe("as rotas de look chamam o caminho certo", () => {
     chamou = espiar();
     await publicar(pedido(), { params: { id: "abc" } });
     expect(chamou.mock.calls[0][0]).toContain("/looks/abc/publish");
+  });
+
+  // O backend freia a geração por IP: sem repassar, todos os creators dividiriam um balde.
+  it("gera repassando o IP que a borda observou", async () => {
+    const chamou = espiar();
+    const comIp = new Request("http://localhost/x", {
+      method: "POST",
+      headers: { "x-real-ip": "8.8.4.4" },
+      body: "{}",
+    });
+
+    await gerar(comIp, { params: { id: "abc" } });
+
+    expect(chamou.mock.calls[0][0]).toContain("/looks/abc/generate");
+    expect(chamou.mock.calls[0][1].headers["X-Forwarded-For"]).toBe("8.8.4.4");
   });
 });
 

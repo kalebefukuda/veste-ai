@@ -4,6 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from tests.test_looks import DONO, LOOK, PECA, token
+from tests.test_saved import publicar
 
 CREDENTIALS = {"name": "Mariana", "email": "mariana@exemplo.com", "password": "senha-bem-longa"}
 
@@ -111,6 +112,29 @@ def test_delete_users_me_leva_junto_os_tokens_de_recuperacao(
 
     assert antes == 1
     assert depois == 0
+
+
+# Os testes acima usavam conta sem look, e só por isso passavam: com look, o ORM
+# anulava `looks.user_id` antes do DELETE e a exclusão estourava 500.
+def test_delete_users_me_apaga_a_conta_que_tem_look(client: TestClient, db: Session) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+    look = publicar(client)
+    peca = client.get(f"/looks/{look}").json()["pieces"][0]["id"]
+    client.post(f"/clicks/{peca}")
+    client.post(f"/saved/{look}")
+
+    resposta = client.request("DELETE", "/users/me", json={"password": DONO["password"]})
+
+    assert resposta.status_code == 204
+    assert client.get("/users/me").status_code == 401
+    restantes = {
+        "looks": "SELECT count(*) FROM looks WHERE id = :look",
+        "pieces": "SELECT count(*) FROM pieces WHERE look_id = :look",
+        "clicks": "SELECT count(*) FROM clicks WHERE look_id = :look",
+        "saved_looks": "SELECT count(*) FROM saved_looks WHERE look_id = :look",
+    }
+    for tabela, consulta in restantes.items():
+        assert db.execute(text(consulta), {"look": look}).scalar_one() == 0, tabela
 
 
 # LGPD art. 18, II e V: acesso e portabilidade. Formato legível por máquina para

@@ -513,6 +513,35 @@ describe("composição do look", () => {
     expect(toast.success).toHaveBeenCalledWith("Imagem gerada.");
   });
 
+  it("avisa no diálogo quando a geração bate no limite", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", responde({ code: "TOO_MANY_REQUESTS", detail: "x" }, false, 429));
+    render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+
+    const dialogo = screen.getByRole("dialog", { name: /gerar modelo/i });
+    expect(await within(dialogo).findByRole("alert")).toHaveTextContent(
+      "Muitas tentativas. Tente de novo daqui a pouco.",
+    );
+  });
+
+  // O corpo do diálogo rola, e o aviso nasce no fim dele: abaixo da dobra num notebook.
+  it("leva o aviso de erro da geração para a vista", async () => {
+    const user = userEvent.setup();
+    const rolar = vi.fn();
+    Element.prototype.scrollIntoView = rolar;
+    vi.stubGlobal("fetch", responde({ code: "TOO_MANY_REQUESTS", detail: "x" }, false, 429));
+    render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+
+    const aviso = await within(screen.getByRole("dialog")).findByRole("alert");
+    await waitFor(() => expect(rolar.mock.contexts).toContain(aviso));
+  });
+
   // Sem preset cada geração inventa uma pessoa diferente vestindo o mesmo look. O que
   // a tela escolhe tem que chegar inteiro no pedido.
   it("leva o preset escolhido no pedido", async () => {

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import PrivacidadePage from "@/app/(public)/privacidade/page";
@@ -50,6 +50,32 @@ describe("política de privacidade", () => {
       true,
     );
     expect(textoDaPagina()).toMatch(/não entra no banco da plataforma/i);
+  });
+
+  // LGPD art. 9º, V: o titular tem direito a saber com quem o dado é compartilhado.
+  it("declara com quem os dados são compartilhados", () => {
+    render(<PrivacidadePage />);
+
+    const secao = screen.getByRole("region", { name: /com quem compartilhamos/i });
+    const servicos = within(secao)
+      .getAllByRole("term")
+      .map((t) => t.textContent ?? "");
+
+    expect(servicos).toEqual([
+      expect.stringMatching(/Brevo/),
+      expect.stringMatching(/Amazon Web Services/),
+      expect.stringMatching(/Google Gemini/),
+      expect.stringMatching(/Google Safe Browsing/),
+      expect.stringMatching(/Vercel/),
+    ]);
+    expect(secao).toHaveTextContent(/sa-east-1/);
+    expect(secao).toHaveTextContent(/só quando você pede/i);
+  });
+
+  it("não promete atualizar só quando a coleta passar a existir", () => {
+    render(<PrivacidadePage />);
+
+    expect(textoDaPagina()).not.toMatch(/quando passar a existir/i);
   });
 
   it("nega coletar dado de pagamento", () => {

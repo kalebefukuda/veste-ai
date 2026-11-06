@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { deleteMe } from "@/lib/api";
 
@@ -18,6 +19,7 @@ export default function ExcluirConta() {
 
     try {
       await deleteMe(senha);
+      toast.success("Conta excluída. Seus dados foram apagados.");
       // A sessão morre no handler junto com a conta; daqui só resta sair da área
       // logada. `refresh` descarta o cache do servidor, que ainda tem a página antiga.
       router.replace("/");

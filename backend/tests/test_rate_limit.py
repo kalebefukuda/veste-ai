@@ -2,6 +2,8 @@ from collections.abc import Callable
 
 from fastapi.testclient import TestClient
 
+from tests.test_looks import DONO, LOOK, token
+
 CREDENCIAIS = {"email": "mariana@exemplo.com", "password": "senha-qualquer-1"}
 
 
@@ -92,3 +94,15 @@ def test_nao_confia_no_ip_que_o_proprio_cliente_alega(client: TestClient) -> Non
     _ate_bloquear(lambda: tentar("1.1.1.1"))
 
     assert tentar("2.2.2.2") == 429, "trocar o IP alegado furou o rate limit"
+
+
+# Cada geração gasta cota paga do Gemini e segura o processo por até 30 s.
+def test_geracao_de_imagem_bloqueia_depois_do_limite(client: TestClient) -> None:
+    client.headers["Authorization"] = f"Bearer {token(client, DONO)}"
+    look = client.post("/looks", json=LOOK).json()["id"]
+
+    _ate_bloquear(
+        lambda: client.post(
+            f"/looks/{look}/generate", headers={"X-Forwarded-For": "203.0.113.60"}
+        ).status_code
+    )
