@@ -56,11 +56,34 @@ data "aws_iam_policy_document" "deploy" {
     resources = [aws_ecr_repository.api.arn]
   }
 
-  # RegisterTaskDefinition é a única que não aceita ARN de recurso.
+  # As duas não aceitam ARN de recurso.
   statement {
     effect    = "Allow"
-    actions   = ["ecs:RegisterTaskDefinition"]
+    actions   = ["ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition"]
     resources = ["*"]
+  }
+
+  # Migrations numa task avulsa da família da API, e só neste cluster.
+  statement {
+    effect  = "Allow"
+    actions = ["ecs:RunTask"]
+    resources = [
+      "arn:aws:ecs:${var.region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.project}-api:*",
+    ]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "ecs:cluster"
+      values   = [aws_ecs_cluster.this.arn]
+    }
+  }
+
+  statement {
+    effect  = "Allow"
+    actions = ["ecs:DescribeTasks"]
+    resources = [
+      "arn:aws:ecs:${var.region}:${data.aws_caller_identity.current.account_id}:task/${aws_ecs_cluster.this.name}/*",
+    ]
   }
 
   statement {
@@ -117,6 +140,7 @@ data "aws_iam_policy_document" "task_execution_secrets" {
       aws_secretsmanager_secret.contact_destination.arn,
       aws_secretsmanager_secret.gemini_api_key.arn,
       aws_secretsmanager_secret.safe_browsing_api_key.arn,
+      aws_secretsmanager_secret.grafana_cloud_token.arn,
     ]
   }
 }

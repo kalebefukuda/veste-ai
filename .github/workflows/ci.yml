@@ -207,3 +207,155 @@ jobs:
       - name: Scan
         if: env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
+
+  # Homologação: cada envio para a dev vira uma prévia na Vercel, publicada por este pipeline.
+  deploy-web-staging:
+    name: deploy — web to staging
+    needs: [backend, frontend, infra, scripts]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.publicar.outputs.url }}
+    concurrency:
+      group: deploy-staging-web
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Install the Vercel CLI
+        run: npm install --global vercel@65.11.0
+
+      - name: Pull the preview settings
+        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        id: publicar
+        run: echo "url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"
+
+  deploy-api-production:
+    name: deploy — api to production
+    needs: [backend, frontend, infra, scripts]
+    # Fica pulado até o runtime da AWS existir: a variável liga o job sem mexer no YAML.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.API_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-production-api
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: sa-east-1
+      CLUSTER: vesteai
+      SERVICE: vesteai-api
+      FAMILY: vesteai-api
+      CONTAINER: api
+      REPOSITORY: vesteai-api
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      # A tag é o commit: a imagem em produção aponta para o código exato que passou no CI.
+      - name: Build and push the image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/$REPOSITORY:$GITHUB_SHA"
+          docker build --target runtime --tag "$IMAGE" backend
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Register a task definition revision with the new image
+        run: |
+          aws ecs describe-task-definition --task-definition "$FAMILY" --query taskDefinition > atual.json
+          jq --arg imagem "$IMAGE" --arg nome "$CONTAINER" '
+            .containerDefinitions |= map(if .name == $nome then .image = $imagem else . end)
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy)' atual.json > nova.json
+          ARN=$(aws ecs register-task-definition --cli-input-json file://nova.json \
+            --query taskDefinition.taskDefinitionArn --output text)
+          echo "TASK_DEFINITION=$ARN" >> "$GITHUB_ENV"
+
+      # Numa task avulsa com a imagem nova: se a migration falhar, o service segue na versão antiga.
+      - name: Run the migrations
+        run: |
+          REDE=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+            --query 'services[0].networkConfiguration' --output json)
+          COMANDO=$(jq -cn --arg nome "$CONTAINER" \
+            '{containerOverrides: [{name: $nome, command: ["alembic", "upgrade", "head"]}]}')
+          TASK=$(aws ecs run-task --cluster "$CLUSTER" --launch-type FARGATE \
+            --task-definition "$TASK_DEFINITION" --network-configuration "$REDE" \
+            --overrides "$COMANDO" --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$TASK"
+          SAIDA=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK" \
+            --query "tasks[0].containers[?name=='$CONTAINER'].exitCode | [0]" --output text)
+          if [ "$SAIDA" != "0" ]; then
+            echo "::error::As migrations terminaram com código $SAIDA."
+            exit 1
+          fi
+
+      - name: Roll out the new revision
+        run: |
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
+            --task-definition "$TASK_DEFINITION" > /dev/null
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
+
+      - name: Check the health endpoint
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 10 "$API_URL/health"
+
+  deploy-web-production:
+    name: deploy — web to production
+    needs: [backend, frontend, infra, scripts, deploy-api-production]
+    # Com a API pulada o front segue; com qualquer falha antes, ele para.
+    if: ${{ !cancelled() && !failure() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.publicar.outputs.url }}
+    concurrency:
+      group: deploy-production-web
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Install the Vercel CLI
+        run: npm install --global vercel@65.11.0
+
+      - name: Pull the production settings
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        id: publicar
+        run: echo "url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"

@@ -86,3 +86,17 @@ resource "aws_secretsmanager_secret_version" "safe_browsing_api_key" {
     ignore_changes = [secret_string]
   }
 }
+
+resource "aws_secretsmanager_secret" "grafana_cloud_token" {
+  name_prefix = "${var.project}/grafana-cloud-token-"
+}
+
+# O valor real é colado no console, pelo mesmo motivo da chave do Brevo.
+resource "aws_secretsmanager_secret_version" "grafana_cloud_token" {
+  secret_id     = aws_secretsmanager_secret.grafana_cloud_token.id
+  secret_string = "definir-no-console"
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}

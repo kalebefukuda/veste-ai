@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: vesteai-api
+    static_configs:
+      # api: pelo docker compose; host.docker.internal: API rodando direto na máquina.
+      - targets: ["api:9100", "host.docker.internal:9100"]

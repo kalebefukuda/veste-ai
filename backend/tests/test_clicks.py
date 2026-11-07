@@ -123,3 +123,26 @@ def test_o_clique_sobrevive_a_remocao_da_peca(dono: TestClient, publicado) -> No
     assert metricas["clicks"] == 1
     # A peça saiu, então some da quebra — mas o total do look continua contando.
     assert [p["name"] for p in metricas["pieces"]] == ["Segunda peça"]
+
+
+def _cliques() -> float:
+    from prometheus_client import REGISTRY
+
+    return REGISTRY.get_sample_value("vesteai_clicks_total") or 0.0
+
+
+def test_rn08_clique_redirecionado_entra_nas_metricas(dono: TestClient, publicado) -> None:
+    _, peca = publicado
+    antes = _cliques()
+
+    sem_sessao(dono).post(f"/clicks/{peca}")
+
+    assert _cliques() == antes + 1
+
+
+def test_rn08_clique_sem_destino_nao_entra_nas_metricas(dono: TestClient) -> None:
+    antes = _cliques()
+
+    sem_sessao(dono).post("/clicks/7c45a3d4-7449-4bdc-8916-06173cdd2655")
+
+    assert _cliques() == antes
