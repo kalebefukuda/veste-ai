@@ -21,6 +21,9 @@ docker compose exec api alembic upgrade head
 O `docker-compose.yml` já traz os valores de desenvolvimento embutidos, então não
 precisa de `.env`.
 
+O compose também sobe o monitoramento: o painel do Grafana fica em
+`http://localhost:3030` e o Prometheus em `http://localhost:9090`.
+
 ## Opção B — sem Docker
 
 ### 1. Banco
@@ -47,6 +50,10 @@ export JWT_SECRET="dev-only-secret"
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
+
+Para ver o painel com a API rodando assim, exporte `METRICS_PORT=9100` antes do
+`uvicorn` e suba só o monitoramento: `docker compose up prometheus grafana`. O
+Prometheus do compose também coleta a API que roda direto na máquina.
 
 `DATABASE_URL` e `JWT_SECRET` não têm valor padrão de propósito: em produção a
 aplicação precisa **falhar no boot** se o segredo não chegou, em vez de subir com um

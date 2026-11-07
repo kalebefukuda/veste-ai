@@ -2,6 +2,7 @@
 
 import uuid
 
+from app.core import metricas
 from app.core.exceptions import LookNotFound, NotTheOwner
 from app.models.click import Click
 from app.models.look import Look, Piece
@@ -23,6 +24,7 @@ class ClickService:
             raise LookNotFound()
 
         self.looks.add_click(Click(piece_id=peca.id, look_id=peca.look_id))
+        metricas.CLIQUES.inc()
 
         return peca
 
