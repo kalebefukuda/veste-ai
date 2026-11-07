@@ -83,6 +83,8 @@ export default async function LookPublicoPage({ params }: Props) {
             ))}
           </ul>
 
+          <TotalDoLook pecas={look.pieces} />
+
           <p className="mt-6 text-sm leading-relaxed text-navy/55">
             A compra acontece na loja de cada peça. O VesteAí não participa dela.
           </p>
@@ -131,6 +133,42 @@ function QuemMontou({ creator }: { creator: LookPublico["creator"] }) {
   );
 }
 
+const REAIS = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+// Somar em centavos evita o erro de arredondamento do ponto flutuante.
+function centavos(preco: string): number {
+  return Math.round(Number(preco) * 100);
+}
+
+function emReais(valor: number): string {
+  return REAIS.format(valor / 100);
+}
+
+function TotalDoLook({ pecas }: { pecas: Peca[] }) {
+  const precos = pecas.flatMap((peca) => (peca.price ? [centavos(peca.price)] : []));
+
+  if (precos.length < 2) return null;
+
+  const total = precos.reduce((soma, valor) => soma + valor, 0);
+  const faltam = pecas.length - precos.length;
+
+  return (
+    <div className="mt-5 rounded-2xl bg-navy/[0.04] px-4 py-4">
+      <dl className="flex items-baseline justify-between gap-4">
+        <dt className="text-sm font-semibold text-navy">Total das peças</dt>
+        <dd className="text-xl font-bold tracking-[-0.02em] text-navy">{emReais(total)}</dd>
+      </dl>
+      <p className="mt-1.5 text-sm leading-relaxed text-navy/70">
+        {faltam > 0 &&
+          `Soma ${precos.length} de ${pecas.length} peças: ${
+            faltam === 1 ? "uma está" : `${faltam} estão`
+          } sem preço. `}
+        Preços informados por quem montou o look; o valor final é o da loja.
+      </p>
+    </div>
+  );
+}
+
 function ItemDaPeca({ peca }: { peca: Peca }) {
   const destino = dominio(peca.purchase_url);
 
@@ -169,7 +207,7 @@ function ItemDaPeca({ peca }: { peca: Peca }) {
 
         {peca.price && (
           <span className="shrink-0 font-semibold tracking-[-0.01em] text-navy">
-            R$ {peca.price}
+            {emReais(centavos(peca.price))}
           </span>
         )}
 
