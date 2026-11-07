@@ -1,14 +1,18 @@
 """Regras de negócio dos looks. O router não decide nada: só traduz para HTTP."""
 
+import time
 import uuid
 
 from app.clients.safe_browsing import e_perigoso
+from app.core import metricas
 from app.core.exceptions import (
     LookNotFound,
     LookWithoutCategory,
     LookWithoutImage,
     LookWithoutPiece,
+    NothingToCompose,
     NotTheOwner,
+    PiecesWithoutPhoto,
     UnsafeLink,
 )
 from app.models.look import PUBLICADO, Look, Piece
@@ -97,7 +101,18 @@ class LookService:
         self, look_id: uuid.UUID, user_id: uuid.UUID, modelo: ModeloDoLook | None = None
     ) -> Look:
         look = self._meu(look_id, user_id)
-        look.image_key = imagem.gerar_do_look(look, modelo)
+        inicio = time.perf_counter()
+
+        try:
+            look.image_key = imagem.gerar_do_look(look, modelo)
+        except (NothingToCompose, PiecesWithoutPhoto):
+            raise
+        except Exception:
+            metricas.GERACOES.labels(result="failure").inc()
+            raise
+
+        metricas.GERACOES.labels(result="success").inc()
+        metricas.TEMPO_DA_GERACAO.observe(time.perf_counter() - inicio)
         # A coluna existe desde a `0001` e nunca tinha sido escrita: é ela que separa
         # foto de quem montou de imagem de máquina.
         look.ai_generated = True
