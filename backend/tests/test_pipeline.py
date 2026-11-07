@@ -1,0 +1,104 @@
+import json
+from pathlib import Path
+
+import yaml
+
+RAIZ = Path(__file__).resolve().parents[2]
+TEXTO_DO_CI = (RAIZ / ".github" / "workflows" / "ci.yml").read_text()
+JOBS = yaml.safe_load(TEXTO_DO_CI)["jobs"]
+VERCEL = json.loads((RAIZ / "frontend" / "vercel.json").read_text())
+
+CHECAGENS = {"backend", "frontend", "infra", "scripts"}
+PRODUCAO = ("deploy-api-production", "deploy-web-production")
+HOMOLOGACAO = ("deploy-web-staging",)
+
+
+def _lista(valor: str | list[str] | None) -> list[str]:
+    if valor is None:
+        return []
+    return [valor] if isinstance(valor, str) else valor
+
+
+def _espera(nome: str) -> set[str]:
+    diretos = set(_lista(JOBS[nome].get("needs")))
+    return diretos.union(*(_espera(job) for job in diretos))
+
+
+def _comandos(nome: str) -> list[str]:
+    return [passo.get("run", "") for passo in JOBS[nome]["steps"]]
+
+
+def _ambiente(nome: str) -> str:
+    ambiente = JOBS[nome]["environment"]
+    return ambiente if isinstance(ambiente, str) else ambiente["name"]
+
+
+def test_o_pipeline_tem_homologacao_e_producao() -> None:
+    assert set(PRODUCAO + HOMOLOGACAO) <= set(JOBS)
+
+
+# Nada é publicado com teste vermelho.
+def test_todo_deploy_espera_o_ci_verde() -> None:
+    for nome in PRODUCAO + HOMOLOGACAO:
+        assert CHECAGENS <= _espera(nome), f"{nome} não espera {CHECAGENS - _espera(nome)}"
+
+
+def test_pull_request_nunca_publica() -> None:
+    for nome in PRODUCAO + HOMOLOGACAO:
+        assert "github.event_name == 'push'" in JOBS[nome]["if"]
+
+
+def test_producao_so_sai_da_main_e_homologacao_so_da_dev() -> None:
+    for nome in PRODUCAO:
+        assert "github.ref == 'refs/heads/main'" in JOBS[nome]["if"]
+    for nome in HOMOLOGACAO:
+        assert "github.ref == 'refs/heads/dev'" in JOBS[nome]["if"]
+
+
+# O ambiente production é o que pede aprovação de uma pessoa antes de seguir.
+def test_producao_passa_pelo_ambiente_que_pede_aprovacao() -> None:
+    assert {_ambiente(nome) for nome in PRODUCAO} == {"production"}
+    assert {_ambiente(nome) for nome in HOMOLOGACAO} == {"staging"}
+
+
+def test_deploys_de_producao_nao_correm_juntos() -> None:
+    for nome in PRODUCAO:
+        assert JOBS[nome]["concurrency"]["cancel-in-progress"] is False
+
+
+def test_a_api_entra_na_aws_por_oidc_sem_chave_guardada() -> None:
+    assert JOBS["deploy-api-production"]["permissions"]["id-token"] == "write"
+    assert "AWS_ACCESS_KEY_ID" not in TEXTO_DO_CI
+    assert "aws-secret-access-key" not in TEXTO_DO_CI
+
+
+def test_as_migrations_rodam_antes_de_trocar_o_servico() -> None:
+    comandos = _comandos("deploy-api-production")
+    migracao = next(i for i, c in enumerate(comandos) if "alembic" in c and "upgrade" in c)
+    troca = next(i for i, c in enumerate(comandos) if "update-service" in c)
+
+    assert migracao < troca
+
+
+def test_a_api_confere_a_saude_depois_de_trocar() -> None:
+    comandos = _comandos("deploy-api-production")
+    troca = next(i for i, c in enumerate(comandos) if "update-service" in c)
+
+    assert any("/health" in c for c in comandos[troca + 1 :])
+
+
+# O front só vai para produção depois da API, para a tela nunca chamar rota que não existe.
+def test_o_front_de_producao_espera_a_api() -> None:
+    assert "deploy-api-production" in _espera("deploy-web-production")
+
+
+def test_o_token_da_vercel_vem_dos_segredos() -> None:
+    referencia_ao_segredo = "${{ secrets." + "VERCEL_TOKEN }}"
+
+    for nome in ("deploy-web-production", "deploy-web-staging"):
+        assert JOBS[nome]["env"]["VERCEL_TOKEN"] == referencia_ao_segredo
+
+
+# Quem publica é o pipeline: a integração da Vercel com o GitHub não dispara nada.
+def test_a_vercel_nao_publica_sozinha() -> None:
+    assert VERCEL["git"]["deploymentEnabled"] is False
