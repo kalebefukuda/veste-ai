@@ -456,3 +456,46 @@ def test_bucket_que_nao_devolve_a_foto_responde_503(
 
     assert resposta.status_code == 503
     assert resposta.json()["code"] == "STORAGE_UNAVAILABLE"
+
+
+def _metrica(nome: str, rotulos: dict[str, str] | None = None) -> float:
+    from prometheus_client import REGISTRY
+
+    return REGISTRY.get_sample_value(nome, rotulos or {}) or 0.0
+
+
+# A RFC promete a imagem em menos de 30 s: o tempo de cada geração entra no painel.
+def test_geracao_bem_sucedida_entra_nas_metricas(
+    dono, look_com_peca_ilustrada, com_chave, rede_falsa
+):
+    sucessos = _metrica("vesteai_generations_total", {"result": "success"})
+    medidas = _metrica("vesteai_generation_duration_seconds_count")
+
+    gerar(dono, look_com_peca_ilustrada)
+
+    assert _metrica("vesteai_generations_total", {"result": "success"}) == sucessos + 1
+    assert _metrica("vesteai_generation_duration_seconds_count") == medidas + 1
+
+
+def test_falha_da_geracao_entra_nas_metricas(
+    dono, look_com_peca_ilustrada, com_chave, rede_falsa, monkeypatch
+):
+    def sem_imagem(url: str, **_: object) -> httpx.Response:
+        return httpx.Response(200, json={"candidates": []}, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(gemini.httpx, "post", sem_imagem)
+    falhas = _metrica("vesteai_generations_total", {"result": "failure"})
+
+    gerar(dono, look_com_peca_ilustrada)
+
+    assert _metrica("vesteai_generations_total", {"result": "failure"}) == falhas + 1
+
+
+# Recusa por falta de foto nem chega ao modelo: não é geração que falhou.
+def test_recusa_antes_de_gerar_nao_conta_como_falha(dono, look_com_peca_ilustrada, com_chave):
+    dono.post(f"/looks/{look_com_peca_ilustrada}/pieces", json=PECA)
+    falhas = _metrica("vesteai_generations_total", {"result": "failure"})
+
+    assert gerar(dono, look_com_peca_ilustrada).status_code == 422
+
+    assert _metrica("vesteai_generations_total", {"result": "failure"}) == falhas

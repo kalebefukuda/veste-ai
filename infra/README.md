@@ -81,6 +81,7 @@ pelo real.
 | `vesteai/contact-destination-*` | endereço que recebe o canal do titular |
 | `vesteai/gemini-api-key-*` | chave da API do Gemini |
 | `vesteai/safe-browsing-api-key-*` | chave da API do Safe Browsing |
+| `vesteai/grafana-cloud-token-*` | token de envio de métricas do Grafana Cloud |
 
 > **Esquecer este passo falha tarde.** O ECS injeta `definir-no-console` como se fosse
 > chave válida, o container sobe normalmente, e o erro só aparece no primeiro envio —

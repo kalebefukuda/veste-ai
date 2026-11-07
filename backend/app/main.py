@@ -1,4 +1,6 @@
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,6 +8,7 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
 from app.config import get_settings
+from app.core import metricas
 from app.core.exceptions import DomainHTTPException, TooManyRequests
 from app.core.logging import RequestIdMiddleware, configure
 from app.core.rate_limit import limiter
@@ -17,11 +20,21 @@ configure()
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="VesteAi API", version="0.1.0")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    settings = get_settings()
+    metricas.iniciar(settings.metrics_port, settings.metrics_addr)
+    yield
+
+
+app = FastAPI(title="VesteAi API", version="0.1.0", lifespan=lifespan)
 
 app.state.limiter = limiter
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(LimiteDeCorpoMiddleware)
+app.add_middleware(metricas.MetricasMiddleware)
 # Registrado por último para rodar primeiro: todo log de dentro já sai com o id.
 app.add_middleware(RequestIdMiddleware)
 

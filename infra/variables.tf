@@ -95,3 +95,15 @@ variable "frontend_reset_url" {
   type        = string
   default     = ""
 }
+
+variable "grafana_cloud_remote_write_url" {
+  description = "Endereço de remote write do Prometheus no Grafana Cloud. Vazio deixa a task sem coletor."
+  type        = string
+  default     = ""
+}
+
+variable "grafana_cloud_user" {
+  description = "Usuário do remote write no Grafana Cloud: o número da instância do Prometheus."
+  type        = string
+  default     = ""
+}
