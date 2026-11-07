@@ -91,3 +91,11 @@ def test_o_servico_espera_o_token_do_grafana_cloud() -> None:
     espera = " ".join(ESPERA.findall(TASK.read_text()))
 
     assert "aws_secretsmanager_secret_version.grafana_cloud_token" in espera
+
+
+# O pipeline lê a task atual, roda as migrations numa task avulsa e espera ela terminar.
+def test_a_role_de_deploy_pode_rodar_as_migrations() -> None:
+    politica = (INFRA / "iam.tf").read_text()
+
+    for acao in ("ecs:DescribeTaskDefinition", "ecs:RunTask", "ecs:DescribeTasks"):
+        assert acao in politica, f"a role de deploy não tem {acao}"

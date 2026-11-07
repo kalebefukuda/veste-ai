@@ -4,7 +4,7 @@
 
 | Peça | Onde | Observação |
 |---|---|---|
-| Frontend | **Vercel** | autorizado em ata pelo orientador. O deploy de produção pela integração Git está desligado em `frontend/vercel.json` — versionado, e não um toggle no painel, para a decisão aparecer no diff |
+| Frontend | **Vercel** | autorizado em ata pelo orientador. Quem publica é o pipeline: a integração Git da Vercel está desligada para todas as branches em `frontend/vercel.json` — versionado, e não um toggle no painel, para a decisão aparecer no diff |
 | API | **AWS ECS Fargate** (`sa-east-1`) | atrás de ALB, com certificado do ACM. O TLS termina no ALB |
 | Banco | **AWS RDS PostgreSQL** `db.t4g.micro` | sub-rede privada, sem IP público. O security group aceita só o do Fargate |
 | Imagens de look | **AWS S3** | bucket privado com *Block Public Access*, servido por URL pré-assinada |
@@ -16,7 +16,8 @@ que foi descartado no caminho está em [[ADRs]], nos ADR-0002 e ADR-0017.
 
 ## O pipeline
 
-`.github/workflows/ci.yml` roda em todo push e PR para `dev` e `main`, com quatro jobs:
+`.github/workflows/ci.yml` roda em todo push e PR para `dev` e `main`. Primeiro as
+checagens:
 
 | Job | O que faz |
 |---|---|
@@ -42,11 +43,39 @@ não precisar ser atualizado em dois arquivos.
 As actions estão presas por **SHA de commit**, não por tag: tag é mutável, e uma tag
 recriada num repositório de terceiro executaria código diferente com o mesmo nome.
 
-### O que ainda não existe
+### O deploy
 
-O **D** do CI/CD. O job que constrói a imagem, empurra para o ECR e pede novo
-deployment ao ECS depende da role de OIDC, que depende do primeiro `apply`. Nenhum
-passo do desenho usa SSH ou FTP em ponto nenhum.
+Depois das checagens verdes, e só em push (pull request nunca publica), vem o deploy. O
+porquê está no
+[ADR-0030](https://github.com/kalebefukuda/veste-ai/blob/dev/docs/adr/0030-deploy-pelo-pipeline.md).
+
+| Job | Quando | O que faz |
+|---|---|---|
+| **deploy-web-staging** | push na `dev` | publica o front como prévia na Vercel (ambiente `staging`) |
+| **deploy-api-production** | push na `main`, com aprovação | imagem com a tag do commit no ECR → nova revisão da task → migrations numa task avulsa → troca do service → `/health` |
+| **deploy-web-production** | push na `main`, depois da API, com aprovação | publica o front em produção na Vercel |
+
+- **Aprovação:** o ambiente `production` do GitHub segura os dois jobs de produção até
+  alguém aprovar na tela do Actions.
+- **AWS sem chave guardada:** a API entra pela role `vesteai-github-actions`, por OIDC, que
+  só aceita a `main`.
+- **Vercel pelo CLI:** o token fica nos segredos do GitHub.
+- **O job da API fica pulado** enquanto a variável `API_DEPLOY_ENABLED` não for `true`, o
+  que vale enquanto o runtime da AWS estiver desligado.
+
+Para ligar, configure no repositório:
+
+| Onde | Nome | Valor |
+|---|---|---|
+| Secret | `VERCEL_TOKEN` | token criado na Vercel |
+| Variable | `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` | identificadores do projeto, em `.vercel/project.json` depois de um `vercel link` |
+| Variable | `AWS_DEPLOY_ROLE_ARN` | `terraform output github_actions_role_arn` |
+| Variable | `API_URL` | `https://api.vesteai.site` |
+| Variable | `API_DEPLOY_ENABLED` | `true` quando o runtime estiver no ar |
+| Environment | `staging` e `production` | `production` com aprovador obrigatório |
+
+Para voltar uma versão da API, aponte o service para a revisão anterior da task. A imagem
+antiga continua no ECR. Nenhum passo do desenho usa SSH ou FTP em ponto nenhum.
 
 ## Monitoramento
 
