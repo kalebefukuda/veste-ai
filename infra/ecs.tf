@@ -39,7 +39,7 @@ resource "aws_ecs_task_definition" "api" {
     }
   }
 
-  container_definitions = jsonencode([{
+  container_definitions = jsonencode(concat([{
     name      = "api"
     image     = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
     essential = true
@@ -53,6 +53,7 @@ resource "aws_ecs_task_definition" "api" {
     environment = concat([
       { name = "FRONTEND_ORIGIN", value = var.frontend_origin },
       { name = "S3_BUCKET", value = aws_s3_bucket.images.bucket },
+      { name = "METRICS_PORT", value = "9100" },
       # Fixo, não variável: esta task definition *é* produção. Uma variável aqui seria
       # uma chance de esquecer, e esquecer significa a API sem HSTS sem ninguém notar.
       { name = "ENV", value = "production" },
@@ -83,7 +84,7 @@ resource "aws_ecs_task_definition" "api" {
         "awslogs-stream-prefix" = "api"
       }
     }
-  }])
+  }], local.prometheus))
 }
 
 resource "aws_ecs_service" "api" {
@@ -121,5 +122,6 @@ resource "aws_ecs_service" "api" {
     aws_secretsmanager_secret_version.contact_destination,
     aws_secretsmanager_secret_version.gemini_api_key,
     aws_secretsmanager_secret_version.safe_browsing_api_key,
+    aws_secretsmanager_secret_version.grafana_cloud_token,
   ]
 }
