@@ -43,6 +43,16 @@ const LOOK: LookPublico = {
 
 const OUTRO: LookPublico = { ...LOOK, id: "look-2", title: "Alfaiataria clara" };
 
+const COM_PRECO: LookPublico = {
+  ...LOOK,
+  pieces: [
+    { id: "p1", name: "Sobretudo bordô", purchase_url: "https://loja.com/x", price: "299.90" },
+    { id: "p2", name: "Calça de lã", purchase_url: "https://outra.com/y", price: "159.90" },
+  ],
+};
+
+const SEM_PRECO = { id: "p3", name: "Cachecol", purchase_url: "https://loja.com/z" };
+
 const USUARIO = { id: "1", name: "Mariana Souza", email: "mari@exemplo.com", plan: "free" };
 
 // O feed e o /users/me caem no mesmo `fetch`: sem separar por URL, um teste de página
@@ -171,6 +181,43 @@ describe("look público", () => {
     render(await LookPublicoPage({ params: { id: "look-1" } }));
 
     expect(screen.getByText(/loja\.com/)).toBeInTheDocument();
+  });
+
+  it("mostra o preço da peça em reais", async () => {
+    vi.stubGlobal("fetch", respondePorUrl({ "/feed/look-1": COM_PRECO }));
+
+    render(await LookPublicoPage({ params: { id: "look-1" } }));
+
+    expect(screen.getByText(/R\$\s299,90/)).toBeInTheDocument();
+  });
+
+  it("soma o preço das peças para mostrar quanto custa o look", async () => {
+    vi.stubGlobal("fetch", respondePorUrl({ "/feed/look-1": COM_PRECO }));
+
+    render(await LookPublicoPage({ params: { id: "look-1" } }));
+
+    expect(screen.getByText("Total das peças")).toBeInTheDocument();
+    expect(screen.getByText(/R\$\s459,80/)).toBeInTheDocument();
+    expect(screen.queryByText(/sem preço/i)).not.toBeInTheDocument();
+  });
+
+  it("avisa quando o total deixa peça sem preço de fora", async () => {
+    const comLacuna = { ...COM_PRECO, pieces: [...COM_PRECO.pieces, SEM_PRECO] };
+    vi.stubGlobal("fetch", respondePorUrl({ "/feed/look-1": comLacuna }));
+
+    render(await LookPublicoPage({ params: { id: "look-1" } }));
+
+    expect(screen.getByText(/R\$\s459,80/)).toBeInTheDocument();
+    expect(screen.getByText(/2 de 3 peças/)).toBeInTheDocument();
+  });
+
+  it("não mostra total quando menos de duas peças têm preço", async () => {
+    const umPreco = { ...COM_PRECO, pieces: [COM_PRECO.pieces[0], SEM_PRECO] };
+    vi.stubGlobal("fetch", respondePorUrl({ "/feed/look-1": umPreco }));
+
+    render(await LookPublicoPage({ params: { id: "look-1" } }));
+
+    expect(screen.queryByText("Total das peças")).not.toBeInTheDocument();
   });
 
   // Rascunho e inexistente dão no mesmo 404: distinguir os dois entregaria a quem
