@@ -48,6 +48,19 @@ O **D** do CI/CD. O job que constrói a imagem, empurra para o ECR e pede novo
 deployment ao ECS depende da role de OIDC, que depende do primeiro `apply`. Nenhum
 passo do desenho usa SSH ou FTP em ponto nenhum.
 
+## Monitoramento
+
+A API expõe métricas no formato do Prometheus na porta 9100, que nenhuma regra de rede
+abre. Na AWS, um Prometheus em modo agente roda como segundo container da task, lê essa
+porta pela rede da própria task e envia tudo ao **Grafana Cloud**, onde ficam o painel e
+os alertas. O porquê está no
+[ADR-0029](https://github.com/kalebefukuda/veste-ai/blob/dev/docs/adr/0029-monitoramento-com-prometheus-e-grafana-cloud.md).
+
+O painel é o arquivo `infra/monitoring/grafana/dashboards/vesteai.json`, o mesmo do
+ambiente local. Para ligar o envio, preencha `grafana_cloud_remote_write_url` e
+`grafana_cloud_user` no Terraform e cole o token no segredo
+`vesteai/grafana-cloud-token-*`. Sem a URL, a task sobe sem o Prometheus.
+
 ## Variáveis de ambiente
 
 Todas estão em
@@ -64,6 +77,8 @@ O que muda por ambiente é **onde o valor mora**:
 | `FRONTEND_RESET_URL` | link do e-mail de recuperação de senha | task definition → campo `environment` |
 | `EMAIL_SENDER` | remetente do e-mail | **não é injetada** — o padrão da aplicação já é `nao-responda@vesteai.site` |
 | `NEXT_PUBLIC_API_URL` | endereço da API para o browser | variável da Vercel |
+| `METRICS_PORT` | porta interna das métricas; vazia não abre nada | task definition → `environment`, fixo em `9100` |
+| `METRICS_ADDR` | endereço em que essa porta escuta | **não é injetada** — o padrão `127.0.0.1` basta, o Prometheus lê pelo `localhost` da task |
 
 > Na task definition, **`environment` é texto plano** — aparece no console para quem
 > tiver leitura na conta. Credencial vai em `secrets`, sem exceção. E nenhuma chave
