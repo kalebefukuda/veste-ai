@@ -75,10 +75,21 @@ def test_deploys_de_producao_nao_correm_juntos() -> None:
         assert JOBS[nome]["concurrency"]["cancel-in-progress"] is False
 
 
-def test_a_api_entra_na_aws_por_oidc_sem_chave_guardada() -> None:
-    assert JOBS["deploy-api-production"]["permissions"]["id-token"] == "write"
-    assert "AWS_ACCESS_KEY_ID" not in TEXTO_DO_CI
-    assert "aws-secret-access-key" not in TEXTO_DO_CI
+# A conta da AWS proíbe provedor OIDC; a chave só sai do ambiente que pede aprovação — ADR-0031.
+def test_a_chave_da_aws_so_e_usada_no_deploy_de_producao() -> None:
+    job = JOBS["deploy-api-production"]
+    credenciais = next(p for p in job["steps"] if "configure-aws-credentials" in p.get("uses", ""))
+
+    segredo = "${{ secrets."
+
+    assert credenciais["with"]["aws-access-key-id"] == segredo + "AWS_ACCESS_KEY_ID }}"
+    assert credenciais["with"]["aws-secret-access-key"] == segredo + "AWS_SECRET_ACCESS_KEY }}"
+    assert TEXTO_DO_CI.count("secrets.AWS_") == 2
+    assert "id-token" not in job["permissions"]
+
+
+def test_a_api_e_publicada_em_ohio() -> None:
+    assert JOBS["deploy-api-production"]["env"]["AWS_REGION"] == "us-east-2"
 
 
 def test_as_migrations_rodam_antes_de_trocar_o_servico() -> None:
@@ -111,3 +122,8 @@ def test_o_token_da_vercel_vem_dos_segredos() -> None:
 # Quem publica é o pipeline: a integração da Vercel com o GitHub não dispara nada.
 def test_a_vercel_nao_publica_sozinha() -> None:
     assert VERCEL["git"]["deploymentEnabled"] is False
+
+
+# O servidor do front chama a API a cada ação: os dois ficam na mesma região.
+def test_o_servidor_do_front_roda_ao_lado_da_api() -> None:
+    assert VERCEL["regions"] == ["cle1"]
