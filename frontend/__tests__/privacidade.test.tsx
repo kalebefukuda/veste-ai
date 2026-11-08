@@ -68,7 +68,8 @@ describe("política de privacidade", () => {
       expect.stringMatching(/Google Safe Browsing/),
       expect.stringMatching(/Vercel/),
     ]);
-    expect(secao).toHaveTextContent(/sa-east-1/);
+    expect(secao).toHaveTextContent(/us-east-2/);
+    expect(secao).toHaveTextContent(/transferência internacional/i);
     expect(secao).toHaveTextContent(/só quando você pede/i);
   });
 
