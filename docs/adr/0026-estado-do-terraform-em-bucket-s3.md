@@ -80,7 +80,7 @@ pipeline não tem permissão de S3, porque o pipeline não roda `plan` nem `appl
 role da task só alcança o bucket de imagens. Se um dia o pipeline passar a rodar
 `plan`, a permissão nova tem de ser só de leitura e só neste bucket.
 
-O backend fixa `sa-east-1` no código, porque bloco de backend não aceita variável.
+O backend fixa a região no código (`us-east-2` desde o ADR-0031), porque bloco de backend não aceita variável.
 Trocar de região exige mexer ali e em `bootstrap/` além de `variables.tf`.
 
 O estado do bootstrap fica local, em `infra/bootstrap/terraform.tfstate`, fora do git.

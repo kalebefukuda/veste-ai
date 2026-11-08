@@ -72,7 +72,7 @@ O CI roda o mesmo comando de teste acrescido de `--cov-fail-under`. O limiar viv
 - **Externos:** Google Gemini (geração de imagem), Stripe (assinatura Pro do creator
   — nunca pagamento de produto), AWS S3 (imagens), lojas de e-commerce (só
   redirecionamento, sem API).
-- **Hospedagem:** Vercel (frontend). Backend em AWS ECS Fargate (`sa-east-1`), atrás
+- **Hospedagem:** Vercel (frontend). Backend em AWS ECS Fargate (`us-east-2`, ADR-0031), atrás
   de ALB com certificado ACM. Banco em AWS RDS PostgreSQL (`db.t4g.micro`, sub-rede
   privada). Imagens em S3, bucket privado com URL pré-assinada. Segredos no AWS
   Secrets Manager, referenciados no campo `secrets` da task definition — nunca em
