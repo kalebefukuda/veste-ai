@@ -9,6 +9,7 @@ JOBS = yaml.safe_load(TEXTO_DO_CI)["jobs"]
 VERCEL = json.loads((RAIZ / "frontend" / "vercel.json").read_text())
 
 CHECAGENS = {"backend", "frontend", "infra", "scripts"}
+DOMINIO_DE_HOMOLOGACAO = "staging.vesteai.site"
 PRODUCAO = ("deploy-api-production", "deploy-web-production")
 HOMOLOGACAO = ("deploy-web-staging",)
 
@@ -59,6 +60,14 @@ def test_producao_so_sai_da_main_e_homologacao_so_da_dev() -> None:
 def test_producao_passa_pelo_ambiente_que_pede_aprovacao() -> None:
     assert {_ambiente(nome) for nome in PRODUCAO} == {"production"}
     assert {_ambiente(nome) for nome in HOMOLOGACAO} == {"staging"}
+
+
+def test_a_homologacao_fica_sempre_no_mesmo_endereco() -> None:
+    publica = [c for c in _comandos("deploy-web-staging") if "vercel deploy" in c]
+
+    assert JOBS["deploy-web-staging"]["environment"]["url"] == f"https://{DOMINIO_DE_HOMOLOGACAO}"
+    assert len(publica) == 1
+    assert f"vercel alias set \"$url\" {DOMINIO_DE_HOMOLOGACAO}" in publica[0]
 
 
 def test_deploys_de_producao_nao_correm_juntos() -> None:

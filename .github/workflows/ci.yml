@@ -216,7 +216,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: staging
-      url: ${{ steps.publicar.outputs.url }}
+      url: https://staging.vesteai.site
     concurrency:
       group: deploy-staging-web
       cancel-in-progress: false
@@ -240,9 +240,10 @@ jobs:
       - name: Build
         run: vercel build --token="$VERCEL_TOKEN"
 
-      - name: Deploy
-        id: publicar
-        run: echo "url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"
+      - name: Deploy under the staging domain
+        run: |
+          url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          vercel alias set "$url" staging.vesteai.site --token="$VERCEL_TOKEN"
 
   deploy-api-production:
     name: deploy — api to production

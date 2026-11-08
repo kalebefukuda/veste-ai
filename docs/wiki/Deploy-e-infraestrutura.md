@@ -51,7 +51,7 @@ porquê está no
 
 | Job | Quando | O que faz |
 |---|---|---|
-| **deploy-web-staging** | push na `dev` | publica o front como prévia na Vercel (ambiente `staging`) |
+| **deploy-web-staging** | push na `dev` | publica o front como prévia na Vercel e aponta `staging.vesteai.site` para ela (ambiente `staging`) |
 | **deploy-api-production** | push na `main`, com aprovação | imagem com a tag do commit no ECR → nova revisão da task → migrations numa task avulsa → troca do service → `/health` |
 | **deploy-web-production** | push na `main`, depois da API, com aprovação | publica o front em produção na Vercel |
 
@@ -73,6 +73,7 @@ Para ligar, configure no repositório:
 | Variable | `API_URL` | `https://api.vesteai.site` |
 | Variable | `API_DEPLOY_ENABLED` | `true` quando o runtime estiver no ar |
 | Environment | `staging` e `production` | `production` com aprovador obrigatório |
+| Vercel e DNS | `staging.vesteai.site` | domínio no projeto da Vercel, com o CNAME que ela indicar criado na Hostinger |
 
 Para voltar uma versão da API, aponte o service para a revisão anterior da task. A imagem
 antiga continua no ECR. Nenhum passo do desenho usa SSH ou FTP em ponto nenhum.
