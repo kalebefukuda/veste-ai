@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     gemini_project: str = "vesteai-gemini"
     # Sem bucket, o upload recusa com recado em vez de estourar — ADR-0025.
     s3_bucket: str = ""
-    aws_region: str = "sa-east-1"
+    aws_region: str = "us-east-2"
     email_sender: str = "nao-responda@vesteai.site"
     email_sender_name: str = "VesteAí"
     # Destino do canal do titular. Nunca aparece na interface: é o que permite ter

@@ -3,9 +3,9 @@ output "ecr_repository_url" {
   value       = aws_ecr_repository.api.repository_url
 }
 
-output "github_actions_role_arn" {
-  description = "Role assumida pelo workflow por OIDC."
-  value       = aws_iam_role.github_actions.arn
+output "github_deploy_user" {
+  description = "Usuário do pipeline. A chave dele é criada no console, nunca pelo Terraform."
+  value       = aws_iam_user.github_deploy.name
 }
 
 output "ecs_cluster_name" {
