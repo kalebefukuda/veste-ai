@@ -4,7 +4,7 @@ terraform {
   # O bucket entra no `init`, lido da saída de bootstrap/: o nome é gerado na criação.
   backend "s3" {
     key          = "vesteai/terraform.tfstate"
-    region       = "sa-east-1"
+    region       = "us-east-2"
     encrypt      = true
     use_lockfile = true
   }

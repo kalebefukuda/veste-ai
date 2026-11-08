@@ -94,8 +94,31 @@ def test_o_servico_espera_o_token_do_grafana_cloud() -> None:
 
 
 # O pipeline lê a task atual, roda as migrations numa task avulsa e espera ela terminar.
-def test_a_role_de_deploy_pode_rodar_as_migrations() -> None:
+def test_o_deploy_pode_rodar_as_migrations() -> None:
     politica = (INFRA / "iam.tf").read_text()
 
     for acao in ("ecs:DescribeTaskDefinition", "ecs:RunTask", "ecs:DescribeTasks"):
-        assert acao in politica, f"a role de deploy não tem {acao}"
+        assert acao in politica, f"a política de deploy não tem {acao}"
+
+
+# A conta proíbe provedor OIDC, e a chave nunca entra no estado do Terraform — ADR-0031.
+def test_o_deploy_entra_por_um_usuario_so_dele() -> None:
+    iam = (INFRA / "iam.tf").read_text()
+
+    assert 'resource "aws_iam_user" "github_deploy"' in iam
+    assert re.search(
+        r'resource "aws_iam_user_policy" "deploy" \{[^}]*'
+        r"user\s*=\s*aws_iam_user\.github_deploy\.name",
+        iam,
+    )
+    assert "aws_iam_openid_connect_provider" not in iam
+    assert "aws_iam_access_key" not in iam
+
+
+def test_a_infra_e_a_api_ficam_em_ohio() -> None:
+    for arquivo in ("variables.tf", "versions.tf", "bootstrap/main.tf"):
+        texto = (INFRA / arquivo).read_text()
+        assert "us-east-2" in texto, arquivo
+        assert "sa-east-1" not in texto, arquivo
+
+    assert Settings.model_fields["aws_region"].default == "us-east-2"

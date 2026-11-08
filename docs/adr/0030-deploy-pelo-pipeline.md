@@ -1,6 +1,6 @@
 # ADR-0030 — O deploy sai do pipeline: o front pelo Vercel CLI, a API pelo ECS
 
-Data: 07/11/2026 · Status: aceita
+Data: 07/11/2026 · Status: aceita; a autenticação na AWS foi substituída pelo ADR-0031
 
 ## Contexto
 

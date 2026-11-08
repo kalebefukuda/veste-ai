@@ -136,6 +136,8 @@ argumentação.
 - **O KPI de 200 usuários simultâneos continua sem prova.** Uma task de 0.25 vCPU não
   sustenta isso por decreto — exige teste de carga.
 
+> **Atualização de 07/11/2026:** a região passou a `us-east-2`, numa conta nova — ADR-0031.
+
 > **Atualização de 27/10/2026 — região fechada em `sa-east-1`.** Escolha do autor: São
 > Paulo, com os dados das contas no Brasil. A objeção de custo perdeu força com o
 > calendário: o runtime só precisa ficar ligado de novembro até a divulgação das notas

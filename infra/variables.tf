@@ -7,7 +7,7 @@ variable "project" {
 variable "region" {
   description = "Região da AWS."
   type        = string
-  default     = "sa-east-1"
+  default     = "us-east-2"
 }
 
 # Falso derruba ALB, RDS e as tasks do Fargate, que somam quase todo o custo,
@@ -22,12 +22,6 @@ variable "domain_name" {
   description = "Domínio do backend. Vazio mantém o ALB em HTTP, sem certificado."
   type        = string
   default     = ""
-}
-
-variable "github_repository" {
-  description = "Repositório autorizado a assumir a role por OIDC, no formato dono/nome."
-  type        = string
-  default     = "kalebefukuda/veste-ai"
 }
 
 variable "db_name" {
@@ -70,12 +64,6 @@ variable "frontend_origin" {
   description = "Origem liberada no CORS do backend."
   type        = string
   default     = "http://localhost:3000"
-}
-
-variable "deploy_branch" {
-  description = "Única branch autorizada a assumir a role de deploy por OIDC."
-  type        = string
-  default     = "main"
 }
 
 variable "api_image_tag" {

@@ -40,7 +40,7 @@ const COMPARTILHAMENTO = [
   },
   {
     servico: "Amazon Web Services (AWS)",
-    uso: "Hospeda a API, o banco de dados e as imagens dos looks, na região de São Paulo (sa-east-1). É onde ficam os dados da conta e o que você publica.",
+    uso: "Hospeda a API, o banco de dados e as imagens dos looks, nos Estados Unidos, na região de Ohio (us-east-2). É onde ficam os dados da conta e o que você publica, o que configura transferência internacional de dados (LGPD, art. 33).",
   },
   {
     servico: "Google Gemini",

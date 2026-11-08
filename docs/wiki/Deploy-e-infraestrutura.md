@@ -5,7 +5,7 @@
 | Peça | Onde | Observação |
 |---|---|---|
 | Frontend | **Vercel** | autorizado em ata pelo orientador. Quem publica é o pipeline: a integração Git da Vercel está desligada para todas as branches em `frontend/vercel.json` — versionado, e não um toggle no painel, para a decisão aparecer no diff |
-| API | **AWS ECS Fargate** (`sa-east-1`) | atrás de ALB, com certificado do ACM. O TLS termina no ALB |
+| API | **AWS ECS Fargate** (`us-east-2`, Ohio) | atrás de ALB, com certificado do ACM. O TLS termina no ALB |
 | Banco | **AWS RDS PostgreSQL** `db.t4g.micro` | sub-rede privada, sem IP público. O security group aceita só o do Fargate |
 | Imagens de look | **AWS S3** | bucket privado com *Block Public Access*, servido por URL pré-assinada |
 | Segredos | **AWS Secrets Manager** | referenciados no campo `secrets` da task definition |
@@ -32,7 +32,7 @@ entra na `dev`.
 Duas coisas deliberadamente **fora** do CI:
 
 - **`terraform plan`** exige credencial. O job roda só o que não exige. O `plan` entra
-  junto com a role de OIDC.
+  quando o pipeline ganhar uma credencial só de leitura.
 - **`terraform apply`** é sempre manual e com aval, porque cria recurso que cobra.
 
 O gate de cobertura (`--cov-fail-under`) é uma **catraca**: trava o nível já medido para
@@ -57,8 +57,9 @@ porquê está no
 
 - **Aprovação:** o ambiente `production` do GitHub segura os dois jobs de produção até
   alguém aprovar na tela do Actions.
-- **AWS sem chave guardada:** a API entra pela role `vesteai-github-actions`, por OIDC, que
-  só aceita a `main`.
+- **AWS por chave do ambiente:** a conta proíbe provedor OIDC, então a API entra pelo usuário
+  `vesteai-github-deploy`. A chave fica só no ambiente `production`, que aceita só a `main`
+  ([ADR-0031](https://github.com/kalebefukuda/veste-ai/blob/dev/docs/adr/0031-conta-nova-em-ohio-com-chave-de-deploy.md)).
 - **Vercel pelo CLI:** o token fica nos segredos do GitHub.
 - **O job da API fica pulado** enquanto a variável `API_DEPLOY_ENABLED` não for `true`, o
   que vale enquanto o runtime da AWS estiver desligado.
@@ -69,10 +70,10 @@ Para ligar, configure no repositório:
 |---|---|---|
 | Secret | `VERCEL_TOKEN` | token criado na Vercel |
 | Variable | `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` | identificadores do projeto, em `.vercel/project.json` depois de um `vercel link` |
-| Variable | `AWS_DEPLOY_ROLE_ARN` | `terraform output github_actions_role_arn` |
+| Secret do ambiente `production` | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | chave do usuário `terraform output github_deploy_user`, criada no console e trocada a cada 90 dias |
 | Variable | `API_URL` | `https://api.vesteai.site` |
 | Variable | `API_DEPLOY_ENABLED` | `true` quando o runtime estiver no ar |
-| Environment | `staging` e `production` | `production` com aprovador obrigatório |
+| Environment | `staging` e `production` | `production` com aprovador obrigatório e restrito à `main` |
 | Vercel e DNS | `staging.vesteai.site` | domínio no projeto da Vercel, com o CNAME que ela indicar criado na Hostinger |
 
 Para voltar uma versão da API, aponte o service para a revisão anterior da task. A imagem
@@ -111,9 +112,9 @@ O que muda por ambiente é **onde o valor mora**:
 | `METRICS_ADDR` | endereço em que essa porta escuta | **não é injetada** — o padrão `127.0.0.1` basta, o Prometheus lê pelo `localhost` da task |
 
 > Na task definition, **`environment` é texto plano** — aparece no console para quem
-> tiver leitura na conta. Credencial vai em `secrets`, sem exceção. E nenhuma chave
-> estática da AWS entra nos secrets do repositório: o CI autentica por **OIDC com role
-> assumida**, cuja credencial expira em minutos. `NEXT_PUBLIC_*` é público por
+> tiver leitura na conta. Credencial vai em `secrets`, sem exceção. A única chave
+> estática da AWS é a do pipeline, guardada no ambiente `production` do GitHub, nunca no
+> repositório nem no estado do Terraform. `NEXT_PUBLIC_*` é público por
 > definição — segredo com esse prefixo é segredo vazado.
 
 Sem `BREVO_API_KEY` o cliente de e-mail registra um aviso e o token de reset é criado

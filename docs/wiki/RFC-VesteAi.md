@@ -1336,7 +1336,7 @@ O monitoramento de infraestrutura é realizado com Prometheus para coleta de mé
 
 O frontend Next.js é hospedado na **Vercel**, e o backend FastAPI na **Amazon Web Services**. Essa separação foi autorizada em orientação: a Vercel entrega SSR e Preview Deployments por pull request sem infraestrutura a manter, e a AWS concentra o que exige controle de arquitetura.
 
-O backend roda em **ECS Fargate** (`sa-east-1`), atrás de um **Application Load Balancer** com certificado do **ACM**. O banco PostgreSQL é provisionado no **Amazon RDS** (`db.t4g.micro`), em sub-rede privada e sem endereço público, acessível apenas pelo security group da aplicação. As imagens de look ficam em um bucket **S3** privado, servidas por URL pré-assinada. Segredos vivem no **AWS Secrets Manager** e são resolvidos em tempo de execução pela task definition — nunca em variável de ambiente em texto plano.
+O backend roda em **ECS Fargate** (`sa-east-1`; desde o ADR-0031, `us-east-2`), atrás de um **Application Load Balancer** com certificado do **ACM**. O banco PostgreSQL é provisionado no **Amazon RDS** (`db.t4g.micro`), em sub-rede privada e sem endereço público, acessível apenas pelo security group da aplicação. As imagens de look ficam em um bucket **S3** privado, servidas por URL pré-assinada. Segredos vivem no **AWS Secrets Manager** e são resolvidos em tempo de execução pela task definition — nunca em variável de ambiente em texto plano.
 
 Toda essa infraestrutura é descrita em **Terraform**, versionada no repositório em `infra/`: mudança de infraestrutura é mudança de código e entra por pull request, com `terraform validate` no pipeline. O `apply` é sempre manual e com aval, porque cria recurso que gera custo.
 

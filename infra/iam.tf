@@ -1,40 +1,8 @@
 data "aws_caller_identity" "current" {}
 
-# OIDC entrega credencial temporária de minutos ao workflow; chave estática
-# vazada valeria para sempre — por isso nenhuma entra nos secrets do repositório.
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
-}
-
-data "aws_iam_policy_document" "github_assume" {
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-
-    principals {
-      type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:aud"
-      values   = ["sts.amazonaws.com"]
-    }
-
-    condition {
-      test     = "StringLike"
-      variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:ref:refs/heads/${var.deploy_branch}"]
-    }
-  }
-}
-
-resource "aws_iam_role" "github_actions" {
-  name               = "${var.project}-github-actions"
-  assume_role_policy = data.aws_iam_policy_document.github_assume.json
+# A conta proíbe provedor OIDC; a chave é criada no console e vai direto ao GitHub — ADR-0031.
+resource "aws_iam_user" "github_deploy" {
+  name = "${var.project}-github-deploy"
 }
 
 data "aws_iam_policy_document" "deploy" {
@@ -101,9 +69,9 @@ data "aws_iam_policy_document" "deploy" {
   }
 }
 
-resource "aws_iam_role_policy" "deploy" {
+resource "aws_iam_user_policy" "deploy" {
   name   = "deploy"
-  role   = aws_iam_role.github_actions.id
+  user   = aws_iam_user.github_deploy.name
   policy = data.aws_iam_policy_document.deploy.json
 }
 
