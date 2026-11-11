@@ -34,8 +34,7 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: "Existe um limite de looks que posso criar?",
-    answer:
-      "No plano Grátis, até 10 looks por mês. O plano Pro libera looks ilimitados.",
+    answer: "No plano Grátis, até 10 looks por mês.",
   },
 ];
 

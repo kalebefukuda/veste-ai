@@ -17,6 +17,7 @@ export interface PricingPlan {
   badge?: string;
   features: string[];
   cta: string;
+  hidden?: boolean;
 }
 
 export interface FaqItem {
