@@ -16,6 +16,14 @@ describe("navegação da landing", () => {
     expect(screen.getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/login");
   });
 
+  it("mostra o Entrar também no celular, para quem já tem conta", () => {
+    render(<Navbar />);
+
+    expect(screen.getByRole("link", { name: "Entrar" }).className).not.toMatch(
+      /(^|\s)hidden(\s|$)/,
+    );
+  });
+
   it("leva o Criar conta para a rota de cadastro", () => {
     render(<Navbar />);
 

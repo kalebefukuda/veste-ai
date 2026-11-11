@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import CtaBanner from "@/components/sections/CtaBanner";
 import Features from "@/components/sections/Features";
 import Hero from "@/components/sections/Hero";
 import HowItWorks from "@/components/sections/HowItWorks";
@@ -31,6 +32,30 @@ describe("hero", () => {
     for (const peca of ["Sobretudo bordô", "Gola alta", "Óculos de sol"]) {
       expect(screen.getByText(peca)).toBeInTheDocument();
     }
+  });
+
+  it("no celular, empilha os botões na mesma largura e guarda as peças para telas maiores", () => {
+    const { container } = render(<Hero />);
+
+    const botoes =
+      screen.getByRole("link", { name: /criar meu primeiro look/i }).parentElement?.className ?? "";
+    expect(botoes).toMatch(/(^|\s)grid(\s|$)/);
+    expect(botoes).not.toMatch(/(^|\s)w-fit(\s|$)/);
+    expect(container.querySelector("ul")?.className).toMatch(/(^|\s)hidden(\s|$)/);
+  });
+});
+
+describe("chamada final", () => {
+  it("no celular, fica só a frase curta e os botões empilhados", () => {
+    render(<CtaBanner />);
+
+    expect(screen.getByText(/o clique de quem gostou/i).className).toMatch(/(^|\s)hidden(\s|$)/);
+    expect(screen.getByText(/comece grátis, sem cartão/i).className).not.toMatch(
+      /(^|\s)hidden(\s|$)/,
+    );
+    expect(
+      screen.getByRole("link", { name: /criar minha conta/i }).parentElement?.className,
+    ).toMatch(/(^|\s)grid(\s|$)/);
   });
 });
 
