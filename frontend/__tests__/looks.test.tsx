@@ -611,6 +611,53 @@ describe("composição do look", () => {
     expect(screen.queryByText(/gerando o modelo/i)).not.toBeInTheDocument();
   });
 
+  it("passa um brilho pela borda do quadro enquanto gera, e para quando a imagem chega", async () => {
+    const user = userEvent.setup();
+    let soltar = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise((resolve) => {
+            soltar = () =>
+              resolve({
+                ok: true,
+                status: 200,
+                json: async () => ({ ...COM_FOTO, image_url: "https://s3/gerada.jpg" }),
+              });
+          }),
+      ),
+    );
+    const { container } = render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+
+    expect(container.querySelector("[data-borda-gerando]")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/gerando o modelo/i);
+    expect(screen.queryByText(/clique para enviar a foto do look/i)).not.toBeInTheDocument();
+
+    soltar();
+
+    expect(await screen.findByAltText(/foto do look/i)).toBeInTheDocument();
+    expect(container.querySelector("[data-borda-gerando]")).not.toBeInTheDocument();
+  });
+
+  // O jsdom não avalia media query: garante que todo giro depende de motion-safe e que há borda parada.
+  it("não gira a borda para quem pede menos movimento", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+    const { container } = render(<EditorDeLook inicial={COM_FOTO} />);
+
+    await user.click(screen.getByRole("button", { name: /gerar modelo com ia/i }));
+    await user.click(screen.getByRole("button", { name: /^gerar imagem$/i }));
+
+    const borda = container.querySelector("[data-borda-gerando]")?.outerHTML ?? "";
+    expect(borda).toMatch(/motion-safe:animate-/);
+    expect(borda).not.toMatch(/(?<!motion-safe:)animate-/);
+    expect(borda).toMatch(/motion-reduce:/);
+  });
+
   // Gerar outra é reabrir o diálogo; ter de remarcar o modelo a cada vez seria castigo.
   it("lembra o modelo escolhido ao reabrir o diálogo", async () => {
     const user = userEvent.setup();
