@@ -24,6 +24,14 @@ body {
   transform: translateY(0);
 }
 
+/* Recorta o elemento num anel da largura do padding: o miolo do quadro fica à vista. */
+.anel-de-brilho {
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
 /* Sem isto o conteúdo continua deslizando para quem pediu menos movimento no
    sistema — e quem pede costuma pedir por enjoo, não por preferência estética. */
 @media (prefers-reduced-motion: reduce) {
