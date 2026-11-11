@@ -1,0 +1,97 @@
+variable "project" {
+  description = "Prefixo aplicado ao nome de todo recurso."
+  type        = string
+  default     = "vesteai"
+}
+
+variable "region" {
+  description = "Região da AWS."
+  type        = string
+  default     = "us-east-2"
+}
+
+# Falso derruba ALB, RDS e as tasks do Fargate, que somam quase todo o custo,
+# preservando VPC, ECR e S3 — a estratégia de três fases do ADR-0002.
+variable "enable_runtime" {
+  description = "Cria a infraestrutura que cobra por hora."
+  type        = bool
+  default     = false
+}
+
+variable "domain_name" {
+  description = "Domínio do backend. Vazio mantém o ALB em HTTP, sem certificado."
+  type        = string
+  default     = ""
+}
+
+variable "db_name" {
+  description = "Nome do banco criado na instância."
+  type        = string
+  default     = "vesteai"
+}
+
+variable "db_username" {
+  description = "Usuário administrador do banco."
+  type        = string
+  default     = "vesteai"
+}
+
+variable "db_instance_class" {
+  description = "Classe da instância do RDS."
+  type        = string
+  default     = "db.t4g.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "Armazenamento do RDS, em GB."
+  type        = number
+  default     = 20
+}
+
+variable "task_cpu" {
+  description = "CPU da task Fargate, em unidades."
+  type        = number
+  default     = 256
+}
+
+variable "task_memory" {
+  description = "Memória da task Fargate, em MiB."
+  type        = number
+  default     = 512
+}
+
+variable "frontend_origin" {
+  description = "Origem liberada no CORS do backend."
+  type        = string
+  default     = "http://localhost:3000"
+}
+
+variable "api_image_tag" {
+  description = "Tag da imagem inicial. O pipeline passa a gerenciar isso depois do primeiro deploy."
+  type        = string
+  default     = "bootstrap"
+}
+
+variable "final_snapshot_identifier" {
+  description = "Prefixo do snapshot tirado antes de destruir o banco. Vazio destrói sem snapshot e perde os dados."
+  type        = string
+  default     = "vesteai-final"
+}
+
+variable "frontend_reset_url" {
+  description = "URL da tela de redefinição de senha. Vazio mantém o padrão da aplicação."
+  type        = string
+  default     = ""
+}
+
+variable "grafana_cloud_remote_write_url" {
+  description = "Endereço de remote write do Prometheus no Grafana Cloud. Vazio deixa a task sem coletor."
+  type        = string
+  default     = ""
+}
+
+variable "grafana_cloud_user" {
+  description = "Usuário do remote write no Grafana Cloud: o número da instância do Prometheus."
+  type        = string
+  default     = ""
+}

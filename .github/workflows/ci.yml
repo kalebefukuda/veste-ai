@@ -1,0 +1,362 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+# Cancels superseded PR runs only; a push run on dev or main always finishes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: backend — lint and tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    # Postgres de verdade: SQLite mentiria sobre UUID e ON DELETE CASCADE.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vesteai
+          POSTGRES_PASSWORD: vesteai
+          POSTGRES_DB: vesteai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg://vesteai:vesteai@localhost:5432/vesteai_test
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          # Both files, or a change to requirements.txt alone would reuse a stale cache.
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      # A ratchet against regression, not the target — raised each sprint, never lowered.
+      - name: Tests
+        run: pytest --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=90
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 7
+
+  frontend:
+    name: frontend — lint and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          # In maintenance until Apr/2027, covering delivery and the grading period.
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+          retention-days: 7
+
+      # `next build` type-checks, standing in for the typecheck script the app lacks.
+      - name: Build
+        run: npm run build
+
+  scripts:
+    name: scripts — lint, tests and wiki links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements-dev.txt
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        working-directory: scripts
+        run: ruff check .
+
+      - name: Tests
+        working-directory: scripts
+        run: pytest
+
+      # Barra o link quebrado no PR, e não na hora de publicar a wiki.
+      - name: Check the wiki links
+        run: |
+          python scripts/gerar_indice_adr.py
+          python scripts/verificar_links_wiki.py --pagina-extra ADRs
+
+  infra:
+    name: infra — format and validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.15.8"
+
+      - name: Format
+        run: terraform fmt -check -recursive
+
+      # `plan` precisa de credencial e fica fora do CI; `apply` é sempre manual.
+      - name: Init and validate
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+      - name: Init and validate the state bootstrap
+        run: |
+          terraform -chdir=bootstrap init -backend=false -input=false
+          terraform -chdir=bootstrap validate
+
+  sonarcloud:
+    name: sonarcloud — static analysis
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    # Job-level env is the only place a secret is readable by a step-level `if`.
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: https://sonarcloud.io
+      IS_FORK: ${{ github.event.pull_request.head.repo.fork || false }}
+    steps:
+      # Forks never receive secrets, so a missing token there is expected, not a fault.
+      - name: Require a token outside forks
+        if: env.SONAR_TOKEN == ''
+        run: |
+          if [ "$IS_FORK" = "true" ]; then
+            echo "Fork pull request — SONAR_TOKEN is unavailable, analysis skipped." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::SONAR_TOKEN is not configured and static analysis is required."
+            exit 1
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: env.SONAR_TOKEN != ''
+        with:
+          # Full history, so SonarCloud can blame issues and compute the new-code period.
+          fetch-depth: 0
+
+      - name: Download the backend coverage report
+        if: env.SONAR_TOKEN != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: backend-coverage
+          path: backend
+
+      - name: Download the frontend coverage report
+        if: env.SONAR_TOKEN != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+
+      - name: Scan
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
+
+  # Homologação: cada envio para a dev vira uma prévia na Vercel, publicada por este pipeline.
+  deploy-web-staging:
+    name: deploy — web to staging
+    needs: [backend, frontend, infra, scripts]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.vesteai.site
+    concurrency:
+      group: deploy-staging-web
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Install the Vercel CLI
+        run: npm install --global vercel@65.11.0
+
+      - name: Pull the preview settings
+        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build --token="$VERCEL_TOKEN"
+
+      - name: Deploy under the staging domain
+        run: |
+          url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          vercel alias set "$url" staging.vesteai.site --token="$VERCEL_TOKEN"
+
+  deploy-api-production:
+    name: deploy — api to production
+    needs: [backend, frontend, infra, scripts]
+    # Fica pulado até o runtime da AWS existir: a variável liga o job sem mexer no YAML.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.API_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-production-api
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      AWS_REGION: us-east-2
+      CLUSTER: vesteai
+      SERVICE: vesteai-api
+      FAMILY: vesteai-api
+      CONTAINER: api
+      REPOSITORY: vesteai-api
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      # A tag é o commit: a imagem em produção aponta para o código exato que passou no CI.
+      - name: Build and push the image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/$REPOSITORY:$GITHUB_SHA"
+          docker build --target runtime --tag "$IMAGE" backend
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Register a task definition revision with the new image
+        run: |
+          aws ecs describe-task-definition --task-definition "$FAMILY" --query taskDefinition > atual.json
+          jq --arg imagem "$IMAGE" --arg nome "$CONTAINER" '
+            .containerDefinitions |= map(if .name == $nome then .image = $imagem else . end)
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy)' atual.json > nova.json
+          ARN=$(aws ecs register-task-definition --cli-input-json file://nova.json \
+            --query taskDefinition.taskDefinitionArn --output text)
+          echo "TASK_DEFINITION=$ARN" >> "$GITHUB_ENV"
+
+      # Numa task avulsa com a imagem nova: se a migration falhar, o service segue na versão antiga.
+      - name: Run the migrations
+        run: |
+          REDE=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+            --query 'services[0].networkConfiguration' --output json)
+          COMANDO=$(jq -cn --arg nome "$CONTAINER" \
+            '{containerOverrides: [{name: $nome, command: ["alembic", "upgrade", "head"]}]}')
+          TASK=$(aws ecs run-task --cluster "$CLUSTER" --launch-type FARGATE \
+            --task-definition "$TASK_DEFINITION" --network-configuration "$REDE" \
+            --overrides "$COMANDO" --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$TASK"
+          SAIDA=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK" \
+            --query "tasks[0].containers[?name=='$CONTAINER'].exitCode | [0]" --output text)
+          if [ "$SAIDA" != "0" ]; then
+            echo "::error::As migrations terminaram com código $SAIDA."
+            exit 1
+          fi
+
+      - name: Roll out the new revision
+        run: |
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
+            --task-definition "$TASK_DEFINITION" > /dev/null
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
+
+      - name: Check the health endpoint
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 10 "$API_URL/health"
+
+  deploy-web-production:
+    name: deploy — web to production
+    needs: [backend, frontend, infra, scripts, deploy-api-production]
+    # Com a API pulada o front segue; com qualquer falha antes, ele para.
+    if: ${{ !cancelled() && !failure() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.publicar.outputs.url }}
+    concurrency:
+      group: deploy-production-web
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Install the Vercel CLI
+        run: npm install --global vercel@65.11.0
+
+      - name: Pull the production settings
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        id: publicar
+        run: echo "url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,36 @@
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    database_url: str
+    frontend_origin: str = "http://localhost:3000"
+    jwt_secret: str
+    jwt_expiration_minutes: int = 60 * 24
+    reset_token_expiration_minutes: int = 60
+    brevo_api_key: str = ""
+    safe_browsing_api_key: str = ""
+    gemini_api_key: str = ""
+    metrics_port: int = 0
+    metrics_addr: str = "127.0.0.1"
+    gemini_project: str = "vesteai-gemini"
+    # Sem bucket, o upload recusa com recado em vez de estourar — ADR-0025.
+    s3_bucket: str = ""
+    aws_region: str = "us-east-2"
+    email_sender: str = "nao-responda@vesteai.site"
+    email_sender_name: str = "VesteAí"
+    # Destino do canal do titular. Nunca aparece na interface: é o que permite ter
+    # canal de contato sem publicar endereço nenhum. Vazio de propósito — um padrão
+    # plausível faria o formulário aceitar pedidos e mandar para o nada.
+    contact_destination: str = ""
+    frontend_reset_url: str = "http://localhost:3000/reset-password"
+    rate_limit_storage: str = "memory://"
+    env: str = "development"
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

@@ -1,0 +1,20 @@
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: { "@": import.meta.dirname },
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./vitest.setup.ts"],
+    include: ["__tests__/**/*.test.tsx", "__tests__/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["app/**", "components/**", "lib/**"],
+      exclude: ["app/**/layout.tsx", "**/*.d.ts"],
+      reporter: ["text", "lcov"],
+    },
+  },
+});

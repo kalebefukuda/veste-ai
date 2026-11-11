@@ -1,0 +1,97 @@
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from typing import Annotated, Literal
+from urllib.parse import urlparse
+
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+
+# RN06 diz que a validade comercial do link é do creator — mas endereço que não é
+# http(s) não leva a loja nenhuma. Recusar `javascript:` e `data:` não é julgar a
+# oferta: é impedir que o feed vire vetor de execução no navegador de quem clica.
+ESQUEMAS = {"http", "https"}
+
+
+def _link_de_loja(valor: str) -> str:
+    partes = urlparse(valor)
+
+    if partes.scheme not in ESQUEMAS or not partes.netloc:
+        raise ValueError("O link de compra precisa começar com http:// ou https://")
+
+    return valor
+
+
+LinkDeCompra = Annotated[str, AfterValidator(_link_de_loja)]
+
+# Um eixo só, de ocasião — não dois com estação junto. A RFC desenha o feed com pills
+# de categoria; esta é a lista que elas mostram. Literal e não `str` porque valor livre
+# viraria lixo no banco e a barra de filtro deixaria de fechar.
+Categoria = Literal["work", "casual", "social", "party", "beach", "sport"]
+
+
+# Preset do modelo: lista fechada pelo mesmo motivo da categoria — valor livre aqui
+# viraria texto arbitrário dentro do prompt, e o feed perderia a unidade que o formato
+# 3:4 garante do outro lado.
+Genero = Literal["feminino", "masculino"]
+CorDoCabelo = Literal["loiro", "castanho", "preto", "ruivo", "grisalho"]
+ComprimentoDoCabelo = Literal["curto", "medio", "longo"]
+
+
+class ModeloDoLook(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    gender: Genero | None = None
+    hair_color: CorDoCabelo | None = None
+    hair_length: ComprimentoDoCabelo | None = None
+
+
+class PieceCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=2, max_length=200)
+    purchase_url: LinkDeCompra
+    store: str | None = Field(default=None, max_length=100)
+    price: Decimal | None = Field(default=None, ge=0, le=Decimal("99999999.99"))
+    image_url: LinkDeCompra | None = None
+
+
+class PieceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    purchase_url: str
+    store: str | None = None
+    price: Decimal | None = None
+    image_url: str | None = None
+
+
+class LookCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=2, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    category: Categoria | None = None
+
+
+class LookUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str | None = Field(default=None, min_length=2, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    image_url: LinkDeCompra | None = None
+    category: Categoria | None = None
+
+
+class LookOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    title: str
+    description: str | None = None
+    image_url: str | None = None
+    category: str | None = None
+    ai_generated: bool
+    status: str
+    created_at: datetime
+    pieces: list[PieceOut] = []

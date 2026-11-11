@@ -1,0 +1,113 @@
+class DomainError(Exception):
+    """Base for business rule violations. Routers are the only layer that maps these to HTTP."""
+
+    code = "DOMAIN_ERROR"
+    detail = "Não foi possível concluir a operação"
+
+
+class EmailAlreadyRegistered(DomainError):
+    code = "EMAIL_ALREADY_REGISTERED"
+    detail = "Este e-mail já está cadastrado"
+
+
+class UsernameAlreadyTaken(DomainError):
+    code = "USERNAME_ALREADY_TAKEN"
+
+
+class LookNotFound(DomainError):
+    code = "LOOK_NOT_FOUND"
+
+
+class ProfileNotFound(DomainError):
+    code = "PROFILE_NOT_FOUND"
+    detail = "Este perfil não existe"
+
+
+class LookWithoutPiece(DomainError):
+    code = "LOOK_WITHOUT_PIECE"
+    rule = "RN04"
+
+
+class LookWithoutImage(DomainError):
+    code = "LOOK_WITHOUT_IMAGE"
+
+
+class LookWithoutCategory(DomainError):
+    code = "LOOK_WITHOUT_CATEGORY"
+
+
+class GenerationUnavailable(DomainError):
+    code = "GENERATION_UNAVAILABLE"
+    detail = "A geração por IA ainda não está disponível"
+
+
+class GenerationFailed(DomainError):
+    code = "GENERATION_FAILED"
+    detail = "Não foi possível gerar a imagem agora. Tente de novo ou envie uma foto"
+
+
+class NothingToCompose(DomainError):
+    code = "NOTHING_TO_COMPOSE"
+    detail = "Adicione ao menos uma peça com foto para gerar o look"
+
+
+class PiecesWithoutPhoto(DomainError):
+    code = "PIECES_WITHOUT_PHOTO"
+    detail = "Toda peça precisa de foto para gerar o look com IA"
+
+    def __init__(self, pieces: list[str]) -> None:
+        super().__init__()
+        self.pieces = pieces
+
+
+class StorageUnavailable(DomainError):
+    code = "STORAGE_UNAVAILABLE"
+    detail = "O envio de imagem ainda não está disponível"
+
+
+class InvalidImage(DomainError):
+    code = "INVALID_IMAGE"
+    detail = "Envie uma imagem JPEG, PNG ou WebP"
+
+
+class ImageTooLarge(DomainError):
+    code = "IMAGE_TOO_LARGE"
+    detail = "A imagem precisa ter no máximo 5 MB"
+
+
+class UnsafeLink(DomainError):
+    code = "UNSAFE_LINK"
+    detail = "Este link foi sinalizado como perigoso e não pode ser usado"
+
+
+class NotTheOwner(DomainError):
+    code = "NOT_THE_OWNER"
+    rule = "RN07"
+
+
+class InvalidCredentials(DomainError):
+    code = "INVALID_CREDENTIALS"
+    detail = "E-mail ou senha incorretos"
+
+
+class InvalidResetToken(DomainError):
+    code = "INVALID_RESET_TOKEN"
+    detail = "Este link expirou ou já foi usado. Peça um novo"
+
+
+class EmailDeliveryFailed(DomainError):
+    code = "EMAIL_DELIVERY_FAILED"
+    detail = "Não foi possível enviar o e-mail agora. Tente de novo em instantes"
+
+
+class TooManyRequests(DomainError):
+    code = "TOO_MANY_REQUESTS"
+    detail = "Muitas tentativas. Espere um pouco e tente de novo"
+
+
+class DomainHTTPException(Exception):
+    """Carrega a exceção de domínio até o handler, que monta o corpo padrão da API."""
+
+    def __init__(self, status_code: int, error: DomainError) -> None:
+        self.status_code = status_code
+        self.error = error
