@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import CtaBanner from "@/components/sections/CtaBanner";
@@ -87,28 +87,28 @@ describe("como funciona", () => {
 });
 
 describe("preços", () => {
-  it("mostra os dois planos com o preço de cada um", () => {
+  // O Pro ainda não existe na plataforma: até a assinatura sair, a tela vende só o que há.
+  it("mostra só o plano Grátis enquanto o Pro não existe", () => {
     render(<Pricing />);
 
     expect(screen.getByText("R$ 0")).toBeInTheDocument();
-    expect(screen.getByText("R$ 19,90")).toBeInTheDocument();
+    expect(screen.queryByText("R$ 19,90")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /assinar pro/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/mais popular/i)).not.toBeInTheDocument();
   });
 
-  // A assinatura só existe a partir da conta criada: nenhum dos dois botões pode
-  // apontar para um fluxo de pagamento direto.
-  it("manda os dois planos para o cadastro", () => {
+  it("não pede para escolher plano quando só há um", () => {
     render(<Pricing />);
 
-    for (const nome of [/começar grátis/i, /assinar pro/i]) {
-      expect(screen.getByRole("link", { name: nome })).toHaveAttribute("href", "/register");
-    }
+    expect(screen.getByRole("heading", { level: 2 })).not.toHaveTextContent(/escolha seu plano/i);
   });
 
-  it("marca o plano em destaque", () => {
+  it("manda o plano Grátis para o cadastro", () => {
     render(<Pricing />);
 
-    const destaque = screen.getByText("Mais popular").closest("div");
-
-    expect(within(destaque as HTMLElement).getByText("R$ 19,90")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /começar grátis/i })).toHaveAttribute(
+      "href",
+      "/register",
+    );
   });
 });
