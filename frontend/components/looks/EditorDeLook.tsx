@@ -556,6 +556,7 @@ export default function EditorDeLook({
                     toast.success("Look publicado.", {
                       description: "Ele já aparece para quem abrir o feed.",
                     });
+                    router.push(MEUS_LOOKS);
                   })
                 }
               >
