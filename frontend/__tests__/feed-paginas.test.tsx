@@ -173,6 +173,17 @@ describe("look público", () => {
     );
   });
 
+  // Sem coluna definida, o grid do celular cresce até a largura do conteúdo e a página rola para o lado.
+  it("prende a coluna à largura da tela no celular", async () => {
+    vi.stubGlobal("fetch", respondePorUrl({ "/feed/look-1": LOOK }));
+
+    const { container } = render(await LookPublicoPage({ params: { id: "look-1" } }));
+
+    const grade = container.querySelector("main > div")?.className ?? "";
+    expect(grade).toMatch(/(^|\s)grid-cols-1(\s|$)/);
+    expect(grade).toMatch(/lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,1fr\)\]/);
+  });
+
   // Contrapartida de o link deixar de ser o endereço da loja: quem clica precisa ver
   // para onde vai antes de sair daqui.
   it("mostra o domínio de destino da peça", async () => {

@@ -15,6 +15,8 @@ const config: Config = {
       },
       backgroundImage: {
         "veste-gradient": "linear-gradient(135deg, #8B5CF6 0%, #F472B6 100%)",
+        "brilho-da-borda":
+          "conic-gradient(transparent 0deg 210deg, #C4A8FF 300deg, #8B5CF6 350deg, transparent 360deg)",
       },
       keyframes: {
         // O coração cresce, passa do ponto e volta: pulo curto, não inflada lenta.
@@ -65,6 +67,9 @@ const config: Config = {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-10px)" },
         },
+        volta: {
+          to: { transform: "rotate(360deg)" },
+        },
       },
       animation: {
         "heart-pop": "heart-pop 420ms cubic-bezier(0.22, 1, 0.36, 1)",
@@ -77,6 +82,7 @@ const config: Config = {
         "float-b": "float-b 7s ease-in-out infinite 0.5s",
         "float-c": "float-c 5.5s ease-in-out infinite 1s",
         "float-d": "float-d 6.5s ease-in-out infinite 1.5s",
+        volta: "volta 2.4s linear infinite",
       },
     },
   },

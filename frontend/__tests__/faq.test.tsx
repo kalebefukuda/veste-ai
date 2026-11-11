@@ -71,6 +71,18 @@ describe("carrossel do FAQ", () => {
   });
 });
 
+describe("respostas do FAQ", () => {
+  it("não promete o plano Pro, que ainda não existe", async () => {
+    const user = userEvent.setup();
+    render(<Faq />);
+
+    await user.click(screen.getByRole("button", { name: /existe um limite/i }));
+
+    expect(screen.getByText(/até 10 looks por mês/i)).toBeInTheDocument();
+    expect(screen.queryByText(/plano pro/i)).not.toBeInTheDocument();
+  });
+});
+
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();

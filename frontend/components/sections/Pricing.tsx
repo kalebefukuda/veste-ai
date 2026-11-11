@@ -27,8 +27,12 @@ const PLANS: PricingPlan[] = [
       "Suporte prioritário",
     ],
     cta: "Assinar Pro",
+    // Fora da tela até a assinatura existir na plataforma; para voltar, basta tirar esta linha.
+    hidden: true,
   },
 ];
+
+const VISIVEIS = PLANS.filter((plan) => !plan.hidden);
 
 export default function Pricing() {
   return (
@@ -46,14 +50,18 @@ export default function Pricing() {
       <div className="mx-auto max-w-6xl px-6 text-center">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-light">Preços</p>
         <h2 className="mx-auto mt-4 max-w-xl text-3xl font-bold leading-[1.1] tracking-[-0.03em] sm:text-4xl">
-          Monetize seu estilo. <span className="text-purple-light">Escolha seu plano.</span>
+          Monetize seu estilo. <span className="block text-purple-light">Sem pagar nada.</span>
         </h2>
         <p className="mx-auto mt-4 max-w-[46ch] leading-relaxed text-white/65">
-          Comece de graça e evolua conforme seus resultados crescem.
+          Crie a conta, monte seus looks e publique de graça.
         </p>
 
-        <div className="mx-auto mt-12 grid max-w-2xl items-start gap-5 sm:grid-cols-2">
-          {PLANS.map((plan) => (
+        <div
+          className={`mx-auto mt-12 grid items-start gap-5 ${
+            VISIVEIS.length > 1 ? "max-w-2xl sm:grid-cols-2" : "max-w-sm"
+          }`}
+        >
+          {VISIVEIS.map((plan) => (
             <PlanCard key={plan.name} plan={plan} />
           ))}
         </div>

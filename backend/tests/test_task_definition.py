@@ -101,6 +101,17 @@ def test_o_deploy_pode_rodar_as_migrations() -> None:
         assert acao in politica, f"a política de deploy não tem {acao}"
 
 
+# O docker push consulta o manifesto antes de publicar o índice da imagem; sem leitura, dá 403.
+def test_o_deploy_pode_publicar_a_imagem() -> None:
+    politica = re.search(
+        r'data "aws_iam_policy_document" "deploy" \{.*?\n\}', (INFRA / "iam.tf").read_text(), re.S
+    )
+    assert politica
+
+    for acao in ("ecr:PutImage", "ecr:BatchGetImage"):
+        assert acao in politica.group(0), f"a política de deploy não tem {acao}"
+
+
 # A conta proíbe provedor OIDC, e a chave nunca entra no estado do Terraform — ADR-0031.
 def test_o_deploy_entra_por_um_usuario_so_dele() -> None:
     iam = (INFRA / "iam.tf").read_text()
