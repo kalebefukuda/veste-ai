@@ -168,7 +168,7 @@ export default function EditorDeLook({
             {imagem ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={imagem} alt="Foto do look" className="h-full w-full object-cover" />
-            ) : (
+            ) : ocupado !== "gerar" ? (
               <span className="grid h-full w-full place-content-center place-items-center gap-3 px-8 text-center">
                 <ImagePlus size={28} aria-hidden className="text-navy/35" />
                 <span className="text-sm font-semibold text-navy/70">
@@ -178,7 +178,7 @@ export default function EditorDeLook({
                   JPEG, PNG ou WebP de até 5 MB. Ou gere o modelo a partir das peças.
                 </span>
               </span>
-            )}
+            ) : null}
 
             {imagem && (
               <span
@@ -190,19 +190,48 @@ export default function EditorDeLook({
               </span>
             )}
 
-            {ocupado && NA_FOTO.has(ocupado) && (
+            {ocupado === "gerar" && (
+              <>
+                <span
+                  aria-hidden
+                  data-borda-gerando
+                  className="anel-de-brilho pointer-events-none absolute inset-0 rounded-[inherit] p-[3px]"
+                >
+                  <span className="absolute inset-0 bg-purple/15 motion-reduce:bg-purple" />
+                  <span
+                    className="absolute inset-[-50%] bg-brilho-da-borda motion-safe:animate-volta
+                      motion-reduce:hidden"
+                  />
+                </span>
+
+                <span role="status" className="absolute inset-0 grid place-items-center px-8">
+                  <span
+                    className="flex items-center gap-3 rounded-2xl border border-navy/10 bg-white
+                      px-4 py-3 shadow-sm shadow-navy/10"
+                  >
+                    <Sparkles
+                      size={18}
+                      aria-hidden
+                      className="shrink-0 text-purple motion-safe:animate-pulse"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-navy">
+                        {NA_FOTO.get("gerar")}
+                      </span>
+                      <span className="block text-sm text-navy/70">Isso leva alguns segundos.</span>
+                    </span>
+                  </span>
+                </span>
+              </>
+            )}
+
+            {ocupado && ocupado !== "gerar" && NA_FOTO.has(ocupado) && (
               <span
                 role="status"
                 className="absolute inset-0 grid place-content-center place-items-center gap-2
                   bg-white/80 px-8 text-center text-navy backdrop-blur-sm"
               >
-                {ocupado === "gerar" && (
-                  <Sparkles size={26} aria-hidden className="mb-1 text-purple motion-safe:animate-pulse" />
-                )}
                 <span className="text-sm font-semibold">{NA_FOTO.get(ocupado)}</span>
-                {ocupado === "gerar" && (
-                  <span className="text-sm text-navy/60">Isso leva alguns segundos.</span>
-                )}
               </span>
             )}
           </label>
@@ -527,6 +556,7 @@ export default function EditorDeLook({
                     toast.success("Look publicado.", {
                       description: "Ele já aparece para quem abrir o feed.",
                     });
+                    router.push(MEUS_LOOKS);
                   })
                 }
               >

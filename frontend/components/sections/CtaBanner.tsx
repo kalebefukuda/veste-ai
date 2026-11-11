@@ -23,13 +23,16 @@ export default function CtaBanner() {
             Pronto para transformar estilo em renda?
           </h2>
           <p className="mx-auto mt-5 max-w-[46ch] leading-relaxed text-white/75">
-            Monte o look, linke as peças e publique. O clique de quem gostou vai direto para a
-            loja. Comece grátis, sem cartão de crédito.
+            <span className="hidden sm:inline">
+              Monte o look, linke as peças e publique. O clique de quem gostou vai direto para a
+              loja.{" "}
+            </span>
+            Comece grátis, sem cartão de crédito.
           </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+          <div className="mt-10 grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
             <Link
               href={REGISTER}
-              className="inline-block rounded-2xl bg-white px-7 py-4 font-semibold text-navy
+              className="inline-block rounded-2xl bg-white px-7 py-4 text-center font-semibold text-navy
                 transition hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/70
                 focus-visible:ring-offset-2 focus-visible:ring-offset-navy
                 motion-safe:active:scale-[0.99]"
@@ -39,7 +42,7 @@ export default function CtaBanner() {
 
             <Link
               href={FEED}
-              className="inline-block rounded-2xl border border-white/30 px-7 py-4 font-semibold
+              className="inline-block rounded-2xl border border-white/30 px-7 py-4 text-center font-semibold
                 text-white transition hover:border-white/70 focus-visible:ring-2
                 focus-visible:ring-white/70 focus-visible:ring-offset-2
                 focus-visible:ring-offset-navy"

@@ -33,7 +33,7 @@ export default async function LookPublicoPage({ params }: Props) {
 
   return (
     <main className="pb-20">
-      <div className="mx-auto grid max-w-6xl gap-0 px-0 lg:grid-cols-[1fr_1fr] lg:gap-14 lg:px-6 lg:pt-10">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-0 px-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14 lg:px-6 lg:pt-10">
         {/* A foto toma o topo inteiro no celular e o card sobe por cima dela. No
             desktop vira coluna, porque aí sobra largura para as duas coisas. */}
         <div className="relative lg:sticky lg:top-8 lg:self-start">
