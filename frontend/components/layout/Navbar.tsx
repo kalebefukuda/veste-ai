@@ -49,7 +49,7 @@ export default function Navbar() {
           </Link>
           <Link
             href={LOGIN}
-            className="hidden rounded-full px-4 py-2 text-sm font-medium text-navy transition hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40 sm:block"
+            className="rounded-full px-3 py-2.5 text-sm font-medium text-navy transition hover:text-purple focus-visible:ring-2 focus-visible:ring-purple/40 sm:px-4"
           >
             Entrar
           </Link>

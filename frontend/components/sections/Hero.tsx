@@ -53,10 +53,10 @@ export default function Hero() {
           é sua.
         </p>
 
-        <div className="mt-9 flex w-fit flex-wrap items-center gap-3 sm:gap-4">
+        <div className="mt-9 grid gap-3 sm:flex sm:w-fit sm:flex-wrap sm:items-center sm:gap-4">
           <Link
             href={REGISTER}
-            className="rounded-2xl bg-white px-7 py-4 font-semibold text-navy transition
+            className="rounded-2xl bg-white px-7 py-4 text-center font-semibold text-navy transition
               hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/70
               focus-visible:ring-offset-2 focus-visible:ring-offset-navy
               motion-safe:active:scale-[0.99]"
@@ -68,7 +68,7 @@ export default function Hero() {
               não montar. */}
           <Link
             href={FEED}
-            className="rounded-2xl border border-white/30 px-7 py-4 font-semibold text-white
+            className="rounded-2xl border border-white/30 px-7 py-4 text-center font-semibold text-white
               transition hover:border-white/70 focus-visible:ring-2 focus-visible:ring-white/70
               focus-visible:ring-offset-2 focus-visible:ring-offset-navy"
           >
@@ -76,8 +76,8 @@ export default function Hero() {
           </Link>
         </div>
 
-        {/* Em linha no celular, flutuando sobre a foto a partir do `sm`. */}
-        <ul className="mt-9 flex flex-wrap gap-2 sm:mt-0 sm:contents">
+        {/* Só a partir do `sm`: no celular, em linha, eles se misturavam com os botões. */}
+        <ul className="hidden sm:contents">
           {PIECES.map((piece) => (
             <li
               key={piece.name}
