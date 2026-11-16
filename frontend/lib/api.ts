@@ -82,6 +82,14 @@ export type PecaNova = {
   price?: string;
 };
 
+// Na edição, loja e preço vazios vão como `null`: é o que apaga o valor salvo.
+export type PecaEdicao = {
+  name: string;
+  purchase_url: string;
+  store: string | null;
+  price: string | null;
+};
+
 export type PerfilPatch = {
   name?: string;
   bio?: string | null;
@@ -320,6 +328,10 @@ export function atualizarLook(id: string, dados: Partial<Look>): Promise<Look> {
 
 export function adicionarPeca(lookId: string, peca: PecaNova): Promise<Peca> {
   return send<Peca>("POST", `/api/looks/${lookId}/pieces`, peca);
+}
+
+export function editarPeca(lookId: string, pecaId: string, peca: PecaEdicao): Promise<Peca> {
+  return send<Peca>("PATCH", `/api/looks/${lookId}/pieces/${pecaId}`, peca);
 }
 
 export function publicarLook(id: string): Promise<Look> {

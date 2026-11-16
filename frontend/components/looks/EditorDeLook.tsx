@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/Button";
 import {
   adicionarPeca,
   atualizarLook,
+  editarPeca,
   enviarFotoDaPeca,
   enviarFotoDoLook,
   gerarImagemDoLook,
@@ -30,6 +31,7 @@ import {
   removerPeca,
   type Look,
   type Peca,
+  type PecaEdicao,
   type PecaNova,
   type PresetDoModelo,
 } from "@/lib/api";
@@ -63,6 +65,7 @@ export default function EditorDeLook({
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [adicionando, setAdicionando] = useState(false);
+  const [editando, setEditando] = useState<Peca | null>(null);
   const [compondo, setCompondo] = useState(false);
   const [preset, setPreset] = useState<PresetDoModelo>({});
   const [falhaEm, setFalhaEm] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export default function EditorDeLook({
 
   const fecharDialogo = useCallback(() => {
     setAdicionando(false);
+    setEditando(null);
     setErro(null);
   }, []);
 
@@ -457,7 +461,15 @@ export default function EditorDeLook({
                     </label>
                   )}
 
-                  <span className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    aria-label={`Editar ${p.name}`}
+                    disabled={ocupado !== null}
+                    onClick={() => setEditando(p)}
+                    className="min-w-0 flex-1 rounded-xl text-left transition hover:text-purple
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple
+                      focus-visible:ring-offset-2 disabled:opacity-50"
+                  >
                     <span className="block truncate font-medium text-navy">{p.name}</span>
                     {p.image_url ? (
                       <span className="mt-0.5 block truncate text-sm text-navy/55">
@@ -468,7 +480,7 @@ export default function EditorDeLook({
                         Falta a foto
                       </span>
                     )}
-                  </span>
+                  </button>
 
                   {cliques && (
                     <span className="shrink-0 text-sm text-navy/60">
@@ -522,7 +534,7 @@ export default function EditorDeLook({
         {/* Publicar e excluir são as duas saídas da tela: separá-los em blocos
             distantes fazia procurar a segunda. */}
         <section className="mt-10 border-t border-navy/10 pt-8">
-          {erro && !erroDaFoto && !adicionando && !compondo && (
+          {erro && !erroDaFoto && !adicionando && !editando && !compondo && (
             <p
               role="alert"
               className="mb-5 rounded-2xl bg-rose/10 px-4 py-3 text-sm text-navy"
@@ -677,6 +689,41 @@ export default function EditorDeLook({
           }
         />
       )}
+
+      {editando && (
+        <DialogoDePeca
+          inicial={editando}
+          erro={erro}
+          salvando={ocupado === "peca"}
+          onFechar={fecharDialogo}
+          onEnviar={(dados, arquivo) =>
+            void executar("peca", async () => {
+              let peca = await editarPeca(salvo.id, editando.id, paraEdicao(dados));
+              let falhaNaFoto: string | null = null;
+
+              if (arquivo) {
+                try {
+                  peca = await enviarFotoDaPeca(salvo.id, editando.id, arquivo);
+                } catch (falha) {
+                  falhaNaFoto = (falha as Error).message;
+                }
+              }
+
+              setSalvo({
+                ...salvo,
+                pieces: salvo.pieces.map((x) => (x.id === editando.id ? peca : x)),
+              });
+              setEditando(null);
+
+              if (falhaNaFoto) {
+                toast.error(`${peca.name} foi salva, mas a foto não: ${falhaNaFoto}`);
+              } else {
+                toast.success(`${peca.name} foi atualizada.`);
+              }
+            })
+          }
+        />
+      )}
     </div>
   );
 }
@@ -697,6 +744,15 @@ function soOPreenchido(peca: typeof PECA_VAZIA): PecaNova {
     purchase_url: peca.purchase_url,
     ...(peca.store ? { store: peca.store } : {}),
     ...(peca.price ? { price: peca.price } : {}),
+  };
+}
+
+function paraEdicao(peca: PecaNova): PecaEdicao {
+  return {
+    name: peca.name,
+    purchase_url: peca.purchase_url,
+    store: peca.store ?? null,
+    price: peca.price ?? null,
   };
 }
 
@@ -928,19 +984,31 @@ function DialogoDeGeracao({
 }
 
 function DialogoDePeca({
+  inicial,
   erro,
   salvando,
   onFechar,
   onEnviar,
 }: {
+  inicial?: Peca;
   erro: string | null;
   salvando: boolean;
   onFechar: () => void;
   onEnviar: (dados: PecaNova, arquivo: File | null) => void;
 }) {
-  const [peca, setPeca] = useState(PECA_VAZIA);
+  const [peca, setPeca] = useState(
+    inicial
+      ? {
+          name: inicial.name,
+          purchase_url: inicial.purchase_url,
+          store: inicial.store ?? "",
+          price: inicial.price ?? "",
+        }
+      : PECA_VAZIA,
+  );
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [previa, setPrevia] = useState<string | null>(null);
+  const fotoAtual = previa ?? inicial?.image_url ?? null;
   const primeiro = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -960,7 +1028,7 @@ function DialogoDePeca({
   }, []);
 
   return (
-    <Dialogo titulo="Nova peça" travado={salvando} onFechar={onFechar}>
+    <Dialogo titulo={inicial ? "Editar peça" : "Nova peça"} travado={salvando} onFechar={onFechar}>
       <form
         onSubmit={(evento) => {
           evento.preventDefault();
@@ -1015,16 +1083,16 @@ function DialogoDePeca({
               className="sr-only"
             />
             <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-navy/[0.05]">
-              {previa ? (
+              {fotoAtual ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={previa} alt="Prévia da foto da peça" className="h-full w-full object-cover" />
+                <img src={fotoAtual} alt="Prévia da foto da peça" className="h-full w-full object-cover" />
               ) : (
                 <ImagePlus size={20} aria-hidden className="text-navy/40" />
               )}
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-navy">
-                {arquivo ? "Trocar foto" : "Escolher foto"}
+                {fotoAtual ? "Trocar foto" : "Escolher foto"}
               </span>
               <span className="mt-0.5 block truncate text-sm text-navy/55">
                 {arquivo ? arquivo.name : "JPEG, PNG ou WebP, até 5 MB"}
@@ -1089,11 +1157,11 @@ function DialogoDePeca({
           <Button
             type="submit"
             loading={salvando}
-            loadingLabel="Adicionando…"
+            loadingLabel={inicial ? "Salvando…" : "Adicionando…"}
             disabled={salvando}
             className="text-sm"
           >
-            Adicionar
+            {inicial ? "Salvar peça" : "Adicionar"}
           </Button>
         </div>
       </form>
