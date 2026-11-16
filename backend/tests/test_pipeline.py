@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import yaml
@@ -68,6 +69,13 @@ def test_a_homologacao_fica_sempre_no_mesmo_endereco() -> None:
     assert JOBS["deploy-web-staging"]["environment"]["url"] == f"https://{DOMINIO_DE_HOMOLOGACAO}"
     assert len(publica) == 1
     assert f"vercel alias set \"$url\" {DOMINIO_DE_HOMOLOGACAO}" in publica[0]
+
+
+# Dentro de `echo "$(...)"` a falha da Vercel não derruba a etapa, e o job fica verde sem publicar.
+def test_falha_no_deploy_do_front_derruba_o_job() -> None:
+    for nome in ("deploy-web-production", "deploy-web-staging"):
+        for comando in _comandos(nome):
+            assert not re.search(r"echo[^\n]*\$\(vercel deploy", comando), nome
 
 
 def test_deploys_de_producao_nao_correm_juntos() -> None:
