@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -235,6 +235,27 @@ describe("editor de look", () => {
       store: null,
       price: "289.90",
     });
+  });
+
+  it("usa como foto da peça a imagem colada com Cmd+V", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={RASCUNHO} />);
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+    const foto = new File(["png"], "copiada.png", { type: "image/png" });
+
+    fireEvent.paste(screen.getByLabelText(/nome da peça/i), { clipboardData: { files: [foto] } });
+
+    expect(await screen.findByText("copiada.png")).toBeInTheDocument();
+  });
+
+  it("deixa o texto colado nos campos em paz", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={RASCUNHO} />);
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+
+    fireEvent.paste(screen.getByLabelText(/nome da peça/i), { clipboardData: { files: [] } });
+
+    expect(screen.getByText(/JPEG, PNG ou WebP, até 5 MB/i)).toBeInTheDocument();
   });
 
   it("cancela a edição sem gravar nada", async () => {
