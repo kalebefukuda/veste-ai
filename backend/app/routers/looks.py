@@ -34,6 +34,7 @@ from app.schemas.look import (
     ModeloDoLook,
     PieceCreate,
     PieceOut,
+    PieceUpdate,
 )
 from app.services import imagem
 from app.services.click_service import ClickService
@@ -152,7 +153,7 @@ async def enviar_imagem(
 ) -> LookOut:
     try:
         conteudo = await _ler_com_teto(arquivo)
-        look = service.set_image(look_id, conteudo, arquivo.content_type or "", user.id)
+        look = service.set_image(look_id, conteudo, user.id)
     except (
         LookNotFound,
         NotTheOwner,
@@ -207,6 +208,25 @@ def adicionar_peca(
         raise _http(erro) from erro
 
 
+@router.patch("/{look_id}/pieces/{piece_id}")
+def editar_peca(
+    look_id: uuid.UUID,
+    piece_id: uuid.UUID,
+    dados: PieceUpdate,
+    user: Autenticado,
+    service: Servico,
+) -> PieceOut:
+    try:
+        peca = service.update_piece(look_id, piece_id, dados, user.id)
+    except (LookNotFound, NotTheOwner, UnsafeLink) as erro:
+        raise _http(erro) from erro
+
+    saida = PieceOut.model_validate(peca)
+    saida.image_url = imagem.endereco(peca)
+
+    return saida
+
+
 @router.post("/{look_id}/pieces/{piece_id}/image")
 async def enviar_foto_da_peca(
     look_id: uuid.UUID,
@@ -217,9 +237,7 @@ async def enviar_foto_da_peca(
 ) -> PieceOut:
     try:
         conteudo = await _ler_com_teto(arquivo)
-        peca = service.set_piece_image(
-            look_id, piece_id, conteudo, arquivo.content_type or "", user.id
-        )
+        peca = service.set_piece_image(look_id, piece_id, conteudo, user.id)
     except (
         LookNotFound,
         NotTheOwner,
