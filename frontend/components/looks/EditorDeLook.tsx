@@ -1034,6 +1034,15 @@ function DialogoDePeca({
           evento.preventDefault();
           onEnviar(soOPreenchido(peca), arquivo);
         }}
+        onPaste={(evento) => {
+          const imagem = Array.from(evento.clipboardData?.files ?? []).find((f) =>
+            f.type.startsWith("image/"),
+          );
+          if (!imagem) return;
+
+          evento.preventDefault();
+          setArquivo(imagem);
+        }}
       >
         <div className="px-6 py-6 sm:px-8">
           <label htmlFor="peca-nome" className="block text-sm font-semibold text-navy">
@@ -1100,8 +1109,9 @@ function DialogoDePeca({
             </span>
           </label>
           <p className="mt-2 text-sm leading-relaxed text-navy/60">
-            É esta foto que a IA usa de referência para vestir o modelo. Sem ela, a peça
-            entra no look, mas a geração por IA fica bloqueada.
+            Dá para colar uma imagem copiada com Cmd+V ou Ctrl+V. É esta foto que a IA usa de
+            referência para vestir o modelo; sem ela, a peça entra no look, mas a geração por
+            IA fica bloqueada.
           </p>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
