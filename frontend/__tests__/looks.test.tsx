@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -183,6 +183,93 @@ describe("editor de look", () => {
     await user.click(screen.getByRole("button", { name: /remover sobretudo/i }));
 
     await waitFor(() => expect(screen.queryByText("Sobretudo")).not.toBeInTheDocument());
+  });
+
+  const COM_PECA = {
+    ...RASCUNHO,
+    pieces: [
+      {
+        id: "p1",
+        name: "Sobretudo",
+        purchase_url: "https://loja.com/x",
+        store: "Loja Exemplo",
+        price: "289.90",
+      },
+    ],
+  };
+
+  it("abre a peça para editar já com os dados dela", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={COM_PECA} />);
+
+    await user.click(screen.getByRole("button", { name: /editar sobretudo/i }));
+
+    expect(screen.getByRole("heading", { name: /editar peça/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/nome da peça/i)).toHaveValue("Sobretudo");
+    expect(screen.getByLabelText(/link de compra/i)).toHaveValue("https://loja.com/x");
+    expect(screen.getByLabelText(/^loja/i)).toHaveValue("Loja Exemplo");
+    expect(screen.getByLabelText(/^preço/i)).toHaveValue(289.9);
+  });
+
+  it("salva a edição da peça e mostra o nome novo", async () => {
+    const user = userEvent.setup();
+    const editada = { ...COM_PECA.pieces[0], name: "Sobretudo bordô", store: null };
+    const chamou = responde(editada);
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={COM_PECA} />);
+
+    await user.click(screen.getByRole("button", { name: /editar sobretudo/i }));
+    await user.clear(screen.getByLabelText(/nome da peça/i));
+    await user.type(screen.getByLabelText(/nome da peça/i), "Sobretudo bordô");
+    await user.clear(screen.getByLabelText(/^loja/i));
+    await user.click(screen.getByRole("button", { name: /salvar peça/i }));
+
+    expect(await screen.findByText("Sobretudo bordô")).toBeInTheDocument();
+    expect(chamou).toHaveBeenCalledWith(
+      "/api/looks/look-1/pieces/p1",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toEqual({
+      name: "Sobretudo bordô",
+      purchase_url: "https://loja.com/x",
+      store: null,
+      price: "289.90",
+    });
+  });
+
+  it("usa como foto da peça a imagem colada com Cmd+V", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={RASCUNHO} />);
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+    const foto = new File(["png"], "copiada.png", { type: "image/png" });
+
+    fireEvent.paste(screen.getByLabelText(/nome da peça/i), { clipboardData: { files: [foto] } });
+
+    expect(await screen.findByText("copiada.png")).toBeInTheDocument();
+  });
+
+  it("deixa o texto colado nos campos em paz", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={RASCUNHO} />);
+    await user.click(screen.getByRole("button", { name: /adicionar peça/i }));
+
+    fireEvent.paste(screen.getByLabelText(/nome da peça/i), { clipboardData: { files: [] } });
+
+    expect(screen.getByText(/JPEG, PNG ou WebP, até 5 MB/i)).toBeInTheDocument();
+  });
+
+  it("cancela a edição sem gravar nada", async () => {
+    const user = userEvent.setup();
+    const chamou = vi.fn();
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={COM_PECA} />);
+
+    await user.click(screen.getByRole("button", { name: /editar sobretudo/i }));
+    await user.type(screen.getByLabelText(/nome da peça/i), " trocado");
+    await user.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    expect(chamou).not.toHaveBeenCalled();
+    expect(screen.getByText("Sobretudo")).toBeInTheDocument();
   });
 
   // O feed passou a existir nesta entrega: a tela larga o futuro e afirma o presente,

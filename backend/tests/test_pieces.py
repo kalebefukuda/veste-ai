@@ -74,6 +74,93 @@ def test_remover_peca(dono: TestClient, look: str) -> None:
     assert dono.get(f"/looks/{look}").json()["pieces"] == []
 
 
+def _nova_peca(c: TestClient, look: str, **extra: object) -> str:
+    return c.post(f"/looks/{look}/pieces", json={**PECA, **extra}).json()["id"]
+
+
+def test_o_dono_edita_a_peca(dono: TestClient, look: str) -> None:
+    peca = _nova_peca(dono, look)
+
+    resposta = dono.patch(
+        f"/looks/{look}/pieces/{peca}",
+        json={"name": "Camisa de linho", "store": "C&A", "price": "139.99"},
+    )
+
+    assert resposta.status_code == 200
+    salva = dono.get(f"/looks/{look}").json()["pieces"][0]
+    assert (salva["name"], salva["store"], salva["price"]) == ("Camisa de linho", "C&A", "139.99")
+    assert salva["purchase_url"] == PECA["purchase_url"]
+
+
+def test_editar_a_peca_pode_limpar_loja_e_preco(dono: TestClient, look: str) -> None:
+    peca = _nova_peca(dono, look, price="10")
+
+    dono.patch(f"/looks/{look}/pieces/{peca}", json={"store": None, "price": None})
+
+    salva = dono.get(f"/looks/{look}").json()["pieces"][0]
+    assert (salva["store"], salva["price"]) == (None, None)
+
+
+# RN05 vale também na edição: a peça não pode perder o nome nem o link de compra.
+@pytest.mark.parametrize(
+    "mudanca",
+    [
+        {"name": None},
+        {"name": "x"},
+        {"purchase_url": None},
+        {"purchase_url": "javascript:alert(1)"},
+        {"campo_que_nao_existe": "x"},
+    ],
+)
+def test_rn05_edicao_nao_tira_nome_nem_link(dono: TestClient, look: str, mudanca: dict) -> None:
+    peca = _nova_peca(dono, look)
+
+    assert dono.patch(f"/looks/{look}/pieces/{peca}", json=mudanca).status_code == 422
+    assert dono.get(f"/looks/{look}").json()["pieces"][0]["name"] == PECA["name"]
+
+
+def test_rn07_nao_edita_peca_de_look_alheio(client: TestClient) -> None:
+    do_dono = {"Authorization": f"Bearer {token(client, DONO)}"}
+    look = client.post("/looks", json=LOOK, headers=do_dono).json()["id"]
+    peca = client.post(f"/looks/{look}/pieces", json=PECA, headers=do_dono).json()["id"]
+
+    invasor = {"Authorization": f"Bearer {token(client, OUTRA)}"}
+    resposta = client.patch(
+        f"/looks/{look}/pieces/{peca}", json={"name": "Trocado"}, headers=invasor
+    )
+
+    assert resposta.status_code == 403
+
+
+def test_rn01_visitante_nao_edita_peca(client: TestClient) -> None:
+    do_dono = {"Authorization": f"Bearer {token(client, DONO)}"}
+    look = client.post("/looks", json=LOOK, headers=do_dono).json()["id"]
+    peca = client.post(f"/looks/{look}/pieces", json=PECA, headers=do_dono).json()["id"]
+
+    assert client.patch(f"/looks/{look}/pieces/{peca}", json={"name": "Trocado"}).status_code == 401
+
+
+def test_peca_de_outro_look_nao_e_encontrada(dono: TestClient, look: str) -> None:
+    outro = dono.post("/looks", json=LOOK).json()["id"]
+    peca = _nova_peca(dono, outro)
+
+    assert dono.patch(f"/looks/{look}/pieces/{peca}", json={"name": "Trocado"}).status_code == 404
+
+
+def test_link_perigoso_na_edicao_e_recusado(
+    dono: TestClient, look: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    peca = _nova_peca(dono, look)
+    monkeypatch.setattr("app.services.look_service.e_perigoso", lambda _url: True)
+
+    resposta = dono.patch(
+        f"/looks/{look}/pieces/{peca}", json={"purchase_url": "https://phishing.exemplo/x"}
+    )
+
+    assert resposta.json()["code"] == "UNSAFE_LINK"
+    assert dono.get(f"/looks/{look}").json()["pieces"][0]["purchase_url"] == PECA["purchase_url"]
+
+
 # RN04: look só publica com ao menos uma peça com link de compra.
 def test_rn04_nao_publica_look_sem_peca(dono: TestClient, look: str) -> None:
     dono.patch(f"/looks/{look}", json={"image_url": "https://cdn.exemplo.com/look.jpg"})

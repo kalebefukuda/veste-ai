@@ -30,9 +30,9 @@ Autor: Kalebe Fukuda de Oliveira. Entrega: 30/11/2026.
 4. **Deploy só pelo pipeline.** O auto-deploy da Vercel fica desligado; o backend só
    troca de versão quando o GitHub Actions empurra a imagem pro ECR e pede novo
    deployment ao ECS. Auto-deploy não conta como CI/CD.
-5. **Documentação do sistema mora em `docs/`** — é a fonte. A publicação automática
-   na wiki do GitHub **ainda não existe**; quando existir, a wiki passa a ser gerada e
-   editá-la pela interface deixa de fazer sentido.
+5. **Documentação do sistema mora em `docs/`** — é a fonte. O `docs.yml` publica
+   `docs/wiki/` na wiki do GitHub a cada merge na `dev`; editar a wiki pela interface
+   se perde na publicação seguinte.
 6. **Decisão que fecha uma porta gera ADR** em `docs/adr/`.
 7. **Toda mudança entra por PR:** branch de trabalho → `dev` → `main`. `dev` é
    staging, `main` é produção. Nunca commitar direto em nenhuma das duas.
@@ -77,8 +77,8 @@ O CI roda o mesmo comando de teste acrescido de `--cov-fail-under`. O limiar viv
   privada). Imagens em S3, bucket privado com URL pré-assinada. Segredos no AWS
   Secrets Manager, referenciados no campo `secrets` da task definition — nunca em
   `environment`.
-- **Infraestrutura:** Terraform em `infra/` — existe no repositório e **nunca foi
-  aplicado**: não há `.tfstate`, e nenhum recurso na AWS. Mudança de infra é mudança de
+- **Infraestrutura:** Terraform em `infra/`, aplicado na conta AWS de Ohio (ADR-0031),
+  com o estado no bucket S3 criado por `infra/bootstrap/`. Mudança de infra é mudança de
   código: entra por PR, com `terraform fmt` e `validate` no pipeline. `terraform apply`
   é sempre manual e com aval, porque cria recurso que cobra.
 
