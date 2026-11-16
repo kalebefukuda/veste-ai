@@ -6,7 +6,10 @@ vi.mock("next/headers", () => ({ cookies: () => cookieStore }));
 import { GET as detalhe, PATCH as editar, DELETE as remover } from "@/app/api/looks/[id]/route";
 import { POST as gerar } from "@/app/api/looks/[id]/generate/route";
 import { DELETE as removerFoto } from "@/app/api/looks/[id]/image/route";
-import { DELETE as removerPeca } from "@/app/api/looks/[id]/pieces/[pieceId]/route";
+import {
+  DELETE as removerPeca,
+  PATCH as editarPeca,
+} from "@/app/api/looks/[id]/pieces/[pieceId]/route";
 import { POST as enviarFotoDaPeca } from "@/app/api/looks/[id]/pieces/[pieceId]/image/route";
 import { POST as adicionarPeca } from "@/app/api/looks/[id]/pieces/route";
 import { POST as publicar } from "@/app/api/looks/[id]/publish/route";
@@ -117,6 +120,12 @@ describe("as rotas de look chamam o caminho certo", () => {
     chamou = espiar();
     await removerPeca(pedido(), { params: { id: "abc", pieceId: "p1" } });
     expect(chamou.mock.calls[0][0]).toContain("/looks/abc/pieces/p1");
+
+    chamou = espiar();
+    await editarPeca(pedido({ name: "Q" }), { params: { id: "abc", pieceId: "p1" } });
+    expect(chamou.mock.calls[0][0]).toContain("/looks/abc/pieces/p1");
+    expect(chamou.mock.calls[0][1].method).toBe("PATCH");
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toEqual({ name: "Q" });
 
     chamou = espiar();
     await publicar(pedido(), { params: { id: "abc" } });

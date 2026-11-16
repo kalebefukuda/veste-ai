@@ -92,9 +92,21 @@ def test_recusa_arquivo_que_nao_e_imagem(dono, look, com_bucket, s3_falso) -> No
 
 
 def test_recusa_tipo_fora_da_lista(dono, look, com_bucket, s3_falso) -> None:
-    resposta = enviar(dono, look, JPEG, "image/svg+xml", "f.svg")
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+
+    resposta = enviar(dono, look, svg, "image/svg+xml", "f.svg")
 
     assert resposta.status_code == 422
+    assert resposta.json()["code"] == "INVALID_IMAGE"
+
+
+# Loja que serve WebP numa URL terminada em .jpg gera um "JPEG" que é WebP nos bytes.
+def test_o_tipo_vem_dos_bytes_e_nao_do_nome_do_arquivo(dono, look, com_bucket, s3_falso) -> None:
+    resposta = enviar(dono, look, WEBP, "image/jpeg", "short.jpg")
+
+    assert resposta.status_code == 200
+    assert s3_falso["ContentType"] == "image/webp"
+    assert str(s3_falso["Key"]).endswith(".webp")
 
 
 def test_recusa_arquivo_grande_demais(dono, look, com_bucket, s3_falso) -> None:

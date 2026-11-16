@@ -185,6 +185,72 @@ describe("editor de look", () => {
     await waitFor(() => expect(screen.queryByText("Sobretudo")).not.toBeInTheDocument());
   });
 
+  const COM_PECA = {
+    ...RASCUNHO,
+    pieces: [
+      {
+        id: "p1",
+        name: "Sobretudo",
+        purchase_url: "https://loja.com/x",
+        store: "Loja Exemplo",
+        price: "289.90",
+      },
+    ],
+  };
+
+  it("abre a peça para editar já com os dados dela", async () => {
+    const user = userEvent.setup();
+    render(<EditorDeLook inicial={COM_PECA} />);
+
+    await user.click(screen.getByRole("button", { name: /editar sobretudo/i }));
+
+    expect(screen.getByRole("heading", { name: /editar peça/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/nome da peça/i)).toHaveValue("Sobretudo");
+    expect(screen.getByLabelText(/link de compra/i)).toHaveValue("https://loja.com/x");
+    expect(screen.getByLabelText(/^loja/i)).toHaveValue("Loja Exemplo");
+    expect(screen.getByLabelText(/^preço/i)).toHaveValue(289.9);
+  });
+
+  it("salva a edição da peça e mostra o nome novo", async () => {
+    const user = userEvent.setup();
+    const editada = { ...COM_PECA.pieces[0], name: "Sobretudo bordô", store: null };
+    const chamou = responde(editada);
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={COM_PECA} />);
+
+    await user.click(screen.getByRole("button", { name: /editar sobretudo/i }));
+    await user.clear(screen.getByLabelText(/nome da peça/i));
+    await user.type(screen.getByLabelText(/nome da peça/i), "Sobretudo bordô");
+    await user.clear(screen.getByLabelText(/^loja/i));
+    await user.click(screen.getByRole("button", { name: /salvar peça/i }));
+
+    expect(await screen.findByText("Sobretudo bordô")).toBeInTheDocument();
+    expect(chamou).toHaveBeenCalledWith(
+      "/api/looks/look-1/pieces/p1",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+    expect(JSON.parse(chamou.mock.calls[0][1].body)).toEqual({
+      name: "Sobretudo bordô",
+      purchase_url: "https://loja.com/x",
+      store: null,
+      price: "289.90",
+    });
+  });
+
+  it("cancela a edição sem gravar nada", async () => {
+    const user = userEvent.setup();
+    const chamou = vi.fn();
+    vi.stubGlobal("fetch", chamou);
+    render(<EditorDeLook inicial={COM_PECA} />);
+
+    await user.click(screen.getByRole("button", { name: /editar sobretudo/i }));
+    await user.type(screen.getByLabelText(/nome da peça/i), " trocado");
+    await user.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    expect(chamou).not.toHaveBeenCalled();
+    expect(screen.getByText("Sobretudo")).toBeInTheDocument();
+  });
+
   // O feed passou a existir nesta entrega: a tela larga o futuro e afirma o presente,
   // com o caminho para conferir.
   it("diz que o look publicado já está no feed e leva até ele", async () => {

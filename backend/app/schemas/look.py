@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from urllib.parse import urlparse
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 # RN06 diz que a validade comercial do link é do creator — mas endereço que não é
 # http(s) não leva a loja nenhuma. Recusar `javascript:` e `data:` não é julgar a
@@ -53,6 +53,23 @@ class PieceCreate(BaseModel):
     store: str | None = Field(default=None, max_length=100)
     price: Decimal | None = Field(default=None, ge=0, le=Decimal("99999999.99"))
     image_url: LinkDeCompra | None = None
+
+
+class PieceUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=2, max_length=200)
+    purchase_url: LinkDeCompra | None = None
+    store: str | None = Field(default=None, max_length=100)
+    price: Decimal | None = Field(default=None, ge=0, le=Decimal("99999999.99"))
+
+    @model_validator(mode="after")
+    def _rn05_nome_e_link_nao_somem(self) -> "PieceUpdate":
+        for campo in ("name", "purchase_url"):
+            if campo in self.model_fields_set and getattr(self, campo) is None:
+                raise ValueError(f"{campo} não pode ficar vazio")
+
+        return self
 
 
 class PieceOut(BaseModel):

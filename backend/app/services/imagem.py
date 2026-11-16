@@ -49,14 +49,14 @@ def _tipo_pelos_bytes(conteudo: bytes) -> str | None:
     )
 
 
-def guardar(pasta: str, conteudo: bytes, tipo: str) -> str:
-    if tipo not in ASSINATURAS:
-        raise InvalidImage()
-
+def guardar(pasta: str, conteudo: bytes) -> str:
     if len(conteudo) > TAMANHO_MAXIMO:
         raise ImageTooLarge()
 
-    if _tipo_pelos_bytes(conteudo) != tipo:
+    # Nome e tipo declarados vêm de quem salvou o arquivo; o formato real está nos bytes.
+    tipo = _tipo_pelos_bytes(conteudo)
+
+    if tipo is None:
         raise InvalidImage()
 
     # `uuid` no nome para troca de foto não colidir com a anterior em cache, e a pasta

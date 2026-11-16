@@ -17,7 +17,7 @@ from app.core.exceptions import (
 )
 from app.models.look import PUBLICADO, Look, Piece
 from app.repositories.look_repository import LookRepository
-from app.schemas.look import LookCreate, LookUpdate, ModeloDoLook, PieceCreate
+from app.schemas.look import LookCreate, LookUpdate, ModeloDoLook, PieceCreate, PieceUpdate
 from app.services import imagem
 
 # O que a publicação exige, a edição não pode desfazer. Tabela e não uma sequência de
@@ -78,9 +78,9 @@ class LookService:
     def delete(self, look_id: uuid.UUID, user_id: uuid.UUID) -> None:
         self.looks.delete(self._meu(look_id, user_id))
 
-    def set_image(self, look_id: uuid.UUID, conteudo: bytes, tipo: str, user_id: uuid.UUID) -> Look:
+    def set_image(self, look_id: uuid.UUID, conteudo: bytes, user_id: uuid.UUID) -> Look:
         look = self._meu(look_id, user_id)
-        look.image_key = imagem.guardar(f"looks/{look.id}", conteudo, tipo)
+        look.image_key = imagem.guardar(f"looks/{look.id}", conteudo)
         look.ai_generated = False
 
         return look
@@ -137,17 +137,27 @@ class LookService:
 
         return peca
 
-    def set_piece_image(
-        self,
-        look_id: uuid.UUID,
-        piece_id: uuid.UUID,
-        conteudo: bytes,
-        tipo: str,
-        user_id: uuid.UUID,
+    def update_piece(
+        self, look_id: uuid.UUID, piece_id: uuid.UUID, dados: PieceUpdate, user_id: uuid.UUID
     ) -> Piece:
         look = self._meu(look_id, user_id)
         peca = self._minha_peca(look, piece_id)
-        peca.image_key = imagem.guardar(f"looks/{look.id}/pieces/{peca.id}", conteudo, tipo)
+        campos = dados.model_dump(exclude_unset=True)
+
+        if "purchase_url" in campos and e_perigoso(campos["purchase_url"]):
+            raise UnsafeLink()
+
+        for campo, valor in campos.items():
+            setattr(peca, campo, valor)
+
+        return peca
+
+    def set_piece_image(
+        self, look_id: uuid.UUID, piece_id: uuid.UUID, conteudo: bytes, user_id: uuid.UUID
+    ) -> Piece:
+        look = self._meu(look_id, user_id)
+        peca = self._minha_peca(look, piece_id)
+        peca.image_key = imagem.guardar(f"looks/{look.id}/pieces/{peca.id}", conteudo)
 
         return peca
 
