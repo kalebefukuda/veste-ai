@@ -14,6 +14,19 @@
 A Railway foi recusada pelo orientador e saiu do plano; o porquê da AWS gerenciada e o
 que foi descartado no caminho está em [[ADRs]], nos ADR-0002 e ADR-0017.
 
+## Ambientes
+
+| Ambiente | Onde | Banco | Como o código chega lá |
+|---|---|---|---|
+| **Desenvolvimento** | máquina de quem desenvolve — [[Como-rodar-localmente]] | Postgres local: `vesteai` para usar, `vesteai_test` para a suíte | — |
+| **CI** | GitHub Actions, a cada PR e push | Postgres 16 do próprio job, descartado no fim | automático |
+| **Staging** | `staging.vesteai.site` — só o front, como prévia na Vercel | nenhum: não tem API própria | merge na `dev`, sem aprovação |
+| **Produção** | `vesteai.site` (Vercel) e `api.vesteai.site` (AWS) | RDS em sub-rede privada | merge na `main`, com aprovação no ambiente `production` |
+
+O staging não tem backend de propósito: seria mais um service no cluster e um banco lógico
+no mesmo RDS, uns US$ 15/mês a mais. O fluxo completo, com API e banco, é validado no
+desenvolvimento local e no CI antes de chegar à produção.
+
 ## O pipeline
 
 `.github/workflows/ci.yml` roda em todo push e PR para `dev` e `main`. Primeiro as
@@ -107,7 +120,7 @@ O que muda por ambiente é **onde o valor mora**:
 | `ENV` | liga o HSTS; fora de produção ele não sai | task definition → `environment`, fixo em `production` |
 | `FRONTEND_RESET_URL` | link do e-mail de recuperação de senha | task definition → campo `environment` |
 | `EMAIL_SENDER` | remetente do e-mail | **não é injetada** — o padrão da aplicação já é `nao-responda@vesteai.site` |
-| `NEXT_PUBLIC_API_URL` | endereço da API para o browser | variável da Vercel |
+| `API_URL` | endereço da API, lido pelo servidor do Next | variável da Vercel, só em Production |
 | `METRICS_PORT` | porta interna das métricas; vazia não abre nada | task definition → `environment`, fixo em `9100` |
 | `METRICS_ADDR` | endereço em que essa porta escuta | **não é injetada** — o padrão `127.0.0.1` basta, o Prometheus lê pelo `localhost` da task |
 
